@@ -21,6 +21,7 @@ function haptic(ms = 8) {
 export function ConversationList({ conversations, activeId, onSelect, onNew, onDelete, onClose, user, onLogout }: Props) {
   const [search, setSearch] = useState("");
   const [swipedId, setSwipedId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const touchStartX = useRef(0);
 
   const filtered = search.trim()
@@ -103,7 +104,7 @@ export function ConversationList({ conversations, activeId, onSelect, onNew, onD
                   onClick={(e) => {
                     e.stopPropagation();
                     haptic(15);
-                    onDelete(c.id);
+                    setConfirmDeleteId(c.id);
                     setSwipedId(null);
                   }}
                   className="w-full h-full bg-red-500 flex items-center justify-center text-white"
@@ -141,7 +142,7 @@ export function ConversationList({ conversations, activeId, onSelect, onNew, onD
                   onClick={(e) => {
                     e.stopPropagation();
                     haptic(15);
-                    onDelete(c.id);
+                    setConfirmDeleteId(c.id);
                   }}
                   className="ml-2 w-8 h-8 flex-shrink-0 flex items-center justify-center text-gray-300 hover:text-red-500 active:text-red-500 transition-colors rounded-lg active:bg-red-50 dark:active:bg-red-950/30"
                 >
@@ -155,6 +156,35 @@ export function ConversationList({ conversations, activeId, onSelect, onNew, onD
           ))
         )}
       </div>
+
+      {/* Confirm delete modal */}
+      {confirmDeleteId && (
+        <>
+          <div className="fixed inset-0 bg-black/40 z-[60] animate-fade-in" onClick={() => setConfirmDeleteId(null)} />
+          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-[70] bg-white dark:bg-[#1e1b22] rounded-2xl shadow-2xl p-5 animate-fade-in max-w-sm mx-auto">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Eliminar conversación</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Esta acción no se puede deshacer.</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmDeleteId(null)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#2c2c2e] active:scale-[0.98]"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  haptic(15);
+                  onDelete(confirmDeleteId);
+                  setConfirmDeleteId(null);
+                }}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white bg-red-500 active:bg-red-600 active:scale-[0.98]"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* User footer */}
       <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between safe-bottom">

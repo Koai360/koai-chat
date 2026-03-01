@@ -336,7 +336,7 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
           <button
             onClick={handleSubmit}
             disabled={isDisabled}
-            className="flex-shrink-0 w-[44px] h-[44px] rounded-full flex items-center justify-center bg-indigo-500 text-white active:scale-90 active:bg-indigo-600 disabled:opacity-50 transition-transform"
+            className="flex-shrink-0 w-[44px] h-[44px] rounded-full flex items-center justify-center bg-[#bcd431] text-[#3d1e54] active:scale-90 active:bg-[#9ab321] disabled:opacity-50 transition-transform"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
               <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
@@ -350,8 +350,8 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
               recording
                 ? "bg-red-500 text-white animate-gentle-pulse"
                 : transcribing
-                  ? "bg-indigo-500/20 text-indigo-500"
-                  : "bg-indigo-500 text-white"
+                  ? "bg-[#572c77]/20 text-[#572c77]"
+                  : "bg-[#572c77] text-white"
             } disabled:opacity-50`}
           >
             {transcribing ? (

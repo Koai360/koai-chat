@@ -46,25 +46,18 @@ export function MessageBubble({ message }: Props) {
       <div
         className={`max-w-[85%] rounded-[18px] px-3.5 py-2 relative ${
           isUser
-            ? "bg-indigo-500 text-white rounded-br-[4px]"
-            : message.agent === "kira"
-              ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-bl-[4px]"
-              : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-bl-[4px]"
+            ? "bg-gradient-to-br from-[#572c77] to-[#7c4d9e] text-white rounded-br-[4px] shadow-sm shadow-[#572c77]/20"
+            : "bg-[#f5f3f7] dark:bg-[#1e1b22] text-gray-900 dark:text-gray-100 rounded-bl-[4px]"
         }`}
       >
         {!isUser && (
           <div className="flex items-center justify-between mb-0.5">
-            <span
-              className={`text-[11px] font-semibold ${
-                message.agent === "kira" ? "text-pink-500" : "text-indigo-500"
-              }`}
-            >
+            <span className="text-[11px] font-bold text-[#bcd431]">
               {message.agent === "kira" ? "Kira" : "Kronos"}
             </span>
             <CopyButton text={message.content} />
           </div>
         )}
-        {/* Image attachment */}
         {message.image && (
           <img
             src={`data:image/jpeg;base64,${message.image}`}
@@ -102,12 +95,8 @@ export function StreamingBubble({ text, agent }: { text: string; agent: "kira" |
   if (!text) return null;
   return (
     <div className="flex justify-start mb-2 animate-bubble-in">
-      <div className="max-w-[85%] rounded-[18px] px-3.5 py-2 rounded-bl-[4px] bg-gray-100 dark:bg-gray-800">
-        <span
-          className={`text-[11px] font-semibold block mb-0.5 ${
-            agent === "kira" ? "text-pink-500" : "text-indigo-500"
-          }`}
-        >
+      <div className="max-w-[85%] rounded-[18px] px-3.5 py-2 rounded-bl-[4px] bg-[#f5f3f7] dark:bg-[#1e1b22]">
+        <span className="text-[11px] font-bold block mb-0.5 text-[#bcd431]">
           {agent === "kira" ? "Kira" : "Kronos"}
         </span>
         <div className="text-[15px] leading-snug prose prose-sm dark:prose-invert max-w-none text-gray-900 dark:text-gray-100">

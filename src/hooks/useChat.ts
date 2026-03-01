@@ -9,7 +9,7 @@ export interface Message {
   agent: Agent;
   content: string;
   timestamp: number;
-  image?: string; // base64 data (without prefix) for display
+  image?: string;
 }
 
 export interface Conversation {
@@ -43,16 +43,28 @@ function generateTitle(msg: string): string {
 export function useChat(userId: string | null = null) {
   const [conversations, setConversations] = useState<Conversation[]>(() => loadConversations(userId));
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [agent, setAgent] = useState<Agent>("kira");
+  const [agent, setAgentState] = useState<Agent>("kira");
   const [loading, setLoading] = useState(false);
   const [streamingText, setStreamingText] = useState("");
   const active = conversations.find((c) => c.id === activeId) || null;
 
-  // Recargar cuando cambia userId
+  // Reload when userId changes
   useEffect(() => {
     setConversations(loadConversations(userId));
     setActiveId(null);
   }, [userId]);
+
+  // When agent changes, switch to the most recent conversation of that agent (or null)
+  const setAgent = useCallback((newAgent: Agent) => {
+    setAgentState(newAgent);
+    // Find most recent conversation for this agent
+    const agentConvos = conversations.filter((c) => c.agent === newAgent);
+    if (agentConvos.length > 0) {
+      setActiveId(agentConvos[0].id);
+    } else {
+      setActiveId(null);
+    }
+  }, [conversations]);
 
   const updateConversation = useCallback(
     (id: string, updater: (c: Conversation) => Conversation) => {
@@ -102,7 +114,6 @@ export function useChat(userId: string | null = null) {
         image: imageBase64,
       };
 
-      // Update title if first message
       updateConversation(convoId, (c) => ({
         ...c,
         agent,
@@ -128,7 +139,6 @@ export function useChat(userId: string | null = null) {
             messages: [...c.messages, assistantMsg],
           }));
         } else {
-          // Kronos — streaming
           const history = conversations
             .find((c) => c.id === convoId)
             ?.messages.map((m) => ({
@@ -186,8 +196,11 @@ export function useChat(userId: string | null = null) {
     if (activeId === id) setActiveId(null);
   }, [activeId, userId]);
 
+  // Filter conversations shown in sidebar by current agent
+  const agentConversations = conversations.filter((c) => c.agent === agent);
+
   return {
-    conversations,
+    conversations: agentConversations,
     active,
     activeId,
     setActiveId,

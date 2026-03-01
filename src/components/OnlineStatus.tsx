@@ -18,8 +18,8 @@ export function OnlineStatus() {
 
   return (
     <div className="flex items-center gap-1 mt-0.5">
-      <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-      <span className="text-[10px] text-amber-500 font-medium">Sin conexión</span>
+      <span className="w-1.5 h-1.5 rounded-full bg-amber-300" />
+      <span className="text-[10px] text-amber-200 font-medium">Sin conexión</span>
     </div>
   );
 }

@@ -12,14 +12,14 @@ function haptic() {
 
 export function AgentToggle({ agent, onChange, disabled }: Props) {
   return (
-    <div className="flex rounded-full bg-gray-100/80 dark:bg-gray-800/80 p-[3px] gap-[2px]">
+    <div className="flex rounded-full bg-white/15 p-[3px] gap-[2px]">
       <button
         onClick={() => { haptic(); onChange("kira"); }}
         disabled={disabled}
-        className={`px-5 py-[5px] rounded-full text-[13px] font-semibold transition-all duration-200 ${
+        className={`px-5 py-[5px] rounded-full text-[13px] font-bold tracking-wide transition-all duration-200 ${
           agent === "kira"
-            ? "bg-white dark:bg-gray-700 text-pink-500 shadow-sm"
-            : "text-gray-400 dark:text-gray-500"
+            ? "bg-[#bcd431] text-[#3d1e54] shadow-md shadow-[#bcd431]/30"
+            : "text-white/60"
         } disabled:opacity-50 active:scale-95`}
       >
         Kira
@@ -27,10 +27,10 @@ export function AgentToggle({ agent, onChange, disabled }: Props) {
       <button
         onClick={() => { haptic(); onChange("kronos"); }}
         disabled={disabled}
-        className={`px-5 py-[5px] rounded-full text-[13px] font-semibold transition-all duration-200 ${
+        className={`px-5 py-[5px] rounded-full text-[13px] font-bold tracking-wide transition-all duration-200 ${
           agent === "kronos"
-            ? "bg-white dark:bg-gray-700 text-indigo-500 shadow-sm"
-            : "text-gray-400 dark:text-gray-500"
+            ? "bg-[#bcd431] text-[#3d1e54] shadow-md shadow-[#bcd431]/30"
+            : "text-white/60"
         } disabled:opacity-50 active:scale-95`}
       >
         Kronos

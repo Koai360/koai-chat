@@ -2,24 +2,22 @@
 @import "highlight.js/styles/github-dark.min.css";
 
 @theme {
-  /* Brand KOAI oficial */
+  /* Brand KOAI oficial — del PDF de entrega */
   --color-koai-purple: #572c77;
   --color-koai-purple-light: #7c4d9e;
-  --color-koai-lime: #bcd331;
+  --color-koai-purple-dark: #3d1e54;
+  --color-koai-lime: #bcd431;
+  --color-koai-lime-dark: #9ab321;
   --color-koai-beige: #e3dcc9;
 
-  /* App colors */
-  --color-koai-primary: #6366f1;
-  --color-koai-primary-dark: #4f46e5;
-  --color-koai-kira: #ec4899;
-  --color-koai-kronos: #6366f1;
+  /* Functional */
   --color-koai-bg: #ffffff;
-  --color-koai-bg-dark: #0f172a;
-  --color-koai-surface: #f8fafc;
-  --color-koai-surface-dark: #1e293b;
-  --color-koai-text: #0f172a;
-  --color-koai-text-dark: #f1f5f9;
-  --color-koai-muted: #64748b;
+  --color-koai-bg-dark: #0a0a0c;
+  --color-koai-surface: #f5f3f7;
+  --color-koai-surface-dark: #1a1a1e;
+  --color-koai-text: #1a1a1e;
+  --color-koai-text-dark: #f1f0f3;
+  --color-koai-muted: #6b6b76;
 }
 
 html, body, #root {
@@ -43,19 +41,16 @@ body {
   letter-spacing: -0.01em;
 }
 
-/* Prevent pull-to-refresh on main app shell */
 #root {
   overscroll-behavior-y: contain;
 }
 
-/* Interactive elements: no text selection, instant tap */
 button, a, [role="button"] {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
 }
 
-/* Better active states for mobile feedback */
 button:active:not(:disabled) {
   opacity: 0.85;
   transition: opacity 0.05s;
@@ -67,22 +62,25 @@ button:active:not(:disabled) {
   .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
 }
 
-/* === ANIMATIONS === */
+/* === INPUT BAR — matches iOS keyboard === */
+.input-bar-bg {
+  background-color: #d1d3d9;
+}
+@media (prefers-color-scheme: dark) {
+  .input-bar-bg {
+    background-color: #1c1c1e;
+  }
+}
 
-/* Sidebar slide in */
+/* === ANIMATIONS === */
 @keyframes slide-in-left {
   from { transform: translateX(-100%); }
   to { transform: translateX(0); }
-}
-@keyframes slide-out-left {
-  from { transform: translateX(0); }
-  to { transform: translateX(-100%); }
 }
 .animate-slide-in {
   animation: slide-in-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Fade overlay */
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -91,7 +89,6 @@ button:active:not(:disabled) {
   animation: fade-in 0.2s ease-out;
 }
 
-/* Message bubble entrance */
 @keyframes bubble-in {
   from {
     opacity: 0;
@@ -106,7 +103,6 @@ button:active:not(:disabled) {
   animation: bubble-in 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Subtle pulse for loading */
 @keyframes gentle-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
@@ -155,36 +151,14 @@ button:active:not(:disabled) {
   white-space: nowrap;
 }
 
-/* === INPUT BAR — matches iOS keyboard === */
-.input-bar-bg {
-  /* Light mode: matches iOS light keyboard area */
-  background-color: #d1d3d9;
-}
-@media (prefers-color-scheme: dark) {
-  .input-bar-bg {
-    /* Matches iOS dark keyboard background exactly */
-    background-color: #1c1c1e;
-  }
-}
-
-/* === SCROLL NATIVE === */
+/* === SCROLL === */
 .chat-scroll {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
   scroll-behavior: smooth;
 }
 
-/* === SCROLLBAR === */
-::-webkit-scrollbar {
-  width: 4px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.3);
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 0.5);
-}
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.3); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 0.5); }

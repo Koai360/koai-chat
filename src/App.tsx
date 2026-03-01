@@ -14,8 +14,8 @@ export default function App() {
 
   if (auth.isLoading) {
     return (
-      <div className="h-full flex flex-col items-center justify-center bg-gradient-to-b from-indigo-50 to-white dark:from-gray-900 dark:to-gray-950">
-        <img src="/icons/koai-192.png" alt="KOAI" className="w-20 h-20 rounded-2xl animate-gentle-pulse shadow-lg" />
+      <div className="h-full flex flex-col items-center justify-center bg-gradient-to-b from-[#572c77]/10 to-white dark:from-[#572c77]/20 dark:to-[#0a0a0c]">
+        <img src="/icons/kira-logo.svg" alt="KOAI" className="w-20 h-20 rounded-full animate-gentle-pulse shadow-lg" />
         <p className="mt-4 text-sm text-gray-400 animate-gentle-pulse">Cargando...</p>
       </div>
     );
@@ -86,14 +86,14 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
   };
 
   return (
-    <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
+    <div className="h-full flex flex-col bg-white dark:bg-[#0a0a0c] text-gray-900 dark:text-gray-100">
       {swUpdate && <UpdateBanner onUpdate={handleUpdate} />}
 
-      {/* Header — iOS style with blur */}
-      <header className="flex items-center justify-between px-2 py-1.5 bg-white/90 dark:bg-gray-950/90 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 safe-top">
+      {/* Header — KOAI purple gradient */}
+      <header className="flex items-center justify-between px-2 py-1.5 bg-gradient-to-r from-[#572c77] to-[#7c4d9e] safe-top">
         <button
           onClick={() => setShowSidebar(true)}
-          className="w-11 h-11 flex items-center justify-center rounded-full active:bg-gray-100 dark:active:bg-gray-800 transition-colors active:scale-95"
+          className="w-11 h-11 flex items-center justify-center rounded-full text-white/80 active:text-white active:bg-white/10 transition-colors active:scale-95"
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="3" y1="12" x2="21" y2="12" />
@@ -109,7 +109,7 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
 
         <button
           onClick={newConversation}
-          className="w-11 h-11 flex items-center justify-center rounded-full active:bg-gray-100 dark:active:bg-gray-800 transition-colors active:scale-95"
+          className="w-11 h-11 flex items-center justify-center rounded-full text-white/80 active:text-white active:bg-white/10 transition-colors active:scale-95"
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -118,7 +118,7 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
       </header>
 
       {/* Chat area */}
-      <main className="flex-1 overflow-hidden bg-white dark:bg-gray-950">
+      <main className="flex-1 overflow-hidden bg-white dark:bg-[#0a0a0c]">
         <ChatView
           conversation={active}
           agent={agent}

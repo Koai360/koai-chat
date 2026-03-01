@@ -69,12 +69,8 @@ export function ChatView({ conversation, agent, loading, streamingText, onSend, 
                 ? "Asistente de ventas y soporte 24/7"
                 : "Asistente técnico de KOAI Studios"}
             </p>
-            <div className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium mb-6 ${
-              agent === "kira"
-                ? "bg-pink-50 text-pink-500 dark:bg-pink-950/30"
-                : "bg-indigo-50 text-indigo-500 dark:bg-indigo-950/30"
-            }`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${agent === "kira" ? "bg-pink-400" : "bg-indigo-400"}`} />
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium mb-6 bg-[#bcd431]/10 text-[#bcd431] dark:bg-[#bcd431]/10">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#bcd431]" />
               En línea
             </div>
             <div className="flex flex-wrap justify-center gap-2 max-w-xs">
@@ -83,7 +79,7 @@ export function ChatView({ conversation, agent, loading, streamingText, onSend, 
                   key={s}
                   onClick={() => onSend(s)}
                   disabled={loading}
-                  className="px-3.5 py-2 rounded-2xl border border-gray-200 dark:border-gray-700 text-xs text-gray-600 dark:text-gray-400 hover:border-indigo-300 hover:text-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20 transition-all disabled:opacity-50 active:scale-95"
+                  className="px-3.5 py-2 rounded-2xl border border-[#572c77]/20 dark:border-[#572c77]/30 text-xs text-gray-600 dark:text-gray-400 hover:border-[#572c77]/50 hover:text-[#572c77] hover:bg-[#572c77]/5 dark:hover:bg-[#572c77]/10 transition-all disabled:opacity-50 active:scale-95"
                 >
                   {s}
                 </button>
@@ -111,7 +107,7 @@ export function ChatView({ conversation, agent, loading, streamingText, onSend, 
         {/* Typing indicator */}
         {loading && !streamingText && (
           <div className="flex justify-start mb-2 animate-bubble-in">
-            <div className="rounded-[18px] px-4 py-3 rounded-bl-[4px] bg-gray-100 dark:bg-gray-800">
+            <div className="rounded-[18px] px-4 py-3 rounded-bl-[4px] bg-[#f5f3f7] dark:bg-[#1e1b22]">
               <div className="flex gap-1">
                 <span className="w-[7px] h-[7px] bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce [animation-delay:0ms]" />
                 <span className="w-[7px] h-[7px] bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce [animation-delay:150ms]" />

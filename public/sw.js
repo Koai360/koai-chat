@@ -1,11 +1,11 @@
-const CACHE_NAME = "koai-chat-v1";
+const CACHE_NAME = "koai-chat-v2";
 const PRECACHE = ["/", "/manifest.json"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE))
   );
-  self.skipWaiting();
+  // Don't skipWaiting automatically — let the app control the update
 });
 
 self.addEventListener("activate", (e) => {
@@ -15,6 +15,12 @@ self.addEventListener("activate", (e) => {
     )
   );
   self.clients.claim();
+});
+
+self.addEventListener("message", (e) => {
+  if (e.data === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("fetch", (e) => {

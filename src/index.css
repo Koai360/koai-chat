@@ -1,6 +1,14 @@
 @import "tailwindcss";
+@import "highlight.js/styles/github-dark.min.css";
 
 @theme {
+  /* Brand KOAI oficial */
+  --color-koai-purple: #572c77;
+  --color-koai-purple-light: #7c4d9e;
+  --color-koai-lime: #bcd331;
+  --color-koai-beige: #e3dcc9;
+
+  /* App colors */
   --color-koai-primary: #6366f1;
   --color-koai-primary-dark: #4f46e5;
   --color-koai-kira: #ec4899;
@@ -15,19 +23,155 @@
 }
 
 html, body, #root {
+  height: 100dvh;
   height: 100%;
   margin: 0;
   overscroll-behavior: none;
+}
+
+@supports (height: 100dvh) {
+  html, body, #root {
+    height: 100dvh;
+  }
 }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Prevent pull-to-refresh on main app shell */
+#root {
+  overscroll-behavior-y: contain;
+}
+
+/* Interactive elements: no text selection, instant tap */
+button, a, [role="button"] {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Better active states for mobile feedback */
+button:active:not(:disabled) {
+  opacity: 0.85;
+  transition: opacity 0.05s;
 }
 
 /* iOS safe area */
 @supports (padding-top: env(safe-area-inset-top)) {
   .safe-top { padding-top: env(safe-area-inset-top); }
   .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+/* === ANIMATIONS === */
+
+/* Sidebar slide in */
+@keyframes slide-in-left {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+@keyframes slide-out-left {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
+.animate-slide-in {
+  animation: slide-in-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Fade overlay */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+/* Message bubble entrance */
+@keyframes bubble-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.animate-bubble-in {
+  animation: bubble-in 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Subtle pulse for loading */
+@keyframes gentle-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+.animate-gentle-pulse {
+  animation: gentle-pulse 1.5s ease-in-out infinite;
+}
+
+/* === CODE BLOCKS === */
+.prose code:not(pre code) {
+  background: var(--color-koai-surface);
+  padding: 0.15em 0.35em;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+.prose pre {
+  border-radius: 10px;
+  overflow-x: auto;
+  margin: 0.5em 0;
+}
+@media (prefers-color-scheme: dark) {
+  .prose code:not(pre code) {
+    background: var(--color-koai-surface-dark);
+  }
+}
+
+/* === DATE SEPARATOR === */
+.date-separator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+}
+.date-separator::before,
+.date-separator::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.15;
+}
+.date-separator span {
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.5;
+  white-space: nowrap;
+}
+
+/* === SCROLL NATIVE === */
+.chat-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  scroll-behavior: smooth;
+}
+
+/* === SCROLLBAR === */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.3);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.5);
 }

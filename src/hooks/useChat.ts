@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { sendKiraMessage, streamKronosMessage } from "../lib/api";
 
 export type Agent = "kira" | "kronos";
@@ -19,41 +19,49 @@ export interface Conversation {
   title: string;
 }
 
-const STORAGE_KEY = "koai-chat-conversations";
+function storageKey(userId: string | null): string {
+  return userId ? `koai-chat-conversations-${userId}` : "koai-chat-conversations";
+}
 
-function loadConversations(): Conversation[] {
+function loadConversations(userId: string | null): Conversation[] {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    return JSON.parse(localStorage.getItem(storageKey(userId)) || "[]");
   } catch {
     return [];
   }
 }
 
-function saveConversations(convos: Conversation[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(convos));
+function saveConversations(convos: Conversation[], userId: string | null) {
+  localStorage.setItem(storageKey(userId), JSON.stringify(convos));
 }
 
 function generateTitle(msg: string): string {
   return msg.length > 40 ? msg.slice(0, 40) + "..." : msg;
 }
 
-export function useChat() {
-  const [conversations, setConversations] = useState<Conversation[]>(loadConversations);
+export function useChat(userId: string | null = null) {
+  const [conversations, setConversations] = useState<Conversation[]>(() => loadConversations(userId));
   const [activeId, setActiveId] = useState<string | null>(null);
   const [agent, setAgent] = useState<Agent>("kira");
   const [loading, setLoading] = useState(false);
   const [streamingText, setStreamingText] = useState("");
   const active = conversations.find((c) => c.id === activeId) || null;
 
+  // Recargar cuando cambia userId
+  useEffect(() => {
+    setConversations(loadConversations(userId));
+    setActiveId(null);
+  }, [userId]);
+
   const updateConversation = useCallback(
     (id: string, updater: (c: Conversation) => Conversation) => {
       setConversations((prev) => {
         const updated = prev.map((c) => (c.id === id ? updater(c) : c));
-        saveConversations(updated);
+        saveConversations(updated, userId);
         return updated;
       });
     },
-    [],
+    [userId],
   );
 
   const newConversation = useCallback(() => {
@@ -67,12 +75,12 @@ export function useChat() {
     };
     setConversations((prev) => {
       const updated = [convo, ...prev];
-      saveConversations(updated);
+      saveConversations(updated, userId);
       return updated;
     });
     setActiveId(id);
     return id;
-  }, [agent]);
+  }, [agent, userId]);
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -168,11 +176,11 @@ export function useChat() {
   const deleteConversation = useCallback((id: string) => {
     setConversations((prev) => {
       const updated = prev.filter((c) => c.id !== id);
-      saveConversations(updated);
+      saveConversations(updated, userId);
       return updated;
     });
     if (activeId === id) setActiveId(null);
-  }, [activeId]);
+  }, [activeId, userId]);
 
   return {
     conversations,

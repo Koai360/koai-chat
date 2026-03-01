@@ -1,9 +1,17 @@
-import { API_URL, API_KEY } from "../config";
+import { API_URL, API_KEY, getAuthToken } from "../config";
 
-const headers = {
-  "Content-Type": "application/json",
-  "X-API-Key": API_KEY,
-};
+function getHeaders(): Record<string, string> {
+  const token = getAuthToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  } else {
+    headers["X-API-Key"] = API_KEY;
+  }
+  return headers;
+}
 
 export async function sendKiraMessage(
   message: string,
@@ -11,7 +19,7 @@ export async function sendKiraMessage(
 ): Promise<{ conversation_id: string; messages: Array<{ role: string; agent: string; content: string }> }> {
   const res = await fetch(`${API_URL}/api/chat`, {
     method: "POST",
-    headers,
+    headers: getHeaders(),
     body: JSON.stringify({
       message,
       agent: "kira",
@@ -30,7 +38,7 @@ export async function streamKronosMessage(
 ): Promise<string> {
   const res = await fetch(`${API_URL}/api/chat/kronos`, {
     method: "POST",
-    headers,
+    headers: getHeaders(),
     body: JSON.stringify({
       message,
       history,

@@ -21,15 +21,15 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="sm:opacity-0 sm:group-hover:opacity-100 opacity-60 transition-opacity p-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+      className="sm:opacity-0 sm:group-hover:opacity-100 opacity-50 transition-opacity p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/5 text-gray-400"
       title="Copiar"
     >
       {copied ? (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="20 6 9 17 4 12" />
         </svg>
       ) : (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
           <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
         </svg>
@@ -42,20 +42,20 @@ export function MessageBubble({ message }: Props) {
   const isUser = message.role === "user";
 
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"} mb-3 animate-bubble-in group`}>
+    <div className={`flex ${isUser ? "justify-end" : "justify-start"} mb-2 animate-bubble-in group`}>
       <div
-        className={`max-w-[90%] sm:max-w-[85%] rounded-2xl px-3.5 sm:px-4 py-2.5 relative ${
+        className={`max-w-[85%] rounded-[18px] px-3.5 py-2 relative ${
           isUser
-            ? "bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-br-md shadow-sm shadow-indigo-500/20"
+            ? "bg-indigo-500 text-white rounded-br-[4px]"
             : message.agent === "kira"
-              ? "bg-pink-50 dark:bg-pink-950/30 text-gray-900 dark:text-gray-100 rounded-bl-md"
-              : "bg-indigo-50 dark:bg-indigo-950/30 text-gray-900 dark:text-gray-100 rounded-bl-md"
+              ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-bl-[4px]"
+              : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-bl-[4px]"
         }`}
       >
         {!isUser && (
-          <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center justify-between mb-0.5">
             <span
-              className={`text-xs font-semibold ${
+              className={`text-[11px] font-semibold ${
                 message.agent === "kira" ? "text-pink-500" : "text-indigo-500"
               }`}
             >
@@ -69,9 +69,8 @@ export function MessageBubble({ message }: Props) {
           <img
             src={`data:image/jpeg;base64,${message.image}`}
             alt="Imagen adjunta"
-            className="rounded-xl max-h-56 w-auto mb-2 cursor-pointer"
+            className="rounded-xl max-h-52 w-auto mb-1.5 cursor-pointer"
             onClick={() => {
-              // Open full image in new tab
               const win = window.open();
               if (win) {
                 win.document.write(`<img src="data:image/jpeg;base64,${message.image}" style="max-width:100%;height:auto">`);
@@ -81,14 +80,14 @@ export function MessageBubble({ message }: Props) {
         )}
         {isUser ? (
           message.content && message.content !== "[Imagen]" ? (
-            <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+            <p className="text-[15px] leading-snug whitespace-pre-wrap">{message.content}</p>
           ) : null
         ) : (
-          <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:mb-2 [&>ol]:mb-2">
+          <div className="text-[15px] leading-snug prose prose-sm dark:prose-invert max-w-none [&>p]:mb-1.5 [&>p:last-child]:mb-0 [&>ul]:mb-1.5 [&>ol]:mb-1.5">
             <ReactMarkdown rehypePlugins={[rehypeHighlight]}>{message.content}</ReactMarkdown>
           </div>
         )}
-        <span className={`text-[10px] block text-right mt-1 ${isUser ? "text-white/60" : "opacity-40"}`}>
+        <span className={`text-[10px] block text-right mt-0.5 ${isUser ? "text-white/50" : "text-gray-400 dark:text-gray-500"}`}>
           {new Date(message.timestamp).toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
@@ -102,22 +101,16 @@ export function MessageBubble({ message }: Props) {
 export function StreamingBubble({ text, agent }: { text: string; agent: "kira" | "kronos" }) {
   if (!text) return null;
   return (
-    <div className="flex justify-start mb-3 animate-bubble-in">
-      <div
-        className={`max-w-[90%] sm:max-w-[85%] rounded-2xl px-3.5 sm:px-4 py-2.5 rounded-bl-md ${
-          agent === "kira"
-            ? "bg-pink-50 dark:bg-pink-950/30"
-            : "bg-indigo-50 dark:bg-indigo-950/30"
-        }`}
-      >
+    <div className="flex justify-start mb-2 animate-bubble-in">
+      <div className="max-w-[85%] rounded-[18px] px-3.5 py-2 rounded-bl-[4px] bg-gray-100 dark:bg-gray-800">
         <span
-          className={`text-xs font-semibold block mb-1 ${
+          className={`text-[11px] font-semibold block mb-0.5 ${
             agent === "kira" ? "text-pink-500" : "text-indigo-500"
           }`}
         >
           {agent === "kira" ? "Kira" : "Kronos"}
         </span>
-        <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none text-gray-900 dark:text-gray-100">
+        <div className="text-[15px] leading-snug prose prose-sm dark:prose-invert max-w-none text-gray-900 dark:text-gray-100">
           <ReactMarkdown rehypePlugins={[rehypeHighlight]}>{text}</ReactMarkdown>
         </div>
       </div>

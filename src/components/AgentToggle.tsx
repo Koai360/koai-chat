@@ -12,26 +12,26 @@ function haptic() {
 
 export function AgentToggle({ agent, onChange, disabled }: Props) {
   return (
-    <div className="flex rounded-full bg-gray-100 dark:bg-gray-800 p-0.5 gap-0.5 relative">
+    <div className="flex rounded-full bg-gray-100/80 dark:bg-gray-800/80 p-[3px] gap-[2px]">
       <button
         onClick={() => { haptic(); onChange("kira"); }}
         disabled={disabled}
-        className={`relative z-10 px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
+        className={`px-5 py-[5px] rounded-full text-[13px] font-semibold transition-all duration-200 ${
           agent === "kira"
-            ? "bg-gradient-to-r from-pink-500 to-rose-400 text-white shadow-md shadow-pink-500/25"
-            : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-        } disabled:opacity-50`}
+            ? "bg-white dark:bg-gray-700 text-pink-500 shadow-sm"
+            : "text-gray-400 dark:text-gray-500"
+        } disabled:opacity-50 active:scale-95`}
       >
         Kira
       </button>
       <button
         onClick={() => { haptic(); onChange("kronos"); }}
         disabled={disabled}
-        className={`relative z-10 px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
+        className={`px-5 py-[5px] rounded-full text-[13px] font-semibold transition-all duration-200 ${
           agent === "kronos"
-            ? "bg-gradient-to-r from-indigo-500 to-violet-500 text-white shadow-md shadow-indigo-500/25"
-            : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-        } disabled:opacity-50`}
+            ? "bg-white dark:bg-gray-700 text-indigo-500 shadow-sm"
+            : "text-gray-400 dark:text-gray-500"
+        } disabled:opacity-50 active:scale-95`}
       >
         Kronos
       </button>

@@ -89,13 +89,13 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
     <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
       {swUpdate && <UpdateBanner onUpdate={handleUpdate} />}
 
-      {/* Header */}
-      <header className="flex items-center justify-between px-3 py-2 bg-white dark:bg-gray-900 border-b border-gray-200/80 dark:border-gray-800 shadow-sm safe-top">
+      {/* Header — iOS style with blur */}
+      <header className="flex items-center justify-between px-2 py-1.5 bg-white/90 dark:bg-gray-950/90 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 safe-top">
         <button
           onClick={() => setShowSidebar(true)}
-          className="w-11 h-11 flex items-center justify-center rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors active:scale-95"
+          className="w-11 h-11 flex items-center justify-center rounded-full active:bg-gray-100 dark:active:bg-gray-800 transition-colors active:scale-95"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="3" y1="12" x2="21" y2="12" />
             <line x1="3" y1="6" x2="21" y2="6" />
             <line x1="3" y1="18" x2="21" y2="18" />
@@ -109,17 +109,16 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
 
         <button
           onClick={newConversation}
-          className="w-11 h-11 flex items-center justify-center rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors active:scale-95"
+          className="w-11 h-11 flex items-center justify-center rounded-full active:bg-gray-100 dark:active:bg-gray-800 transition-colors active:scale-95"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
         </button>
       </header>
 
       {/* Chat area */}
-      <main className="flex-1 overflow-hidden bg-white dark:bg-gray-900">
+      <main className="flex-1 overflow-hidden bg-white dark:bg-gray-950">
         <ChatView
           conversation={active}
           agent={agent}

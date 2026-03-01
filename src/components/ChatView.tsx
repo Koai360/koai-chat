@@ -53,7 +53,7 @@ export function ChatView({ conversation, agent, loading, streamingText, onSend, 
   return (
     <div className="flex flex-col h-full">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-3 sm:py-4 chat-scroll">
+      <div className="flex-1 overflow-y-auto px-3 py-2 chat-scroll">
         {!conversation || conversation.messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-8 animate-fade-in">
             <div className="w-20 h-20 rounded-2xl shadow-lg mb-5 overflow-hidden bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/40 dark:to-purple-900/40 flex items-center justify-center">
@@ -110,16 +110,14 @@ export function ChatView({ conversation, agent, loading, streamingText, onSend, 
           <StreamingBubble text={streamingText} agent={agent} />
         )}
 
-        {/* Typing indicator (for Kira, non-streaming) */}
+        {/* Typing indicator */}
         {loading && !streamingText && (
-          <div className="flex justify-start mb-3 animate-bubble-in">
-            <div className={`rounded-2xl px-4 py-3 rounded-bl-md ${
-              agent === "kira" ? "bg-pink-50 dark:bg-pink-950/30" : "bg-indigo-50 dark:bg-indigo-950/30"
-            }`}>
-              <div className="flex gap-1.5">
-                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0ms]" />
-                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:150ms]" />
-                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:300ms]" />
+          <div className="flex justify-start mb-2 animate-bubble-in">
+            <div className="rounded-[18px] px-4 py-3 rounded-bl-[4px] bg-gray-100 dark:bg-gray-800">
+              <div className="flex gap-1">
+                <span className="w-[7px] h-[7px] bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce [animation-delay:0ms]" />
+                <span className="w-[7px] h-[7px] bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce [animation-delay:150ms]" />
+                <span className="w-[7px] h-[7px] bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce [animation-delay:300ms]" />
               </div>
             </div>
           </div>

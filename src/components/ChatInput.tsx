@@ -12,14 +12,17 @@ const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 
 export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escribe un mensaje...", autoFocus }: Props) {
   const [text, setText] = useState("");
-  const [imagePreview, setImagePreview] = useState<string | null>(null); // data URL for preview
-  const [imageBase64, setImageBase64] = useState<string | null>(null); // raw base64 for API
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [recording, setRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
   const [transcribing, setTranscribing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -43,6 +46,14 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
       textareaRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }, 300);
   }, []);
+
+  // Clear error after 3s
+  useEffect(() => {
+    if (error) {
+      const t = setTimeout(() => setError(null), 3000);
+      return () => clearTimeout(t);
+    }
+  }, [error]);
 
   const handleSubmit = () => {
     if ((!text.trim() && !imageBase64) || disabled) return;
@@ -69,7 +80,7 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
     if (!file) return;
 
     if (file.size > MAX_IMAGE_SIZE) {
-      alert("Imagen demasiado grande (max 5MB)");
+      setError("Imagen muy grande (máx 5MB)");
       return;
     }
 
@@ -77,13 +88,10 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
     reader.onload = () => {
       const dataUrl = reader.result as string;
       setImagePreview(dataUrl);
-      // Extract raw base64 (remove "data:image/...;base64," prefix)
       const base64 = dataUrl.split(",")[1];
       setImageBase64(base64);
     };
     reader.readAsDataURL(file);
-
-    // Reset input so same file can be re-selected
     e.target.value = "";
   };
 
@@ -93,21 +101,54 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
   };
 
   // --- Audio recording ---
+  const startRecordingTimer = () => {
+    setRecordingTime(0);
+    timerRef.current = setInterval(() => {
+      setRecordingTime((prev) => prev + 1);
+    }, 1000);
+  };
+
+  const stopRecordingTimer = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    setRecordingTime(0);
+  };
+
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec.toString().padStart(2, "0")}`;
+  };
+
   const toggleRecording = async () => {
     if (recording) {
-      // Stop recording
       mediaRecorderRef.current?.stop();
+      stopRecordingTimer();
       return;
     }
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // Prefer webm, fallback to mp4 (Safari)
-      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-        ? "audio/webm;codecs=opus"
-        : "audio/mp4";
 
-      const recorder = new MediaRecorder(stream, { mimeType });
+      // Detect best supported format
+      let mimeType = "audio/webm;codecs=opus";
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = "audio/webm";
+      }
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = "audio/mp4";
+      }
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        // Fallback: let browser choose
+        mimeType = "";
+      }
+
+      const recorderOptions: MediaRecorderOptions = {};
+      if (mimeType) recorderOptions.mimeType = mimeType;
+
+      const recorder = new MediaRecorder(stream, recorderOptions);
       chunksRef.current = [];
 
       recorder.ondataavailable = (e) => {
@@ -115,12 +156,17 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
       };
 
       recorder.onstop = async () => {
-        // Stop all tracks
         stream.getTracks().forEach((t) => t.stop());
         setRecording(false);
+        stopRecordingTimer();
 
-        const blob = new Blob(chunksRef.current, { type: mimeType });
-        if (blob.size < 1000) return; // Too short, ignore
+        const actualMime = recorder.mimeType || mimeType || "audio/webm";
+        const blob = new Blob(chunksRef.current, { type: actualMime });
+
+        if (blob.size < 500) {
+          setError("Audio muy corto, intenta de nuevo");
+          return;
+        }
 
         setTranscribing(true);
         try {
@@ -128,12 +174,22 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
           if (transcribed) {
             setText((prev) => (prev ? prev + " " + transcribed : transcribed));
             textareaRef.current?.focus();
+          } else {
+            setError("No se detectó texto");
           }
         } catch (err) {
           console.error("Transcription error:", err);
+          setError("Error al transcribir");
         } finally {
           setTranscribing(false);
         }
+      };
+
+      recorder.onerror = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        setRecording(false);
+        stopRecordingTimer();
+        setError("Error al grabar");
       };
 
       // Auto-stop after 60 seconds
@@ -141,13 +197,14 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
         if (recorder.state === "recording") recorder.stop();
       }, 60000);
 
-      recorder.start();
+      // Request data every 1s (helps iOS Safari)
+      recorder.start(1000);
       mediaRecorderRef.current = recorder;
       setRecording(true);
+      startRecordingTimer();
       if (navigator.vibrate) navigator.vibrate(15);
     } catch {
-      // Permission denied or no microphone
-      alert("No se pudo acceder al micrófono");
+      setError("No se pudo acceder al micrófono");
     }
   };
 
@@ -155,21 +212,28 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
   const isDisabled = disabled || transcribing;
 
   return (
-    <div className="bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 safe-bottom">
+    <div className="bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl safe-bottom">
+      {/* Error toast */}
+      {error && (
+        <div className="mx-3 mb-1 px-3 py-1.5 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-500 text-center animate-fade-in">
+          {error}
+        </div>
+      )}
+
       {/* Image preview */}
       {imagePreview && (
-        <div className="px-3 pt-2 flex items-start gap-2">
-          <div className="relative">
+        <div className="px-4 pt-2 pb-1">
+          <div className="relative inline-block">
             <img
               src={imagePreview}
               alt="Preview"
-              className="w-16 h-16 rounded-xl object-cover border border-gray-200 dark:border-gray-700"
+              className="h-20 w-auto rounded-2xl object-cover border border-white/10 shadow-sm"
             />
             <button
               onClick={clearImage}
-              className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-800 rounded-full flex items-center justify-center text-xs active:scale-90"
+              className="absolute -top-2 -right-2 w-6 h-6 bg-gray-900/80 dark:bg-white/80 text-white dark:text-gray-900 rounded-full flex items-center justify-center active:scale-90 shadow-sm"
             >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
@@ -178,72 +242,126 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
         </div>
       )}
 
-      {/* Input row */}
-      <div className="flex items-end gap-1.5 px-2 py-2 sm:px-3 sm:py-2.5">
-        {/* Camera/image button */}
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isDisabled}
-          className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors active:scale-90 disabled:opacity-40"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-            <circle cx="8.5" cy="8.5" r="1.5" />
-            <polyline points="21 15 16 10 5 21" />
-          </svg>
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          onChange={handleImageSelect}
-          className="hidden"
-        />
+      {/* Recording indicator */}
+      {recording && (
+        <div className="flex items-center gap-2 px-4 py-2 animate-fade-in">
+          <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-gentle-pulse" />
+          <span className="text-xs font-medium text-red-500">Grabando {formatTime(recordingTime)}</span>
+          <div className="flex-1" />
+          <button
+            onClick={toggleRecording}
+            className="text-xs text-red-500 font-medium px-3 py-1 rounded-full bg-red-50 dark:bg-red-950/30 active:scale-95"
+          >
+            Detener
+          </button>
+        </div>
+      )}
 
-        {/* Text input */}
-        <textarea
-          ref={textareaRef}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onFocus={handleFocus}
-          placeholder={transcribing ? "Transcribiendo..." : placeholder}
-          disabled={isDisabled}
-          rows={1}
-          inputMode="text"
-          enterKeyHint="send"
-          className="flex-1 resize-none rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 px-4 py-2.5 text-[16px] sm:text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 dark:focus:border-indigo-600 transition-all"
-        />
+      {/* Input row — WhatsApp style */}
+      <div className="flex items-end gap-2 px-2 py-1.5">
+        {/* Input container with + and camera inside */}
+        <div className="flex-1 flex items-end bg-gray-100 dark:bg-gray-800 rounded-[22px] min-h-[44px] overflow-hidden">
+          {/* Plus / gallery button */}
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isDisabled}
+            className="flex-shrink-0 w-11 h-[44px] flex items-center justify-center text-gray-500 dark:text-gray-400 active:scale-90 disabled:opacity-40"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageSelect}
+            className="hidden"
+          />
 
-        {/* Send or Mic button */}
+          {/* Text input */}
+          <textarea
+            ref={textareaRef}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onFocus={handleFocus}
+            placeholder={transcribing ? "Transcribiendo..." : placeholder}
+            disabled={isDisabled}
+            rows={1}
+            inputMode="text"
+            enterKeyHint="send"
+            className="flex-1 resize-none bg-transparent py-[11px] text-[16px] leading-[22px] text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none"
+          />
+
+          {/* Camera button (inside input pill) */}
+          <button
+            onClick={() => {
+              // Create a separate camera-only input
+              const input = document.createElement("input");
+              input.type = "file";
+              input.accept = "image/*";
+              input.capture = "environment";
+              input.onchange = (e) => {
+                const target = e.target as HTMLInputElement;
+                const file = target.files?.[0];
+                if (!file) return;
+                if (file.size > MAX_IMAGE_SIZE) {
+                  setError("Imagen muy grande (máx 5MB)");
+                  return;
+                }
+                const reader = new FileReader();
+                reader.onload = () => {
+                  const dataUrl = reader.result as string;
+                  setImagePreview(dataUrl);
+                  setImageBase64(dataUrl.split(",")[1]);
+                };
+                reader.readAsDataURL(file);
+              };
+              input.click();
+            }}
+            disabled={isDisabled}
+            className="flex-shrink-0 w-10 h-[44px] flex items-center justify-center text-gray-500 dark:text-gray-400 active:scale-90 disabled:opacity-40"
+          >
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+              <circle cx="12" cy="13" r="4" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Right action button: Send or Mic */}
         {hasContent ? (
           <button
             onClick={handleSubmit}
             disabled={isDisabled}
-            className="flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-90 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-md shadow-indigo-500/30 disabled:opacity-50"
+            className="flex-shrink-0 w-[44px] h-[44px] rounded-full flex items-center justify-center bg-indigo-500 text-white active:scale-90 active:bg-indigo-600 disabled:opacity-50 transition-transform"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="22" y1="2" x2="11" y2="13" />
-              <polygon points="22 2 15 22 11 13 2 9 22 2" />
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
             </svg>
           </button>
         ) : (
           <button
             onClick={toggleRecording}
             disabled={isDisabled}
-            className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-90 ${
+            className={`flex-shrink-0 w-[44px] h-[44px] rounded-full flex items-center justify-center transition-all active:scale-90 ${
               recording
-                ? "bg-red-500 text-white shadow-md shadow-red-500/30 animate-gentle-pulse"
+                ? "bg-red-500 text-white animate-gentle-pulse"
                 : transcribing
-                  ? "bg-amber-100 dark:bg-amber-900/30 text-amber-500"
-                  : "bg-gray-100 dark:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  ? "bg-indigo-500/20 text-indigo-500"
+                  : "bg-indigo-500 text-white"
             } disabled:opacity-50`}
           >
             {transcribing ? (
               <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            ) : recording ? (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="6" y="6" width="12" height="12" rx="2" />
               </svg>
             ) : (
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

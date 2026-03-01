@@ -56,17 +56,15 @@ export function ChatView({ conversation, agent, loading, streamingText, onSend, 
       <div className="flex-1 overflow-y-auto px-3 py-2 chat-scroll">
         {!conversation || conversation.messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-8 animate-fade-in">
-            <div className="w-20 h-20 rounded-2xl shadow-lg mb-5 overflow-hidden bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/40 dark:to-purple-900/40 flex items-center justify-center">
-              <img
-                src="/icons/koai-192.png"
-                alt="KOAI"
-                className="w-16 h-16 rounded-xl"
-              />
-            </div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+            <img
+              src={agent === "kira" ? "/icons/kira-logo.svg" : "/icons/koai-192.png"}
+              alt={agent === "kira" ? "Kira" : "Kronos"}
+              className="w-20 h-20 rounded-full mb-4 shadow-lg"
+            />
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-0.5">
               {agent === "kira" ? "Kira" : "Kronos"}
             </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mb-1">
+            <p className="text-[13px] text-gray-500 dark:text-gray-400 max-w-xs mb-1">
               {agent === "kira"
                 ? "Asistente de ventas y soporte 24/7"
                 : "Asistente técnico de KOAI Studios"}

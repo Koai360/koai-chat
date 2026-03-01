@@ -8,7 +8,8 @@ interface Props {
   agent: Agent;
   loading: boolean;
   streamingText: string;
-  onSend: (text: string) => void;
+  onSend: (text: string, imageBase64?: string) => void;
+  onTranscribe: (blob: Blob) => Promise<string>;
 }
 
 const SUGGESTIONS: Record<Agent, string[]> = {
@@ -42,7 +43,7 @@ function shouldShowDate(messages: Message[], index: number): boolean {
   return prev !== curr;
 }
 
-export function ChatView({ conversation, agent, loading, streamingText, onSend }: Props) {
+export function ChatView({ conversation, agent, loading, streamingText, onSend, onTranscribe }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -130,6 +131,7 @@ export function ChatView({ conversation, agent, loading, streamingText, onSend }
       {/* Input */}
       <ChatInput
         onSend={onSend}
+        onTranscribe={onTranscribe}
         disabled={loading}
         placeholder={agent === "kira" ? "Pregunta a Kira..." : "Pregunta a Kronos..."}
         autoFocus={!!conversation}

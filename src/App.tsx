@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth, type AuthUser } from "./hooks/useAuth";
 import { useChat } from "./hooks/useChat";
+import { transcribeAudio } from "./lib/api";
 import { AgentToggle } from "./components/AgentToggle";
 import { ChatView } from "./components/ChatView";
 import { ConversationList } from "./components/ConversationList";
@@ -125,6 +126,7 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
           loading={loading}
           streamingText={streamingText}
           onSend={sendMessage}
+          onTranscribe={transcribeAudio}
         />
       </main>
 

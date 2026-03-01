@@ -9,6 +9,7 @@ export interface Message {
   agent: Agent;
   content: string;
   timestamp: number;
+  image?: string; // base64 data (without prefix) for display
 }
 
 export interface Conversation {
@@ -83,27 +84,29 @@ export function useChat(userId: string | null = null) {
   }, [agent, userId]);
 
   const sendMessage = useCallback(
-    async (text: string) => {
-      if (!text.trim() || loading) return;
+    async (text: string, imageBase64?: string) => {
+      if ((!text.trim() && !imageBase64) || loading) return;
 
       let convoId = activeId;
       if (!convoId) {
         convoId = newConversation();
       }
 
+      const displayText = text.trim() || (imageBase64 ? "[Imagen]" : "");
       const userMsg: Message = {
         id: crypto.randomUUID(),
         role: "user",
         agent,
-        content: text.trim(),
+        content: displayText,
         timestamp: Date.now(),
+        image: imageBase64,
       };
 
       // Update title if first message
       updateConversation(convoId, (c) => ({
         ...c,
         agent,
-        title: c.messages.length === 0 ? generateTitle(text.trim()) : c.title,
+        title: c.messages.length === 0 ? generateTitle(displayText) : c.title,
         messages: [...c.messages, userMsg],
       }));
 
@@ -112,7 +115,7 @@ export function useChat(userId: string | null = null) {
 
       try {
         if (agent === "kira") {
-          const res = await sendKiraMessage(text.trim(), convoId);
+          const res = await sendKiraMessage(displayText, convoId, imageBase64);
           const assistantMsg: Message = {
             id: crypto.randomUUID(),
             role: "assistant",
@@ -134,10 +137,11 @@ export function useChat(userId: string | null = null) {
             })) || [];
 
           const fullText = await streamKronosMessage(
-            text.trim(),
+            displayText,
             history,
             convoId,
             (partial) => setStreamingText(partial),
+            imageBase64,
           );
 
           const assistantMsg: Message = {

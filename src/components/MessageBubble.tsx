@@ -64,8 +64,25 @@ export function MessageBubble({ message }: Props) {
             <CopyButton text={message.content} />
           </div>
         )}
+        {/* Image attachment */}
+        {message.image && (
+          <img
+            src={`data:image/jpeg;base64,${message.image}`}
+            alt="Imagen adjunta"
+            className="rounded-xl max-h-56 w-auto mb-2 cursor-pointer"
+            onClick={() => {
+              // Open full image in new tab
+              const win = window.open();
+              if (win) {
+                win.document.write(`<img src="data:image/jpeg;base64,${message.image}" style="max-width:100%;height:auto">`);
+              }
+            }}
+          />
+        )}
         {isUser ? (
-          <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+          message.content && message.content !== "[Imagen]" ? (
+            <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+          ) : null
         ) : (
           <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:mb-2 [&>ol]:mb-2">
             <ReactMarkdown rehypePlugins={[rehypeHighlight]}>{message.content}</ReactMarkdown>

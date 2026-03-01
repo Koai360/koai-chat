@@ -143,7 +143,7 @@ export function ConversationList({ conversations, activeId, onSelect, onNew, onD
                     haptic(15);
                     onDelete(c.id);
                   }}
-                  className="ml-2 w-6 h-6 flex-shrink-0 items-center justify-center text-gray-300 hover:text-red-500 transition-colors hidden sm:flex"
+                  className="ml-2 w-8 h-8 flex-shrink-0 flex items-center justify-center text-gray-300 hover:text-red-500 active:text-red-500 transition-colors rounded-lg active:bg-red-50 dark:active:bg-red-950/30"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="3 6 5 6 21 6" />

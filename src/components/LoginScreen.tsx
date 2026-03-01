@@ -27,15 +27,15 @@ export function LoginScreen({ onLogin }: Props) {
   };
 
   return (
-    <div className="h-full flex flex-col items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-indigo-950/30 px-6 safe-top safe-bottom">
+    <div className="h-full flex flex-col items-center justify-center bg-gradient-to-b from-[#572c77]/10 via-white to-[#bcd431]/5 dark:from-[#572c77]/20 dark:via-[#0a0a0c] dark:to-[#0a0a0c] px-6 safe-top safe-bottom">
       <div className="w-full max-w-sm animate-fade-in">
         {/* Logo */}
         <div className="flex flex-col items-center mb-10">
-          <div className="w-24 h-24 rounded-3xl shadow-xl shadow-indigo-500/15 mb-5 overflow-hidden bg-gradient-to-br from-white to-indigo-50 dark:from-gray-800 dark:to-indigo-900/30 flex items-center justify-center ring-1 ring-black/5">
+          <div className="w-24 h-24 rounded-full shadow-xl shadow-[#572c77]/20 mb-5 overflow-hidden bg-white dark:bg-[#1e1b22] flex items-center justify-center ring-1 ring-[#572c77]/10">
             <img
-              src="/icons/koai-192.png"
+              src="/icons/kira-logo.svg"
               alt="KOAI"
-              className="w-20 h-20 rounded-2xl"
+              className="w-20 h-20 rounded-full"
             />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
@@ -58,7 +58,7 @@ export function LoginScreen({ onLogin }: Props) {
               autoCapitalize="none"
               autoCorrect="off"
               disabled={loading}
-              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/80 px-4 py-3 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-300 transition-all"
+              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1a1e] px-4 py-3 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#572c77]/40 focus:border-[#572c77]/30 transition-all"
             />
           </div>
           <div>
@@ -69,7 +69,7 @@ export function LoginScreen({ onLogin }: Props) {
               placeholder="Contraseña"
               autoComplete="current-password"
               disabled={loading}
-              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/80 px-4 py-3 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-300 transition-all"
+              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1a1e] px-4 py-3 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#572c77]/40 focus:border-[#572c77]/30 transition-all"
             />
           </div>
 
@@ -87,7 +87,7 @@ export function LoginScreen({ onLogin }: Props) {
           <button
             type="submit"
             disabled={loading || !username.trim() || !password.trim()}
-            className="w-full rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 active:from-indigo-700 active:to-indigo-800 text-white font-semibold py-3 text-sm transition-all disabled:opacity-50 shadow-md shadow-indigo-500/20 active:scale-[0.98]"
+            className="w-full rounded-xl bg-gradient-to-r from-[#572c77] to-[#7c4d9e] hover:from-[#6b3591] hover:to-[#8a5aab] active:from-[#3d1e54] active:to-[#572c77] text-white font-semibold py-3 text-sm transition-all disabled:opacity-50 shadow-md shadow-[#572c77]/25 active:scale-[0.98]"
           >
             {loading ? (
               <span className="flex items-center justify-center gap-2">

@@ -1,4 +1,4 @@
-const CACHE_NAME = "koai-chat-v2";
+const CACHE_NAME = "koai-chat-v3";
 const PRECACHE = ["/", "/manifest.json"];
 
 self.addEventListener("install", (e) => {

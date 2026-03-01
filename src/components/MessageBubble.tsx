@@ -61,19 +61,28 @@ export function MessageBubble({ message }: Props) {
             <CopyButton text={message.content} />
           </div>
         )}
-        {message.image && (
-          <img
-            src={`data:image/jpeg;base64,${message.image}`}
-            alt="Imagen adjunta"
-            className="rounded-xl max-h-52 w-auto mb-1.5 cursor-pointer"
-            onClick={() => {
-              const win = window.open();
-              if (win) {
-                win.document.write(`<img src="data:image/jpeg;base64,${message.image}" style="max-width:100%;height:auto">`);
-              }
-            }}
-          />
-        )}
+        {message.image && (() => {
+          // Auto-detect mime type from base64 header
+          const img = message.image!;
+          const mime = img.startsWith("iVBOR") ? "image/png"
+            : img.startsWith("R0lGOD") ? "image/gif"
+            : img.startsWith("UklGR") ? "image/webp"
+            : "image/jpeg";
+          const src = `data:${mime};base64,${img}`;
+          return (
+            <img
+              src={src}
+              alt={isUser ? "Imagen adjunta" : "Imagen generada"}
+              className={`rounded-xl w-auto mb-1.5 cursor-pointer ${isUser ? "max-h-52" : "max-h-80"}`}
+              onClick={() => {
+                const win = window.open();
+                if (win) {
+                  win.document.write(`<img src="${src}" style="max-width:100%;height:auto">`);
+                }
+              }}
+            />
+          );
+        })()}
         {isUser ? (
           message.content && message.content !== "[Imagen]" ? (
             <p className="text-[15px] leading-snug whitespace-pre-wrap">{message.content}</p>

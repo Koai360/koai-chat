@@ -92,7 +92,7 @@ export function NotificationsPanel({ notifications, onMarkRead, onMarkAllRead, o
                     </span>
                   </div>
                   <p className={`text-[13px] mt-0.5 line-clamp-2 ${!notif.read ? "text-gray-700 dark:text-gray-300" : "text-gray-400 dark:text-gray-500"}`}>
-                    {notif.body}
+                    {notif.body || notif.message}
                   </p>
                 </div>
               </div>

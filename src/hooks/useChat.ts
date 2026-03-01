@@ -182,10 +182,12 @@ export function useChat(userId: string | null = null) {
 
       try {
         let assistantContent = "";
+        let assistantImage: string | undefined;
 
         if (agent === "kira") {
           const res = await sendKiraMessage(displayText, convoId, imageBase64);
           assistantContent = res.messages?.[0]?.content || "Sin respuesta";
+          assistantImage = res.messages?.[0]?.image || undefined;
         } else {
           const history =
             conversations
@@ -212,6 +214,7 @@ export function useChat(userId: string | null = null) {
           agent,
           content: assistantContent,
           timestamp: Date.now(),
+          image: assistantImage,
         };
 
         setConversations((prev) =>
@@ -224,7 +227,7 @@ export function useChat(userId: string | null = null) {
         if (convoId) {
           saveMessages(convoId, [
             { role: "user", agent, content: displayText, image: imageBase64 },
-            { role: "assistant", agent, content: assistantContent },
+            { role: "assistant", agent, content: assistantContent, image: assistantImage },
           ]).catch((err) => console.error("[useChat] Failed to save messages:", err));
         }
       } catch (err) {

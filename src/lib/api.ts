@@ -17,7 +17,7 @@ export async function sendKiraMessage(
   message: string,
   conversationId?: string,
   imageBase64?: string,
-): Promise<{ conversation_id: string; messages: Array<{ role: string; agent: string; content: string }> }> {
+): Promise<{ conversation_id: string; messages: Array<{ role: string; agent: string; content: string; image?: string }> }> {
   const body: Record<string, unknown> = {
     message,
     agent: "kira",
@@ -204,8 +204,9 @@ export async function saveMessages(
 export interface Notification {
   id: string;
   title: string;
-  body: string;
-  url: string;
+  body?: string;
+  message?: string;
+  url?: string;
   read: boolean;
   created_at: string;
 }

@@ -134,6 +134,7 @@ export interface ServerConversation {
   id: string;
   agent: string;
   title: string;
+  project_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -197,6 +198,74 @@ export async function saveMessages(
     headers: getHeaders(),
     body: JSON.stringify({ messages }),
   });
+}
+
+// --- Projects ---
+
+export interface ServerProject {
+  id: string;
+  name: string;
+  icon: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function fetchProjects(): Promise<ServerProject[]> {
+  const res = await fetch(`${API_URL}/api/chat/projects`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+export async function createProject(name: string, icon = "📁"): Promise<ServerProject> {
+  const res = await fetch(`${API_URL}/api/chat/projects`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({ name, icon }),
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+export async function updateProject(id: string, data: { name?: string; icon?: string }): Promise<void> {
+  await fetch(`${API_URL}/api/chat/projects/${id}`, {
+    method: "PATCH",
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteProject(id: string): Promise<void> {
+  await fetch(`${API_URL}/api/chat/projects/${id}`, {
+    method: "DELETE",
+    headers: getHeaders(),
+  });
+}
+
+export async function assignConversationProject(conversationId: string, projectId: string | null): Promise<void> {
+  await fetch(`${API_URL}/api/chat/conversations/${conversationId}/project`, {
+    method: "PATCH",
+    headers: getHeaders(),
+    body: JSON.stringify({ project_id: projectId }),
+  });
+}
+
+// --- Gallery ---
+
+export interface GalleryImage {
+  id: string;
+  image: string;
+  content: string;
+  created_at: string;
+}
+
+export async function fetchImages(): Promise<GalleryImage[]> {
+  const res = await fetch(`${API_URL}/api/chat/images`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
 }
 
 // --- Notifications ---

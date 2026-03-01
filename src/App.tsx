@@ -10,6 +10,8 @@ import { LoginScreen } from "./components/LoginScreen";
 import { UpdateBanner } from "./components/UpdateBanner";
 import { OnlineStatus } from "./components/OnlineStatus";
 import { NotificationsPanel } from "./components/NotificationsPanel";
+import { ImageGallery } from "./components/ImageGallery";
+import { ImageModal } from "./components/ImageModal";
 import { requestPushPermission, isPushSubscribed } from "./lib/push";
 
 export default function App() {
@@ -50,6 +52,8 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
 
   const [showSidebar, setShowSidebar] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
+  const [modalImage, setModalImage] = useState<string | null>(null);
   const [swUpdate, setSwUpdate] = useState(false);
 
   // Sidebar swipe-to-close
@@ -165,6 +169,8 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
           streamingText={streamingText}
           onSend={sendMessage}
           onTranscribe={transcribeAudio}
+          userName={user.name}
+          onImageClick={setModalImage}
         />
       </main>
 
@@ -191,6 +197,7 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
               onClose={() => setShowSidebar(false)}
               user={user}
               onLogout={onLogout}
+              onOpenGallery={() => { setShowSidebar(false); setShowGallery(true); }}
             />
           </div>
         </>
@@ -212,6 +219,24 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
             />
           </div>
         </>
+      )}
+
+      {/* Gallery overlay */}
+      {showGallery && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-40 animate-fade-in"
+            onClick={() => setShowGallery(false)}
+          />
+          <div className="fixed inset-y-0 left-0 w-[min(340px,90vw)] z-50 shadow-2xl animate-slide-in">
+            <ImageGallery onClose={() => setShowGallery(false)} />
+          </div>
+        </>
+      )}
+
+      {/* Image modal */}
+      {modalImage && (
+        <ImageModal imageSrc={modalImage} onClose={() => setModalImage(null)} />
       )}
     </div>
   );

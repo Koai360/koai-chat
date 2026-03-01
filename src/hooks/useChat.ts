@@ -29,6 +29,7 @@ export interface Conversation {
   messages: Message[];
   createdAt: number;
   title: string;
+  projectId?: string | null;
 }
 
 function generateTitle(msg: string): string {
@@ -42,6 +43,7 @@ function serverToLocal(sc: ServerConversation): Conversation {
     messages: [],
     createdAt: new Date(sc.created_at).getTime(),
     title: sc.title,
+    projectId: sc.project_id || null,
   };
 }
 

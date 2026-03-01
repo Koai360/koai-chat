@@ -5,6 +5,7 @@ import type { Message } from "../hooks/useChat";
 
 interface Props {
   message: Message;
+  onImageClick?: (src: string) => void;
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -38,7 +39,7 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-export function MessageBubble({ message }: Props) {
+export function MessageBubble({ message, onImageClick }: Props) {
   const isUser = message.role === "user";
   const isKronos = message.agent === "kronos";
 
@@ -74,12 +75,7 @@ export function MessageBubble({ message }: Props) {
               src={src}
               alt={isUser ? "Imagen adjunta" : "Imagen generada"}
               className={`rounded-xl w-auto mb-1.5 cursor-pointer ${isUser ? "max-h-52" : "max-h-80"}`}
-              onClick={() => {
-                const win = window.open();
-                if (win) {
-                  win.document.write(`<img src="${src}" style="max-width:100%;height:auto">`);
-                }
-              }}
+              onClick={() => onImageClick ? onImageClick(src) : undefined}
             />
           );
         })()}

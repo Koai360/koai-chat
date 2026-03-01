@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { MessageBubble, StreamingBubble } from "./MessageBubble";
 import { ChatInput } from "./ChatInput";
 import type { Conversation, Agent, Message } from "../hooks/useChat";
@@ -10,20 +10,50 @@ interface Props {
   streamingText: string;
   onSend: (text: string, imageBase64?: string) => void;
   onTranscribe: (blob: Blob) => Promise<string>;
+  userName?: string;
+  onImageClick?: (imageSrc: string) => void;
 }
 
-const SUGGESTIONS: Record<Agent, string[]> = {
-  kira: [
-    "Hola, qué servicios ofrece KOAI?",
-    "Cotizar stickers personalizados",
-    "Estado de un pedido",
-  ],
-  kronos: [
-    "Estado del sistema",
-    "Qué endpoints tiene la API?",
-    "Resumen de la arquitectura",
-  ],
-};
+function getGreeting(name?: string): string {
+  const hour = new Date().getHours();
+  const displayName = name || "Usuario";
+  if (hour < 12) return `Buenos días, ${displayName}`;
+  if (hour < 18) return `Buenas tardes, ${displayName}`;
+  return `Buenas noches, ${displayName}`;
+}
+
+function getSuggestions(agent: Agent): string[] {
+  const hour = new Date().getHours();
+
+  if (agent === "kronos") {
+    return [
+      "Estado del sistema",
+      "Resumen de la arquitectura",
+      "Qué endpoints tiene la API?",
+    ];
+  }
+
+  // Kira — sugerencias según hora
+  if (hour < 12) {
+    return [
+      "Qué tengo pendiente hoy?",
+      "Resumen de mensajes nuevos",
+      "Cotizar stickers personalizados",
+    ];
+  }
+  if (hour < 18) {
+    return [
+      "Estado de los pedidos",
+      "Genera una imagen para un post",
+      "Cotizar stickers personalizados",
+    ];
+  }
+  return [
+    "Resumen de lo que se hizo hoy",
+    "Qué quedó pendiente?",
+    "Programa una tarea para mañana",
+  ];
+}
 
 function formatDateLabel(timestamp: number): string {
   const date = new Date(timestamp);
@@ -43,17 +73,42 @@ function shouldShowDate(messages: Message[], index: number): boolean {
   return prev !== curr;
 }
 
-export function ChatView({ conversation, agent, loading, streamingText, onSend, onTranscribe }: Props) {
+export function ChatView({ conversation, agent, loading, streamingText, onSend, onTranscribe, userName, onImageClick }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const isNearBottomRef = useRef(true);
 
+  // Track if user is near bottom
+  const handleScroll = useCallback(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const threshold = 120;
+    isNearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+  }, []);
+
+  // Auto-scroll only if near bottom
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (!isNearBottomRef.current) return;
+    const isMobile = window.innerWidth < 768;
+    bottomRef.current?.scrollIntoView({ behavior: isMobile ? "auto" : "smooth" });
   }, [conversation?.messages.length, streamingText]);
+
+  // Force scroll to bottom on conversation switch
+  useEffect(() => {
+    isNearBottomRef.current = true;
+    bottomRef.current?.scrollIntoView({ behavior: "auto" });
+  }, [conversation?.id]);
+
+  const suggestions = getSuggestions(agent);
 
   return (
     <div className="flex flex-col h-full">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-3 py-2 chat-scroll">
+      <div
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto px-3 py-2 chat-scroll"
+      >
         {!conversation || conversation.messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-8 animate-fade-in">
             <img
@@ -62,19 +117,19 @@ export function ChatView({ conversation, agent, loading, streamingText, onSend, 
               className="w-20 h-20 rounded-2xl mb-4 shadow-lg"
             />
             <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-0.5">
-              {agent === "kira" ? "Kira" : "Kronos"}
+              {getGreeting(userName)}
             </h2>
             <p className="text-[13px] text-gray-500 dark:text-gray-400 max-w-xs mb-1">
               {agent === "kira"
-                ? "Asistente de ventas y soporte 24/7"
-                : "Asistente técnico de KOAI Studios"}
+                ? "Soy Kira, tu asistente de KOAI Studios"
+                : "Soy Kronos, arquitecto de código"}
             </p>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium mb-6 bg-[#bcd431]/10 text-[#bcd431] dark:bg-[#bcd431]/10">
               <span className="w-1.5 h-1.5 rounded-full bg-[#bcd431]" />
               En línea
             </div>
             <div className="flex flex-wrap justify-center gap-2 max-w-xs">
-              {SUGGESTIONS[agent].map((s) => (
+              {suggestions.map((s) => (
                 <button
                   key={s}
                   onClick={() => onSend(s)}
@@ -98,7 +153,7 @@ export function ChatView({ conversation, agent, loading, streamingText, onSend, 
                   <span>{formatDateLabel(msg.timestamp)}</span>
                 </div>
               )}
-              <MessageBubble message={msg} />
+              <MessageBubble message={msg} onImageClick={onImageClick} />
             </div>
           ))
         )}

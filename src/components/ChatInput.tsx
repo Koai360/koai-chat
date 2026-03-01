@@ -55,6 +55,18 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
     }
   }, [autoFocus]);
 
+  // Detect keyboard open/close via visualViewport
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const handleResize = () => {
+      const keyboardH = window.innerHeight - vv.height - vv.offsetTop;
+      document.documentElement.style.setProperty("--keyboard-height", `${Math.max(0, keyboardH)}px`);
+    };
+    vv.addEventListener("resize", handleResize);
+    return () => vv.removeEventListener("resize", handleResize);
+  }, []);
+
   // Scroll input into view when keyboard opens
   const handleFocus = useCallback(() => {
     setTimeout(() => {

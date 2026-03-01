@@ -59,7 +59,7 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto bg-[#f5f3f0] dark:bg-[#0a0a0c]">
         {loading ? (
           <div className="flex flex-col items-center justify-center h-full gap-3">
             <svg className="animate-spin w-7 h-7 text-[#572c77]" viewBox="0 0 24 24" fill="none">
@@ -81,25 +81,28 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
             <p className="text-xs text-gray-400 mt-1">Pídele a Kira que genere una imagen</p>
           </div>
         ) : (
-          <div className="columns-2 gap-2 p-2 sm:columns-3">
+          <div className="columns-2 gap-3 p-3 sm:columns-3 sm:p-4 md:columns-4 lg:columns-5">
             {images.map((img) => {
               const src = imageSrcFromBase64(img.image);
               return (
                 <button
                   key={img.id}
                   onClick={() => onImageClick?.(src)}
-                  className="block w-full mb-2 break-inside-avoid group"
+                  className="block w-full mb-3 break-inside-avoid group"
                 >
-                  <div className="relative rounded-xl overflow-hidden bg-gray-100 dark:bg-[#1a1a1e] active:scale-[0.97] transition-transform">
+                  <div className="relative rounded-2xl overflow-hidden bg-white dark:bg-[#1a1a1e] shadow-sm hover:shadow-lg hover:scale-[1.02] active:scale-[0.97] transition-all duration-200">
                     <img
                       src={src}
                       alt="Imagen generada"
                       className="w-full block"
                       loading="lazy"
                     />
-                    {/* Overlay con fecha */}
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent pt-6 pb-2 px-2.5 opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity">
-                      <p className="text-[11px] text-white/80">{formatDate(img.created_at)}</p>
+                    {/* Overlay con fecha + descripción */}
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/50 to-transparent pt-8 pb-2.5 px-3 opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity duration-200">
+                      <p className="text-[11px] text-white/90 font-medium">{formatDate(img.created_at)}</p>
+                      {img.content && (
+                        <p className="text-[10px] text-white/60 truncate mt-0.5">{img.content}</p>
+                      )}
                     </div>
                   </div>
                 </button>

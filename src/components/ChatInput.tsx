@@ -6,11 +6,12 @@ interface Props {
   disabled?: boolean;
   placeholder?: string;
   autoFocus?: boolean;
+  agent?: "kira" | "kronos";
 }
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 
-export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escribe un mensaje...", autoFocus }: Props) {
+export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escribe un mensaje...", autoFocus, agent = "kira" }: Props) {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
@@ -381,7 +382,11 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
           <button
             onClick={handleSubmit}
             disabled={isDisabled}
-            className="flex-shrink-0 w-[44px] h-[44px] rounded-full flex items-center justify-center bg-[#bcd431] text-[#3d1e54] active:scale-90 active:bg-[#9ab321] disabled:opacity-50 transition-transform"
+            className={`flex-shrink-0 w-[44px] h-[44px] rounded-full flex items-center justify-center active:scale-90 disabled:opacity-50 transition-all duration-300 ${
+              agent === "kronos"
+                ? "bg-[#bcd431] text-[#0f0f11] active:bg-[#9ab321] shadow-md shadow-[#bcd431]/30"
+                : "bg-[#bcd431] text-[#3d1e54] active:bg-[#9ab321]"
+            }`}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
               <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
@@ -391,12 +396,16 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
           <button
             onClick={toggleRecording}
             disabled={isDisabled}
-            className={`flex-shrink-0 w-[44px] h-[44px] rounded-full flex items-center justify-center transition-all active:scale-90 ${
+            className={`flex-shrink-0 w-[44px] h-[44px] rounded-full flex items-center justify-center transition-all duration-300 active:scale-90 ${
               recording
                 ? "bg-red-500 text-white animate-gentle-pulse"
                 : transcribing
-                  ? "bg-[#572c77]/20 text-[#572c77]"
-                  : "bg-[#572c77] text-white"
+                  ? agent === "kronos"
+                    ? "bg-[#bcd431]/20 text-[#bcd431]"
+                    : "bg-[#572c77]/20 text-[#572c77]"
+                  : agent === "kronos"
+                    ? "bg-[#bcd431] text-[#0f0f11] shadow-md shadow-[#bcd431]/30"
+                    : "bg-[#572c77] text-white"
             } disabled:opacity-50`}
           >
             {transcribing ? (

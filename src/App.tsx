@@ -105,8 +105,12 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
     <div className="h-full flex flex-col bg-white dark:bg-[#0a0a0c] text-gray-900 dark:text-gray-100">
       {swUpdate && <UpdateBanner onUpdate={handleUpdate} />}
 
-      {/* Header — KOAI purple gradient */}
-      <header className="flex items-center justify-between px-2 py-1.5 bg-gradient-to-r from-[#572c77] to-[#7c4d9e] safe-top">
+      {/* Header — changes color based on agent */}
+      <header className={`flex items-center justify-between px-2 py-1.5 safe-top transition-colors duration-500 ${
+        agent === "kronos"
+          ? "bg-gradient-to-r from-[#0f0f11] to-[#1a1a1e]"
+          : "bg-gradient-to-r from-[#572c77] to-[#7c4d9e]"
+      }`}>
         <button
           onClick={() => setShowSidebar(true)}
           className="w-11 h-11 flex items-center justify-center rounded-full text-white/80 active:text-white active:bg-white/10 transition-colors active:scale-95"

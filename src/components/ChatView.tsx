@@ -79,7 +79,11 @@ export function ChatView({ conversation, agent, loading, streamingText, onSend, 
                   key={s}
                   onClick={() => onSend(s)}
                   disabled={loading}
-                  className="px-3.5 py-2 rounded-2xl border border-[#572c77]/20 dark:border-[#572c77]/30 text-xs text-gray-600 dark:text-gray-400 hover:border-[#572c77]/50 hover:text-[#572c77] hover:bg-[#572c77]/5 dark:hover:bg-[#572c77]/10 transition-all disabled:opacity-50 active:scale-95"
+                  className={`px-3.5 py-2 rounded-2xl border text-xs transition-all disabled:opacity-50 active:scale-95 ${
+                    agent === "kronos"
+                      ? "border-[#bcd431]/20 dark:border-[#bcd431]/30 text-gray-600 dark:text-gray-400 hover:border-[#bcd431]/50 hover:text-[#bcd431] hover:bg-[#bcd431]/5 dark:hover:bg-[#bcd431]/10"
+                      : "border-[#572c77]/20 dark:border-[#572c77]/30 text-gray-600 dark:text-gray-400 hover:border-[#572c77]/50 hover:text-[#572c77] hover:bg-[#572c77]/5 dark:hover:bg-[#572c77]/10"
+                  }`}
                 >
                   {s}
                 </button>
@@ -127,6 +131,7 @@ export function ChatView({ conversation, agent, loading, streamingText, onSend, 
         disabled={loading}
         placeholder={agent === "kira" ? "Pregunta a Kira..." : "Pregunta a Kronos..."}
         autoFocus={!!conversation}
+        agent={agent}
       />
     </div>
   );

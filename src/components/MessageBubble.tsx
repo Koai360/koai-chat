@@ -40,13 +40,16 @@ function CopyButton({ text }: { text: string }) {
 
 export function MessageBubble({ message }: Props) {
   const isUser = message.role === "user";
+  const isKronos = message.agent === "kronos";
 
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"} mb-2 animate-bubble-in group`}>
       <div
         className={`max-w-[85%] rounded-[18px] px-3.5 py-2 relative ${
           isUser
-            ? "bg-gradient-to-br from-[#572c77] to-[#7c4d9e] text-white rounded-br-[4px] shadow-sm shadow-[#572c77]/20"
+            ? isKronos
+              ? "bg-gradient-to-br from-[#1a1a1e] to-[#2a2a30] text-white rounded-br-[4px] shadow-sm shadow-black/30 ring-1 ring-[#bcd431]/20"
+              : "bg-gradient-to-br from-[#572c77] to-[#7c4d9e] text-white rounded-br-[4px] shadow-sm shadow-[#572c77]/20"
             : "bg-[#f5f3f7] dark:bg-[#1e1b22] text-gray-900 dark:text-gray-100 rounded-bl-[4px]"
         }`}
       >

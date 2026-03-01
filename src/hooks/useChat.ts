@@ -8,6 +8,7 @@ import {
   updateConversationTitle,
   fetchMessages,
   saveMessages,
+  assignConversationProject,
   type ServerConversation,
   type ServerMessage,
 } from "../lib/api";
@@ -253,6 +254,20 @@ export function useChat(userId: string | null = null) {
     [activeId, agent, loading, conversations, newConversation],
   );
 
+  const moveToProject = useCallback(
+    (conversationId: string, projectId: string | null) => {
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === conversationId ? { ...c, projectId } : c,
+        ),
+      );
+      assignConversationProject(conversationId, projectId).catch((err) =>
+        console.error("[useChat] Failed to assign project:", err),
+      );
+    },
+    [],
+  );
+
   const deleteConversation = useCallback(
     (id: string) => {
       setConversations((prev) => prev.filter((c) => c.id !== id));
@@ -279,5 +294,6 @@ export function useChat(userId: string | null = null) {
     sendMessage,
     newConversation,
     deleteConversation,
+    moveToProject,
   };
 }

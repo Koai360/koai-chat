@@ -15,7 +15,10 @@ interface Props {
   onSelect: (id: string) => void;
   onNew: () => void;
   onDelete: (id: string) => void;
+  onMoveToProject?: (conversationId: string, projectId: string | null) => void;
   onClose: () => void;
+  onTogglePin?: () => void;
+  isPinned?: boolean;
   user: AuthUser;
   onLogout: () => void;
   onOpenGallery?: () => void;
@@ -25,10 +28,11 @@ function haptic(ms = 8) {
   if (navigator.vibrate) navigator.vibrate(ms);
 }
 
-export function ConversationList({ conversations, activeId, onSelect, onNew, onDelete, onClose, user, onLogout, onOpenGallery }: Props) {
+export function ConversationList({ conversations, activeId, onSelect, onNew, onDelete, onMoveToProject, onClose, onTogglePin, isPinned, user, onLogout, onOpenGallery }: Props) {
   const [search, setSearch] = useState("");
   const [swipedId, setSwipedId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [moveConvoId, setMoveConvoId] = useState<string | null>(null);
   const [projects, setProjects] = useState<ServerProject[]>([]);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [showNewProject, setShowNewProject] = useState(false);
@@ -115,7 +119,7 @@ export function ConversationList({ conversations, activeId, onSelect, onNew, onD
       </div>
 
       <div
-        onClick={() => { haptic(); onSelect(c.id); onClose(); setSwipedId(null); }}
+        onClick={() => { haptic(); onSelect(c.id); setSwipedId(null); }}
         className={`flex items-center justify-between px-3 py-2 cursor-pointer transition-all ${
           swipedId === c.id ? "-translate-x-16" : ""
         } ${
@@ -132,15 +136,30 @@ export function ConversationList({ conversations, activeId, onSelect, onNew, onD
             {relativeTime(c.createdAt)}
           </span>
         </div>
-        <button
-          onClick={(e) => { e.stopPropagation(); haptic(15); setConfirmDeleteId(c.id); }}
-          className="ml-1 w-7 h-7 flex-shrink-0 flex items-center justify-center text-gray-300 hover:text-red-500 rounded-lg"
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="3 6 5 6 21 6" />
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-          </svg>
-        </button>
+        <div className="flex items-center flex-shrink-0 ml-1">
+          {/* Move to project */}
+          {onMoveToProject && projects.length > 0 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); haptic(); setMoveConvoId(c.id); }}
+              className="w-7 h-7 flex items-center justify-center text-gray-300 hover:text-[#572c77] dark:hover:text-[#bcd431] rounded-lg"
+              title="Mover a proyecto"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+              </svg>
+            </button>
+          )}
+          {/* Delete */}
+          <button
+            onClick={(e) => { e.stopPropagation(); haptic(15); setConfirmDeleteId(c.id); }}
+            className="w-7 h-7 flex items-center justify-center text-gray-300 hover:text-red-500 rounded-lg"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -150,12 +169,39 @@ export function ConversationList({ conversations, activeId, onSelect, onNew, onD
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 safe-top">
         <h2 className="font-semibold text-gray-900 dark:text-gray-100">Conversaciones</h2>
-        <button onClick={onClose} className="w-11 h-11 flex items-center justify-center text-gray-500 hover:text-gray-700 rounded-xl">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
+        <div className="flex items-center">
+          {onTogglePin && (
+            <button
+              onClick={onTogglePin}
+              className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors ${
+                isPinned
+                  ? "text-[#572c77] dark:text-[#bcd431]"
+                  : "text-gray-400 hover:text-gray-600"
+              }`}
+              title={isPinned ? "Ocultar sidebar" : "Fijar sidebar"}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                {isPinned ? (
+                  <>
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <line x1="9" y1="3" x2="9" y2="21" />
+                  </>
+                ) : (
+                  <>
+                    <line x1="12" y1="17" x2="12" y2="22" />
+                    <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" />
+                  </>
+                )}
+              </svg>
+            </button>
+          )}
+          <button onClick={onClose} className="w-9 h-9 flex items-center justify-center text-gray-500 hover:text-gray-700 rounded-xl">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Actions row */}
@@ -331,6 +377,53 @@ export function ConversationList({ conversations, activeId, onSelect, onNew, onD
                 Eliminar
               </button>
             </div>
+          </div>
+        </>
+      )}
+
+      {/* Move to project modal */}
+      {moveConvoId && (
+        <>
+          <div className="fixed inset-0 bg-black/40 z-[60] animate-fade-in" onClick={() => setMoveConvoId(null)} />
+          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-[70] bg-white dark:bg-[#1e1b22] rounded-2xl shadow-2xl p-5 animate-fade-in max-w-sm mx-auto">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-3">Mover a proyecto</h3>
+            <div className="flex flex-col gap-1 max-h-60 overflow-y-auto">
+              {projects.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => {
+                    onMoveToProject?.(moveConvoId, p.id);
+                    haptic();
+                    setMoveConvoId(null);
+                  }}
+                  className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#2c2c2e] active:scale-[0.98] transition-all"
+                >
+                  <span>{p.icon}</span>
+                  <span className="truncate">{p.name}</span>
+                </button>
+              ))}
+              {/* Remove from project */}
+              <button
+                onClick={() => {
+                  onMoveToProject?.(moveConvoId, null);
+                  haptic();
+                  setMoveConvoId(null);
+                }}
+                className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-left text-sm text-gray-400 hover:bg-gray-50 dark:hover:bg-[#2c2c2e] active:scale-[0.98] transition-all border-t border-gray-100 dark:border-gray-700 mt-1 pt-2.5"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+                <span>Sin proyecto</span>
+              </button>
+            </div>
+            <button
+              onClick={() => setMoveConvoId(null)}
+              className="w-full mt-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#2c2c2e] active:scale-[0.98]"
+            >
+              Cancelar
+            </button>
           </div>
         </>
       )}

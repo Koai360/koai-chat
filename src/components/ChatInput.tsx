@@ -212,7 +212,7 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
   const isDisabled = disabled || transcribing;
 
   return (
-    <div className="bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl safe-bottom">
+    <div className="input-bar-bg safe-bottom">
       {/* Error toast */}
       {error && (
         <div className="mx-3 mb-1 px-3 py-1.5 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-500 text-center animate-fade-in">
@@ -257,10 +257,10 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
         </div>
       )}
 
-      {/* Input row — WhatsApp style */}
+      {/* Input row */}
       <div className="flex items-end gap-2 px-2 py-1.5">
         {/* Input container with + and camera inside */}
-        <div className="flex-1 flex items-end bg-gray-100 dark:bg-gray-800 rounded-[22px] min-h-[44px] overflow-hidden">
+        <div className="flex-1 flex items-end bg-gray-100 dark:bg-[#2c2c2e] rounded-[22px] min-h-[44px] overflow-hidden">
           {/* Plus / gallery button */}
           <button
             onClick={() => fileInputRef.current?.click()}

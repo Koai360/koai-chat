@@ -25,7 +25,7 @@ export default function App() {
   }
 
   if (!auth.isAuthenticated) {
-    return <LoginScreen onLogin={auth.login} />;
+    return <LoginScreen onLogin={auth.login} onGoogleLogin={auth.loginWithGoogle} />;
   }
 
   return <ChatApp user={auth.user!} onLogout={auth.logout} />;

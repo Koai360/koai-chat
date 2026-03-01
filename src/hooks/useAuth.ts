@@ -5,6 +5,8 @@ export interface AuthUser {
   id: string;
   name: string;
   role: string;
+  email?: string;
+  picture?: string;
 }
 
 interface AuthState {
@@ -13,6 +15,7 @@ interface AuthState {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (username: string, password: string) => Promise<void>;
+  loginWithGoogle: (credential: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -59,6 +62,13 @@ export function useAuth(): AuthState {
     setIsLoading(false);
   }, []);
 
+  const _saveAuth = useCallback((data: { token: string; user: AuthUser }) => {
+    localStorage.setItem(TOKEN_KEY, data.token);
+    localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+    setToken(data.token);
+    setUser(data.user);
+  }, []);
+
   const login = useCallback(async (username: string, password: string) => {
     const res = await fetch(`${API_URL}/api/auth/login`, {
       method: "POST",
@@ -72,11 +82,24 @@ export function useAuth(): AuthState {
     }
 
     const data = await res.json();
-    localStorage.setItem(TOKEN_KEY, data.token);
-    localStorage.setItem(USER_KEY, JSON.stringify(data.user));
-    setToken(data.token);
-    setUser(data.user);
-  }, []);
+    _saveAuth(data);
+  }, [_saveAuth]);
+
+  const loginWithGoogle = useCallback(async (credential: string) => {
+    const res = await fetch(`${API_URL}/api/auth/google`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ credential }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.detail || "Error al iniciar sesión con Google");
+    }
+
+    const data = await res.json();
+    _saveAuth(data);
+  }, [_saveAuth]);
 
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
@@ -91,6 +114,7 @@ export function useAuth(): AuthState {
     isLoading,
     isAuthenticated: !!user && !!token,
     login,
+    loginWithGoogle,
     logout,
   };
 }

@@ -57,7 +57,7 @@ export function ChatView({ conversation, agent, loading, streamingText, onSend, 
         {!conversation || conversation.messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-8 animate-fade-in">
             <img
-              src={agent === "kira" ? "/icons/kira-logo.svg" : "/icons/koai-192.png"}
+              src={agent === "kira" ? "/icons/kira-logo.svg" : "/icons/kronos-logo.svg"}
               alt={agent === "kira" ? "Kira" : "Kronos"}
               className="w-20 h-20 rounded-2xl mb-4 shadow-lg"
             />

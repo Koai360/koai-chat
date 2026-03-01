@@ -1,5 +1,16 @@
-import { useState, useCallback, useEffect } from "react";
-import { sendKiraMessage, streamKronosMessage } from "../lib/api";
+import { useState, useCallback, useEffect, useRef } from "react";
+import {
+  sendKiraMessage,
+  streamKronosMessage,
+  fetchConversations,
+  createConversation as createConvApi,
+  deleteConversationApi,
+  updateConversationTitle,
+  fetchMessages,
+  saveMessages,
+  type ServerConversation,
+  type ServerMessage,
+} from "../lib/api";
 
 export type Agent = "kira" | "kronos";
 
@@ -20,80 +31,116 @@ export interface Conversation {
   title: string;
 }
 
-function storageKey(userId: string | null): string {
-  return userId ? `koai-chat-conversations-${userId}` : "koai-chat-conversations";
-}
-
-function loadConversations(userId: string | null): Conversation[] {
-  try {
-    return JSON.parse(localStorage.getItem(storageKey(userId)) || "[]");
-  } catch {
-    return [];
-  }
-}
-
-function saveConversations(convos: Conversation[], userId: string | null) {
-  localStorage.setItem(storageKey(userId), JSON.stringify(convos));
-}
-
 function generateTitle(msg: string): string {
   return msg.length > 40 ? msg.slice(0, 40) + "..." : msg;
 }
 
+function serverToLocal(sc: ServerConversation): Conversation {
+  return {
+    id: sc.id,
+    agent: sc.agent as Agent,
+    messages: [],
+    createdAt: new Date(sc.created_at).getTime(),
+    title: sc.title,
+  };
+}
+
+function serverMsgToLocal(sm: ServerMessage): Message {
+  return {
+    id: sm.id,
+    role: sm.role as "user" | "assistant",
+    agent: sm.agent as Agent,
+    content: sm.content,
+    timestamp: new Date(sm.created_at).getTime(),
+    image: sm.image || undefined,
+  };
+}
+
 export function useChat(userId: string | null = null) {
-  const [conversations, setConversations] = useState<Conversation[]>(() => loadConversations(userId));
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [agent, setAgentState] = useState<Agent>("kira");
   const [loading, setLoading] = useState(false);
   const [streamingText, setStreamingText] = useState("");
+  const [syncing, setSyncing] = useState(true);
+  const initialLoadDone = useRef(false);
+
   const active = conversations.find((c) => c.id === activeId) || null;
 
-  // Reload when userId changes
+  // Load conversations from server on init
   useEffect(() => {
-    setConversations(loadConversations(userId));
-    setActiveId(null);
+    if (!userId) return;
+    initialLoadDone.current = false;
+    setSyncing(true);
+
+    fetchConversations()
+      .then((serverConvos) => {
+        const local = serverConvos.map(serverToLocal);
+        setConversations(local);
+        initialLoadDone.current = true;
+      })
+      .catch((err) => {
+        console.error("[useChat] Failed to fetch conversations:", err);
+        initialLoadDone.current = true;
+      })
+      .finally(() => setSyncing(false));
   }, [userId]);
 
-  // When agent changes, switch to the most recent conversation of that agent (or null)
-  const setAgent = useCallback((newAgent: Agent) => {
-    setAgentState(newAgent);
-    // Find most recent conversation for this agent
-    const agentConvos = conversations.filter((c) => c.agent === newAgent);
-    if (agentConvos.length > 0) {
-      setActiveId(agentConvos[0].id);
-    } else {
-      setActiveId(null);
-    }
-  }, [conversations]);
+  // Load messages when active conversation changes
+  useEffect(() => {
+    if (!activeId || !initialLoadDone.current) return;
 
-  const updateConversation = useCallback(
-    (id: string, updater: (c: Conversation) => Conversation) => {
-      setConversations((prev) => {
-        const updated = prev.map((c) => (c.id === id ? updater(c) : c));
-        saveConversations(updated, userId);
-        return updated;
+    const convo = conversations.find((c) => c.id === activeId);
+    if (!convo || convo.messages.length > 0) return;
+
+    fetchMessages(activeId)
+      .then((serverMsgs) => {
+        const msgs = serverMsgs.map(serverMsgToLocal);
+        setConversations((prev) =>
+          prev.map((c) => (c.id === activeId ? { ...c, messages: msgs } : c))
+        );
+      })
+      .catch((err) => {
+        console.error("[useChat] Failed to fetch messages:", err);
       });
+  }, [activeId, conversations]);
+
+  // When agent changes, switch to the most recent conversation of that agent
+  const setAgent = useCallback(
+    (newAgent: Agent) => {
+      setAgentState(newAgent);
+      const agentConvos = conversations.filter((c) => c.agent === newAgent);
+      if (agentConvos.length > 0) {
+        setActiveId(agentConvos[0].id);
+      } else {
+        setActiveId(null);
+      }
     },
-    [userId],
+    [conversations],
   );
 
-  const newConversation = useCallback(() => {
-    const id = crypto.randomUUID();
-    const convo: Conversation = {
-      id,
-      agent,
-      messages: [],
-      createdAt: Date.now(),
-      title: "Nueva conversación",
-    };
-    setConversations((prev) => {
-      const updated = [convo, ...prev];
-      saveConversations(updated, userId);
-      return updated;
-    });
-    setActiveId(id);
-    return id;
-  }, [agent, userId]);
+  const newConversation = useCallback(async () => {
+    try {
+      const serverConvo = await createConvApi(agent, "Nueva conversación");
+      const local = serverToLocal(serverConvo);
+      setConversations((prev) => [local, ...prev]);
+      setActiveId(local.id);
+      return local.id;
+    } catch (err) {
+      console.error("[useChat] Failed to create conversation:", err);
+      const id = crypto.randomUUID();
+      const convo: Conversation = {
+        id,
+        agent,
+        messages: [],
+        createdAt: Date.now(),
+        title: "Nueva conversación",
+      };
+      setConversations((prev) => [convo, ...prev]);
+      setActiveId(id);
+      return id;
+    }
+  }, [agent]);
 
   const sendMessage = useCallback(
     async (text: string, imageBase64?: string) => {
@@ -101,7 +148,7 @@ export function useChat(userId: string | null = null) {
 
       let convoId = activeId;
       if (!convoId) {
-        convoId = newConversation();
+        convoId = await newConversation();
       }
 
       const displayText = text.trim() || (imageBase64 ? "[Imagen]" : "");
@@ -114,58 +161,71 @@ export function useChat(userId: string | null = null) {
         image: imageBase64,
       };
 
-      updateConversation(convoId, (c) => ({
-        ...c,
-        agent,
-        title: c.messages.length === 0 ? generateTitle(displayText) : c.title,
-        messages: [...c.messages, userMsg],
-      }));
+      const convo = conversations.find((c) => c.id === convoId);
+      const isFirstMsg = !convo || convo.messages.length === 0;
+      const newTitle = isFirstMsg ? generateTitle(displayText) : undefined;
+
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === convoId
+            ? { ...c, title: newTitle || c.title, messages: [...c.messages, userMsg] }
+            : c,
+        ),
+      );
+
+      if (newTitle && convoId) {
+        updateConversationTitle(convoId, newTitle).catch(() => {});
+      }
 
       setLoading(true);
       setStreamingText("");
 
       try {
+        let assistantContent = "";
+
         if (agent === "kira") {
           const res = await sendKiraMessage(displayText, convoId, imageBase64);
-          const assistantMsg: Message = {
-            id: crypto.randomUUID(),
-            role: "assistant",
-            agent: "kira",
-            content: res.messages?.[0]?.content || "Sin respuesta",
-            timestamp: Date.now(),
-          };
-          updateConversation(convoId, (c) => ({
-            ...c,
-            messages: [...c.messages, assistantMsg],
-          }));
+          assistantContent = res.messages?.[0]?.content || "Sin respuesta";
         } else {
-          const history = conversations
-            .find((c) => c.id === convoId)
-            ?.messages.map((m) => ({
-              role: m.role === "user" ? "user" as const : "assistant" as const,
-              content: m.content,
-            })) || [];
+          const history =
+            conversations
+              .find((c) => c.id === convoId)
+              ?.messages.map((m) => ({
+                role: m.role === "user" ? ("user" as const) : ("assistant" as const),
+                content: m.content,
+              })) || [];
 
-          const fullText = await streamKronosMessage(
+          assistantContent = await streamKronosMessage(
             displayText,
             history,
             convoId,
             (partial) => setStreamingText(partial),
             imageBase64,
           );
-
-          const assistantMsg: Message = {
-            id: crypto.randomUUID(),
-            role: "assistant",
-            agent: "kronos",
-            content: fullText || "Sin respuesta",
-            timestamp: Date.now(),
-          };
-          updateConversation(convoId, (c) => ({
-            ...c,
-            messages: [...c.messages, assistantMsg],
-          }));
+          assistantContent = assistantContent || "Sin respuesta";
           setStreamingText("");
+        }
+
+        const assistantMsg: Message = {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          agent,
+          content: assistantContent,
+          timestamp: Date.now(),
+        };
+
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.id === convoId ? { ...c, messages: [...c.messages, assistantMsg] } : c,
+          ),
+        );
+
+        // Persist both messages to server
+        if (convoId) {
+          saveMessages(convoId, [
+            { role: "user", agent, content: displayText, image: imageBase64 },
+            { role: "assistant", agent, content: assistantContent },
+          ]).catch((err) => console.error("[useChat] Failed to save messages:", err));
         }
       } catch (err) {
         const errorMsg: Message = {
@@ -175,28 +235,30 @@ export function useChat(userId: string | null = null) {
           content: `Error: ${err instanceof Error ? err.message : "desconocido"}`,
           timestamp: Date.now(),
         };
-        updateConversation(convoId, (c) => ({
-          ...c,
-          messages: [...c.messages, errorMsg],
-        }));
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.id === convoId ? { ...c, messages: [...c.messages, errorMsg] } : c,
+          ),
+        );
         setStreamingText("");
       } finally {
         setLoading(false);
       }
     },
-    [activeId, agent, loading, conversations, newConversation, updateConversation],
+    [activeId, agent, loading, conversations, newConversation],
   );
 
-  const deleteConversation = useCallback((id: string) => {
-    setConversations((prev) => {
-      const updated = prev.filter((c) => c.id !== id);
-      saveConversations(updated, userId);
-      return updated;
-    });
-    if (activeId === id) setActiveId(null);
-  }, [activeId, userId]);
+  const deleteConversation = useCallback(
+    (id: string) => {
+      setConversations((prev) => prev.filter((c) => c.id !== id));
+      if (activeId === id) setActiveId(null);
+      deleteConversationApi(id).catch((err) =>
+        console.error("[useChat] Failed to delete:", err),
+      );
+    },
+    [activeId],
+  );
 
-  // Filter conversations shown in sidebar by current agent
   const agentConversations = conversations.filter((c) => c.agent === agent);
 
   return {
@@ -207,6 +269,7 @@ export function useChat(userId: string | null = null) {
     agent,
     setAgent,
     loading,
+    syncing,
     streamingText,
     sendMessage,
     newConversation,

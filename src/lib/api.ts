@@ -127,3 +127,74 @@ export async function transcribeAudio(audioBlob: Blob): Promise<string> {
   const data = await res.json();
   return data.text;
 }
+
+// --- Conversation persistence ---
+
+export interface ServerConversation {
+  id: string;
+  agent: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ServerMessage {
+  id: string;
+  role: string;
+  agent: string;
+  content: string;
+  image: string | null;
+  created_at: string;
+}
+
+export async function fetchConversations(): Promise<ServerConversation[]> {
+  const res = await fetch(`${API_URL}/api/chat/conversations`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+export async function createConversation(agent: string, title: string): Promise<ServerConversation> {
+  const res = await fetch(`${API_URL}/api/chat/conversations`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({ agent, title }),
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+export async function updateConversationTitle(id: string, title: string): Promise<void> {
+  await fetch(`${API_URL}/api/chat/conversations/${id}`, {
+    method: "PATCH",
+    headers: getHeaders(),
+    body: JSON.stringify({ title }),
+  });
+}
+
+export async function deleteConversationApi(id: string): Promise<void> {
+  await fetch(`${API_URL}/api/chat/conversations/${id}`, {
+    method: "DELETE",
+    headers: getHeaders(),
+  });
+}
+
+export async function fetchMessages(conversationId: string): Promise<ServerMessage[]> {
+  const res = await fetch(`${API_URL}/api/chat/conversations/${conversationId}/messages`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+export async function saveMessages(
+  conversationId: string,
+  messages: Array<{ role: string; agent: string; content: string; image?: string }>,
+): Promise<void> {
+  await fetch(`${API_URL}/api/chat/conversations/${conversationId}/messages`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({ messages }),
+  });
+}

@@ -198,3 +198,36 @@ export async function saveMessages(
     body: JSON.stringify({ messages }),
   });
 }
+
+// --- Notifications ---
+
+export interface Notification {
+  id: string;
+  title: string;
+  body: string;
+  url: string;
+  read: boolean;
+  created_at: string;
+}
+
+export async function fetchNotifications(): Promise<Notification[]> {
+  const res = await fetch(`${API_URL}/api/notifications`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+export async function markNotificationRead(id: string): Promise<void> {
+  await fetch(`${API_URL}/api/notifications/${id}/read`, {
+    method: "PATCH",
+    headers: getHeaders(),
+  });
+}
+
+export async function markAllNotificationsRead(): Promise<void> {
+  await fetch(`${API_URL}/api/notifications/read-all`, {
+    method: "PATCH",
+    headers: getHeaders(),
+  });
+}

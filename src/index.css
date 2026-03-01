@@ -81,6 +81,14 @@ button:active:not(:disabled) {
   animation: slide-in-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+.animate-slide-in-right {
+  animation: slide-in-right 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -149,6 +157,29 @@ button:active:not(:disabled) {
   font-weight: 500;
   opacity: 0.5;
   white-space: nowrap;
+}
+
+/* === CONTENTEDITABLE INPUT (elimina iOS input accessory bar) === */
+[contenteditable="true"] {
+  outline: none;
+  word-break: break-word;
+  -webkit-user-modify: read-write-plaintext-only;
+  caret-color: #572c77;
+}
+@media (prefers-color-scheme: dark) {
+  [contenteditable="true"] {
+    caret-color: #bcd431;
+  }
+}
+[contenteditable="true"]:empty::before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  pointer-events: none;
+}
+@media (prefers-color-scheme: dark) {
+  [contenteditable="true"]:empty::before {
+    color: #6b7280;
+  }
 }
 
 /* === SCROLL === */

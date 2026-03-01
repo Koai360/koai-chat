@@ -18,32 +18,46 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
   const [recordingTime, setRecordingTime] = useState(0);
   const [transcribing, setTranscribing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Auto-resize textarea
-  useEffect(() => {
-    const el = textareaRef.current;
-    if (el) {
-      el.style.height = "auto";
-      el.style.height = Math.min(el.scrollHeight, 120) + "px";
+  // Sync text state when editor content changes externally (e.g. after transcription)
+  const syncEditorToState = useCallback(() => {
+    if (editorRef.current) {
+      const content = editorRef.current.innerText || "";
+      setText(content);
     }
-  }, [text]);
+  }, []);
+
+  // Set editor content programmatically (e.g. after transcription)
+  const setEditorContent = useCallback((value: string) => {
+    if (editorRef.current) {
+      editorRef.current.innerText = value;
+      setText(value);
+      // Move cursor to end
+      const range = document.createRange();
+      const sel = window.getSelection();
+      range.selectNodeContents(editorRef.current);
+      range.collapse(false);
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+    }
+  }, []);
 
   // Auto-focus when requested
   useEffect(() => {
-    if (autoFocus && textareaRef.current) {
-      setTimeout(() => textareaRef.current?.focus(), 100);
+    if (autoFocus && editorRef.current) {
+      setTimeout(() => editorRef.current?.focus(), 100);
     }
   }, [autoFocus]);
 
   // Scroll input into view when keyboard opens
   const handleFocus = useCallback(() => {
     setTimeout(() => {
-      textareaRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      editorRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }, 300);
   }, []);
 
@@ -60,11 +74,9 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
     if (navigator.vibrate) navigator.vibrate(10);
     onSend(text, imageBase64 || undefined);
     setText("");
+    if (editorRef.current) editorRef.current.innerText = "";
     setImagePreview(null);
     setImageBase64(null);
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -72,6 +84,18 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
       e.preventDefault();
       handleSubmit();
     }
+  };
+
+  const handleInput = () => {
+    syncEditorToState();
+  };
+
+  // Prevent pasting rich text — only allow plain text
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const plainText = e.clipboardData.getData("text/plain");
+    document.execCommand("insertText", false, plainText);
+    syncEditorToState();
   };
 
   // --- Image handling ---
@@ -191,8 +215,9 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
         try {
           const transcribed = await onTranscribe(blob);
           if (transcribed) {
-            setText((prev) => (prev ? prev + " " + transcribed : transcribed));
-            textareaRef.current?.focus();
+            const newText = text ? text + " " + transcribed : transcribed;
+            setEditorContent(newText);
+            editorRef.current?.focus();
           } else {
             setError("No se detectó texto");
           }
@@ -302,19 +327,19 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
             className="hidden"
           />
 
-          {/* Text input */}
-          <textarea
-            ref={textareaRef}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onFocus={handleFocus}
-            placeholder={transcribing ? "Transcribiendo..." : placeholder}
-            disabled={isDisabled}
-            rows={1}
+          {/* ContentEditable input — NO accessory bar on iOS */}
+          <div
+            ref={editorRef}
+            contentEditable={!isDisabled}
+            role="textbox"
             inputMode="text"
             enterKeyHint="send"
-            className="flex-1 resize-none bg-transparent py-[11px] text-[16px] leading-[22px] text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none"
+            data-placeholder={transcribing ? "Transcribiendo..." : placeholder}
+            onInput={handleInput}
+            onKeyDown={handleKeyDown}
+            onFocus={handleFocus}
+            onPaste={handlePaste}
+            className="flex-1 py-[11px] text-[16px] leading-[22px] max-h-[120px] overflow-y-auto text-gray-900 dark:text-gray-100"
           />
 
           {/* Camera button (inside input pill) */}

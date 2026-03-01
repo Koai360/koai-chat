@@ -160,18 +160,25 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
         </div>
       </header>
 
-      {/* Chat area */}
+      {/* Chat area or Gallery */}
       <main className="flex-1 overflow-hidden bg-white dark:bg-[#0a0a0c]">
-        <ChatView
-          conversation={active}
-          agent={agent}
-          loading={loading}
-          streamingText={streamingText}
-          onSend={sendMessage}
-          onTranscribe={transcribeAudio}
-          userName={user.name}
-          onImageClick={setModalImage}
-        />
+        {showGallery ? (
+          <ImageGallery
+            onClose={() => setShowGallery(false)}
+            onImageClick={setModalImage}
+          />
+        ) : (
+          <ChatView
+            conversation={active}
+            agent={agent}
+            loading={loading}
+            streamingText={streamingText}
+            onSend={sendMessage}
+            onTranscribe={transcribeAudio}
+            userName={user.name}
+            onImageClick={setModalImage}
+          />
+        )}
       </main>
 
       {/* Sidebar overlay */}
@@ -217,19 +224,6 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
               onMarkAllRead={markAllRead}
               onClose={() => setShowNotifications(false)}
             />
-          </div>
-        </>
-      )}
-
-      {/* Gallery overlay */}
-      {showGallery && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-40 animate-fade-in"
-            onClick={() => setShowGallery(false)}
-          />
-          <div className="fixed inset-y-0 left-0 w-[min(340px,90vw)] z-50 shadow-2xl animate-slide-in">
-            <ImageGallery onClose={() => setShowGallery(false)} />
           </div>
         </>
       )}

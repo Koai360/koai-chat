@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { API_URL } from "../config";
 
 interface Props {
@@ -16,6 +16,7 @@ declare global {
         };
       };
     };
+    handleGoogleCredential?: (response: { credential: string }) => void;
   }
 }
 
@@ -27,10 +28,35 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const googleBtnRef = useRef<HTMLDivElement>(null);
+  const onGoogleLoginRef = useRef(onGoogleLogin);
+  onGoogleLoginRef.current = onGoogleLogin;
+
+  const handleGoogleResponse = useCallback(async (response: { credential: string }) => {
+    setLoading(true);
+    setError("");
+    try {
+      await onGoogleLoginRef.current(response.credential);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al iniciar sesión");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   // Load Google Identity Services
   useEffect(() => {
     let cancelled = false;
+
+    // Expose callback globally for GSI
+    window.handleGoogleCredential = handleGoogleResponse;
+
+    // Timeout: if Google doesn't load in 8s, show fallback
+    const timeout = setTimeout(() => {
+      if (!cancelled && !googleReady) {
+        console.warn("[LoginScreen] Google GSI timeout, showing fallback");
+        setShowFallback(true);
+      }
+    }, 8000);
 
     async function initGoogle() {
       try {
@@ -59,8 +85,17 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
 
         if (cancelled) return;
 
+        // Wait a tick for window.google to be fully available
+        await new Promise((r) => setTimeout(r, 100));
+
+        if (!window.google?.accounts?.id) {
+          console.error("[LoginScreen] window.google.accounts.id not available");
+          if (!cancelled) setShowFallback(true);
+          return;
+        }
+
         // Initialize Google Sign-In
-        window.google?.accounts.id.initialize({
+        window.google.accounts.id.initialize({
           client_id,
           callback: handleGoogleResponse,
           auto_select: false,
@@ -69,7 +104,7 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
 
         // Render button
         if (googleBtnRef.current) {
-          window.google?.accounts.id.renderButton(googleBtnRef.current, {
+          window.google.accounts.id.renderButton(googleBtnRef.current, {
             type: "standard",
             theme: "outline",
             size: "large",
@@ -80,7 +115,10 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
           });
         }
 
-        if (!cancelled) setGoogleReady(true);
+        if (!cancelled) {
+          setGoogleReady(true);
+          clearTimeout(timeout);
+        }
       } catch (err) {
         console.error("[LoginScreen] Google init error:", err);
         if (!cancelled) setShowFallback(true);
@@ -88,20 +126,8 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
     }
 
     initGoogle();
-    return () => { cancelled = true; };
-  }, []);
-
-  const handleGoogleResponse = async (response: { credential: string }) => {
-    setLoading(true);
-    setError("");
-    try {
-      await onGoogleLogin(response.credential);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al iniciar sesión");
-    } finally {
-      setLoading(false);
-    }
-  };
+    return () => { cancelled = true; clearTimeout(timeout); };
+  }, [handleGoogleResponse]);
 
   const handleFallbackSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -155,6 +181,16 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
             <p className="text-[11px] text-gray-400 dark:text-gray-500 text-center">
               Solo cuentas @koai360.com
             </p>
+
+            {!googleReady && (
+              <button
+                type="button"
+                onClick={() => setShowFallback(true)}
+                className="text-xs text-[#572c77] dark:text-[#bcd431] hover:underline mt-2"
+              >
+                Usar login manual
+              </button>
+            )}
           </div>
         )}
 

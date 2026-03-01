@@ -39,17 +39,17 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-800 bg-[#0a0a0c]">
         <button
           onClick={onClose}
-          className="w-9 h-9 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-xl active:scale-95 transition-all"
+          className="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-gray-200 rounded-xl active:scale-95 transition-all"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
         <div>
-          <h2 className="font-semibold text-gray-900 dark:text-gray-100 text-base">Galería</h2>
+          <h2 className="font-semibold text-gray-100 text-base">Galería</h2>
           {!loading && images.length > 0 && (
             <p className="text-[11px] text-gray-400 -mt-0.5">
               {images.length} {images.length === 1 ? "imagen" : "imágenes"} generadas
@@ -59,7 +59,7 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto bg-[#f5f3f0] dark:bg-[#0a0a0c]">
+      <div className="flex-1 overflow-y-auto bg-[#0a0a0c]">
         {loading ? (
           <div className="flex flex-col items-center justify-center h-full gap-3">
             <svg className="animate-spin w-7 h-7 text-[#572c77]" viewBox="0 0 24 24" fill="none">
@@ -70,14 +70,14 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
           </div>
         ) : images.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-8">
-            <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-[#1a1a1e] flex items-center justify-center mb-4">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-300 dark:text-gray-600">
+            <div className="w-16 h-16 rounded-2xl bg-[#1a1a1e] flex items-center justify-center mb-4">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-600">
                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
                 <circle cx="8.5" cy="8.5" r="1.5" />
                 <polyline points="21 15 16 10 5 21" />
               </svg>
             </div>
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">No hay imágenes aún</p>
+            <p className="text-sm font-medium text-gray-400">No hay imágenes aún</p>
             <p className="text-xs text-gray-400 mt-1">Pídele a Kira que genere una imagen</p>
           </div>
         ) : (
@@ -90,7 +90,7 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
                   onClick={() => onImageClick?.(src)}
                   className="block w-full mb-3 break-inside-avoid group"
                 >
-                  <div className="relative rounded-2xl overflow-hidden bg-white dark:bg-[#1a1a1e] shadow-sm hover:shadow-lg hover:scale-[1.02] active:scale-[0.97] transition-all duration-200">
+                  <div className="relative rounded-2xl overflow-hidden bg-[#1a1a1e] shadow-sm hover:shadow-lg hover:scale-[1.02] active:scale-[0.97] transition-all duration-200">
                     <img
                       src={src}
                       alt="Imagen generada"

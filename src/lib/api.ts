@@ -102,9 +102,16 @@ export async function transcribeAudio(audioBlob: Blob): Promise<string> {
   }
 
   const formData = new FormData();
-  // Safari records as audio/mp4, Chrome as audio/webm
-  const ext = audioBlob.type.includes("mp4") ? "m4a" : "webm";
-  formData.append("file", audioBlob, `audio.${ext}`);
+  // Map mime type to file extension for Whisper compatibility
+  const type = audioBlob.type || "audio/webm";
+  let ext = "webm";
+  if (type.includes("mp4") || type.includes("m4a")) ext = "m4a";
+  else if (type.includes("ogg")) ext = "ogg";
+  else if (type.includes("aac")) ext = "aac";
+  else if (type.includes("wav")) ext = "wav";
+
+  console.log(`[Transcribe] Sending ${audioBlob.size} bytes, type: ${type}, ext: ${ext}`);
+  formData.append("file", audioBlob, `recording.${ext}`);
 
   const res = await fetch(`${API_URL}/api/chat/transcribe`, {
     method: "POST",

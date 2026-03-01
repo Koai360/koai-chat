@@ -125,24 +125,36 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
   const toggleRecording = async () => {
     if (recording) {
       mediaRecorderRef.current?.stop();
-      stopRecordingTimer();
       return;
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          sampleRate: 44100,
+        },
+      });
 
-      // Detect best supported format
-      let mimeType = "audio/webm;codecs=opus";
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = "audio/webm";
-      }
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = "audio/mp4";
-      }
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        // Fallback: let browser choose
-        mimeType = "";
+      // Detect best supported format — iOS Safari only supports mp4/aac
+      let mimeType = "";
+      const candidates = [
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/mp4",
+        "audio/aac",
+        "audio/ogg;codecs=opus",
+      ];
+      for (const candidate of candidates) {
+        try {
+          if (MediaRecorder.isTypeSupported(candidate)) {
+            mimeType = candidate;
+            break;
+          }
+        } catch {
+          // isTypeSupported can throw on some browsers
+        }
       }
 
       const recorderOptions: MediaRecorderOptions = {};
@@ -152,7 +164,7 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
       chunksRef.current = [];
 
       recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
+        if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
       };
 
       recorder.onstop = async () => {
@@ -160,10 +172,17 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
         setRecording(false);
         stopRecordingTimer();
 
+        if (chunksRef.current.length === 0) {
+          setError("No se grabó audio");
+          return;
+        }
+
         const actualMime = recorder.mimeType || mimeType || "audio/webm";
         const blob = new Blob(chunksRef.current, { type: actualMime });
 
-        if (blob.size < 500) {
+        console.log(`[Audio] ${chunksRef.current.length} chunks, ${blob.size} bytes, type: ${actualMime}`);
+
+        if (blob.size < 100) {
           setError("Audio muy corto, intenta de nuevo");
           return;
         }
@@ -179,13 +198,15 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
           }
         } catch (err) {
           console.error("Transcription error:", err);
-          setError("Error al transcribir");
+          const msg = err instanceof Error ? err.message : "Error al transcribir";
+          setError(msg);
         } finally {
           setTranscribing(false);
         }
       };
 
-      recorder.onerror = () => {
+      recorder.onerror = (e) => {
+        console.error("MediaRecorder error:", e);
         stream.getTracks().forEach((t) => t.stop());
         setRecording(false);
         stopRecordingTimer();
@@ -197,13 +218,14 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
         if (recorder.state === "recording") recorder.stop();
       }, 60000);
 
-      // Request data every 1s (helps iOS Safari)
-      recorder.start(1000);
+      // Start recording — NO timeslice (more compatible across browsers)
+      recorder.start();
       mediaRecorderRef.current = recorder;
       setRecording(true);
       startRecordingTimer();
       if (navigator.vibrate) navigator.vibrate(15);
-    } catch {
+    } catch (err) {
+      console.error("getUserMedia error:", err);
       setError("No se pudo acceder al micrófono");
     }
   };

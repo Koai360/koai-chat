@@ -31,11 +31,11 @@ export function LoginScreen({ onLogin }: Props) {
       <div className="w-full max-w-sm animate-fade-in">
         {/* Logo */}
         <div className="flex flex-col items-center mb-10">
-          <div className="w-24 h-24 rounded-full shadow-xl shadow-[#572c77]/20 mb-5 overflow-hidden bg-white dark:bg-[#1e1b22] flex items-center justify-center ring-1 ring-[#572c77]/10">
+          <div className="w-24 h-24 rounded-[22px] shadow-xl shadow-[#572c77]/20 mb-5 overflow-hidden flex items-center justify-center">
             <img
               src="/icons/kira-logo.svg"
               alt="KOAI"
-              className="w-20 h-20 rounded-full"
+              className="w-24 h-24 rounded-[22px]"
             />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">

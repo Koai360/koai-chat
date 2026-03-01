@@ -18,7 +18,7 @@ export default function App() {
   if (auth.isLoading) {
     return (
       <div className="h-full flex flex-col items-center justify-center bg-gradient-to-b from-[#572c77]/10 to-white dark:from-[#572c77]/20 dark:to-[#0a0a0c]">
-        <img src="/icons/kira-logo.svg" alt="KOAI" className="w-20 h-20 rounded-full animate-gentle-pulse shadow-lg" />
+        <img src="/icons/kira-logo.svg" alt="KOAI" className="w-20 h-20 rounded-2xl animate-gentle-pulse shadow-lg" />
         <p className="mt-4 text-sm text-gray-400 animate-gentle-pulse">Cargando...</p>
       </div>
     );

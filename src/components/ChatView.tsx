@@ -59,7 +59,7 @@ export function ChatView({ conversation, agent, loading, streamingText, onSend, 
             <img
               src={agent === "kira" ? "/icons/kira-logo.svg" : "/icons/koai-192.png"}
               alt={agent === "kira" ? "Kira" : "Kronos"}
-              className="w-20 h-20 rounded-full mb-4 shadow-lg"
+              className="w-20 h-20 rounded-2xl mb-4 shadow-lg"
             />
             <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-0.5">
               {agent === "kira" ? "Kira" : "Kronos"}

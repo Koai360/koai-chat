@@ -8,6 +8,7 @@ import { ConversationList } from "./components/ConversationList";
 import { LoginScreen } from "./components/LoginScreen";
 import { UpdateBanner } from "./components/UpdateBanner";
 import { OnlineStatus } from "./components/OnlineStatus";
+import { requestPushPermission, isPushSubscribed } from "./lib/push";
 
 export default function App() {
   const auth = useAuth();
@@ -72,6 +73,17 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
       sidebarRef.current.style.transform = "";
     }
     sidebarTranslateX.current = 0;
+  }, []);
+
+  // Request push notification permission after login (once)
+  useEffect(() => {
+    isPushSubscribed().then((subscribed) => {
+      if (!subscribed) {
+        // Small delay to not interrupt initial load
+        const timer = setTimeout(() => requestPushPermission(), 3000);
+        return () => clearTimeout(timer);
+      }
+    });
   }, []);
 
   useEffect(() => {

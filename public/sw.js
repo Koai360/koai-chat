@@ -1,4 +1,4 @@
-const CACHE_NAME = "koai-chat-v3";
+const CACHE_NAME = "koai-chat-v4";
 const PRECACHE = ["/", "/manifest.json"];
 
 self.addEventListener("install", (e) => {
@@ -21,6 +21,40 @@ self.addEventListener("message", (e) => {
   if (e.data === "SKIP_WAITING") {
     self.skipWaiting();
   }
+});
+
+// --- Push Notifications ---
+self.addEventListener("push", (e) => {
+  if (!e.data) return;
+  try {
+    const data = e.data.json();
+    const title = data.title || "KOAI Chat";
+    const options = {
+      body: data.body || "",
+      icon: "/icons/koai-192.png",
+      badge: "/icons/koai-192.png",
+      data: { url: data.url || "/" },
+      vibrate: [100, 50, 100],
+    };
+    e.waitUntil(self.registration.showNotification(title, options));
+  } catch (err) {
+    console.error("[SW] Push parse error:", err);
+  }
+});
+
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  const url = e.notification.data?.url || "/";
+  e.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
+      for (const client of windowClients) {
+        if (client.url.includes(self.location.origin) && "focus" in client) {
+          return client.focus();
+        }
+      }
+      return clients.openWindow(url);
+    })
+  );
 });
 
 self.addEventListener("fetch", (e) => {

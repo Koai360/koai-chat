@@ -25,6 +25,12 @@ html, body, #root {
   height: 100%;
   margin: 0;
   overscroll-behavior: none;
+  background-color: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  html, body, #root {
+    background-color: #0a0a0c;
+  }
 }
 
 @supports (height: 100dvh) {

@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @import "highlight.js/styles/github-dark.min.css";
 
+/* Forzar dark mode siempre */
+@custom-variant dark (&:is(.dark, .dark *));
+
 @theme {
   /* Brand KOAI oficial — del PDF de entrega */
   --color-koai-purple: #572c77;
@@ -20,17 +23,15 @@
   --color-koai-muted: #6b6b76;
 }
 
+html {
+  color-scheme: dark;
+}
 html, body, #root {
   height: 100dvh;
   height: 100%;
   margin: 0;
   overscroll-behavior: none;
-  background-color: #ffffff;
-}
-@media (prefers-color-scheme: dark) {
-  html, body, #root {
-    background-color: #0a0a0c;
-  }
+  background-color: #0a0a0c;
 }
 
 @supports (height: 100dvh) {
@@ -70,12 +71,7 @@ button:active:not(:disabled) {
 
 /* === INPUT BAR — matches iOS keyboard === */
 .input-bar-bg {
-  background-color: #d1d3d9;
-}
-@media (prefers-color-scheme: dark) {
-  .input-bar-bg {
-    background-color: #1c1c1e;
-  }
+  background-color: #1c1c1e;
 }
 
 /* === ANIMATIONS === */
@@ -127,7 +123,7 @@ button:active:not(:disabled) {
 
 /* === CODE BLOCKS === */
 .prose code:not(pre code) {
-  background: var(--color-koai-surface);
+  background: var(--color-koai-surface-dark);
   padding: 0.15em 0.35em;
   border-radius: 4px;
   font-size: 0.85em;
@@ -136,11 +132,6 @@ button:active:not(:disabled) {
   border-radius: 10px;
   overflow-x: auto;
   margin: 0.5em 0;
-}
-@media (prefers-color-scheme: dark) {
-  .prose code:not(pre code) {
-    background: var(--color-koai-surface-dark);
-  }
 }
 
 /* === DATE SEPARATOR === */
@@ -170,22 +161,12 @@ button:active:not(:disabled) {
   outline: none;
   word-break: break-word;
   -webkit-user-modify: read-write-plaintext-only;
-  caret-color: #572c77;
-}
-@media (prefers-color-scheme: dark) {
-  [contenteditable="true"] {
-    caret-color: #bcd431;
-  }
+  caret-color: #bcd431;
 }
 [contenteditable="true"]:empty::before {
   content: attr(data-placeholder);
-  color: #9ca3af;
+  color: #6b7280;
   pointer-events: none;
-}
-@media (prefers-color-scheme: dark) {
-  [contenteditable="true"]:empty::before {
-    color: #6b7280;
-  }
 }
 
 /* === SCROLL === */

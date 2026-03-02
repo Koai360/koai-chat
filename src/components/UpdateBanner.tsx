@@ -4,11 +4,11 @@ interface Props {
 
 export function UpdateBanner({ onUpdate }: Props) {
   return (
-    <div className="bg-indigo-500 text-white text-center py-2 px-4 text-sm flex items-center justify-center gap-3">
+    <div className="relative z-30 bg-koai-lime text-koai-purple-dark text-center py-2.5 px-4 text-sm font-medium flex items-center justify-center gap-3">
       <span>Nueva versión disponible</span>
       <button
         onClick={onUpdate}
-        className="bg-white text-indigo-600 rounded-full px-3 py-0.5 text-xs font-semibold hover:bg-indigo-50 transition-colors"
+        className="bg-koai-purple text-white rounded-full px-4 py-1 text-xs font-semibold active:scale-95 transition-transform"
       >
         Actualizar
       </button>

@@ -156,9 +156,10 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
       )}
 
       {/* Main content area */}
-      <div className="flex-1 flex flex-col h-full min-w-0">
-        {swUpdate && <UpdateBanner onUpdate={handleUpdate} />}
+      {/* Update banner — flotante abajo */}
+      {swUpdate && <UpdateBanner onUpdate={handleUpdate} />}
 
+      <div className="flex-1 flex flex-col h-full min-w-0">
         {/* Header */}
         <header className={`flex items-center justify-between px-2 py-1.5 safe-top transition-colors duration-500 ${
           agent === "kronos"

@@ -1,9 +1,12 @@
+import { useCallback, useRef } from "react";
 import type { Notification } from "../lib/api";
 
 interface Props {
   notifications: Notification[];
   onMarkRead: (id: string) => void;
   onMarkAllRead: () => void;
+  onDelete: (id: string) => void;
+  onDeleteAll: () => void;
   onClose: () => void;
 }
 
@@ -22,8 +25,56 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("es", { day: "numeric", month: "short" });
 }
 
-export function NotificationsPanel({ notifications, onMarkRead, onMarkAllRead, onClose }: Props) {
+export function NotificationsPanel({ notifications, onMarkRead, onMarkAllRead, onDelete, onDeleteAll, onClose }: Props) {
   const unreadCount = notifications.filter((n) => !n.read).length;
+
+  // Swipe-to-delete state per notification
+  const touchStartX = useRef(0);
+  const touchCurrentX = useRef(0);
+  const swipingId = useRef<string | null>(null);
+  const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  const setItemRef = useCallback((id: string) => (el: HTMLDivElement | null) => {
+    if (el) itemRefs.current.set(id, el);
+    else itemRefs.current.delete(id);
+  }, []);
+
+  const handleTouchStart = useCallback((id: string, e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchCurrentX.current = 0;
+    swipingId.current = id;
+  }, []);
+
+  const handleTouchMove = useCallback((id: string, e: React.TouchEvent) => {
+    if (swipingId.current !== id) return;
+    const diff = touchStartX.current - e.touches[0].clientX;
+    if (diff > 0) {
+      touchCurrentX.current = diff;
+      const el = itemRefs.current.get(id);
+      if (el) el.style.transform = `translateX(-${Math.min(diff, 80)}px)`;
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback((id: string) => {
+    const el = itemRefs.current.get(id);
+    if (touchCurrentX.current > 60) {
+      // Delete
+      if (el) {
+        el.style.transition = "transform 0.2s, opacity 0.2s";
+        el.style.transform = "translateX(-100%)";
+        el.style.opacity = "0";
+      }
+      setTimeout(() => onDelete(id), 200);
+    } else {
+      if (el) {
+        el.style.transition = "transform 0.2s";
+        el.style.transform = "";
+        setTimeout(() => { if (el) el.style.transition = ""; }, 200);
+      }
+    }
+    swipingId.current = null;
+    touchCurrentX.current = 0;
+  }, [onDelete]);
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-[#0a0a0c]">
@@ -37,6 +88,14 @@ export function NotificationsPanel({ notifications, onMarkRead, onMarkAllRead, o
               className="text-xs text-[#572c77] dark:text-[#bcd431] font-medium px-2 py-1 rounded-lg active:bg-[#572c77]/10 transition-colors"
             >
               Leer todas
+            </button>
+          )}
+          {notifications.length > 0 && (
+            <button
+              onClick={onDeleteAll}
+              className="text-xs text-red-500 dark:text-red-400 font-medium px-2 py-1 rounded-lg active:bg-red-500/10 transition-colors"
+            >
+              Borrar todas
             </button>
           )}
           <button
@@ -63,40 +122,55 @@ export function NotificationsPanel({ notifications, onMarkRead, onMarkAllRead, o
           </div>
         ) : (
           notifications.map((notif) => (
-            <button
+            <div
               key={notif.id}
-              onClick={() => {
-                if (!notif.read) onMarkRead(notif.id);
-              }}
-              className={`w-full text-left px-4 py-3 border-b border-gray-100 dark:border-white/5 transition-colors active:bg-gray-50 dark:active:bg-white/5 ${
-                !notif.read ? "bg-[#572c77]/5 dark:bg-[#572c77]/10" : ""
-              }`}
+              className="relative overflow-hidden"
             >
-              <div className="flex items-start gap-3">
-                {/* Unread dot */}
-                <div className="flex-shrink-0 mt-1.5">
-                  {!notif.read ? (
-                    <span className="block w-2.5 h-2.5 rounded-full bg-[#572c77] dark:bg-[#bcd431]" />
-                  ) : (
-                    <span className="block w-2.5 h-2.5" />
-                  )}
-                </div>
+              {/* Red delete background (visible on swipe) */}
+              <div className="absolute inset-y-0 right-0 w-20 bg-red-500 flex items-center justify-center">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                </svg>
+              </div>
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className={`text-sm font-medium truncate ${!notif.read ? "text-gray-900 dark:text-gray-100" : "text-gray-500 dark:text-gray-400"}`}>
-                      {notif.title}
-                    </span>
-                    <span className="text-[11px] text-gray-400 dark:text-gray-500 flex-shrink-0">
-                      {timeAgo(notif.created_at)}
-                    </span>
+              {/* Notification item (swipeable) */}
+              <div
+                ref={setItemRef(notif.id)}
+                onTouchStart={(e) => handleTouchStart(notif.id, e)}
+                onTouchMove={(e) => handleTouchMove(notif.id, e)}
+                onTouchEnd={() => handleTouchEnd(notif.id)}
+                onClick={() => { if (!notif.read) onMarkRead(notif.id); }}
+                className={`relative w-full text-left px-4 py-3 border-b border-gray-100 dark:border-white/5 transition-colors active:bg-gray-50 dark:active:bg-white/5 bg-white dark:bg-[#0a0a0c] ${
+                  !notif.read ? "bg-[#572c77]/5 dark:bg-[#572c77]/10" : ""
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  {/* Unread dot */}
+                  <div className="flex-shrink-0 mt-1.5">
+                    {!notif.read ? (
+                      <span className="block w-2.5 h-2.5 rounded-full bg-[#572c77] dark:bg-[#bcd431]" />
+                    ) : (
+                      <span className="block w-2.5 h-2.5" />
+                    )}
                   </div>
-                  <p className={`text-[13px] mt-0.5 line-clamp-2 ${!notif.read ? "text-gray-700 dark:text-gray-300" : "text-gray-400 dark:text-gray-500"}`}>
-                    {notif.body || notif.message}
-                  </p>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`text-sm font-medium truncate ${!notif.read ? "text-gray-900 dark:text-gray-100" : "text-gray-500 dark:text-gray-400"}`}>
+                        {notif.title}
+                      </span>
+                      <span className="text-[11px] text-gray-400 dark:text-gray-500 flex-shrink-0">
+                        {timeAgo(notif.created_at)}
+                      </span>
+                    </div>
+                    <p className={`text-[13px] mt-0.5 line-clamp-2 ${!notif.read ? "text-gray-700 dark:text-gray-300" : "text-gray-400 dark:text-gray-500"}`}>
+                      {notif.body || notif.message}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </button>
+            </div>
           ))
         )}
       </div>

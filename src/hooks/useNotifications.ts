@@ -3,6 +3,8 @@ import {
   fetchNotifications,
   markNotificationRead,
   markAllNotificationsRead,
+  deleteNotification,
+  deleteAllNotifications,
   type Notification,
 } from "../lib/api";
 
@@ -43,7 +45,17 @@ export function useNotifications() {
     markAllNotificationsRead().catch(() => {});
   }, []);
 
+  const removeOne = useCallback(async (id: string) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    deleteNotification(id).catch(() => {});
+  }, []);
+
+  const removeAll = useCallback(async () => {
+    setNotifications([]);
+    deleteAllNotifications().catch(() => {});
+  }, []);
+
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  return { notifications, loading, unreadCount, markRead, markAllRead, refresh: load };
+  return { notifications, loading, unreadCount, markRead, markAllRead, removeOne, removeAll, refresh: load };
 }

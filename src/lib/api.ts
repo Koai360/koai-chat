@@ -301,3 +301,17 @@ export async function markAllNotificationsRead(): Promise<void> {
     headers: getHeaders(),
   });
 }
+
+export async function deleteNotification(id: string): Promise<void> {
+  await fetch(`${API_URL}/api/notifications/${id}`, {
+    method: "DELETE",
+    headers: getHeaders(),
+  });
+}
+
+export async function deleteAllNotifications(): Promise<void> {
+  await fetch(`${API_URL}/api/notifications`, {
+    method: "DELETE",
+    headers: getHeaders(),
+  });
+}

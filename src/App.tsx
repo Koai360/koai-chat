@@ -50,7 +50,7 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
     moveToProject,
   } = useChat(user.id);
 
-  const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
+  const { notifications, unreadCount, markRead, markAllRead, removeOne, removeAll } = useNotifications();
 
   const [showSidebar, setShowSidebar] = useState(false);
   const [sidebarPinned, setSidebarPinned] = useState(() => {
@@ -283,6 +283,8 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
               notifications={notifications}
               onMarkRead={markRead}
               onMarkAllRead={markAllRead}
+              onDelete={removeOne}
+              onDeleteAll={removeAll}
               onClose={() => setShowNotifications(false)}
             />
           </div>

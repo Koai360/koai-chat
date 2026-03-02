@@ -1,4 +1,4 @@
-const CACHE_NAME = "koai-chat-v13";
+const CACHE_NAME = "koai-chat-v14";
 const PRECACHE = ["/", "/manifest.json"];
 
 self.addEventListener("install", (e) => {
@@ -36,15 +36,14 @@ self.addEventListener("push", (e) => {
       data: { url: data.url || "/" },
       vibrate: [100, 50, 100],
     };
-    // Siempre mostrar notificación del sistema (para background)
     e.waitUntil(
-      self.registration.showNotification(title, options).then(() => {
-        // También enviar al app para toast in-app (para foreground)
-        return clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
-          windowClients.forEach((client) => {
-            client.postMessage({ type: "PUSH_RECEIVED", title, body: data.body || "" });
-          });
-        });
+      clients.matchAll({ type: "window", includeUncontrolled: true, visibilityState: "visible" }).then((visibleClients) => {
+        if (visibleClients.length > 0) {
+          // App abierta y visible → NO mostrar notificación del sistema
+          return;
+        }
+        // App en background o cerrada → mostrar notificación del sistema
+        return self.registration.showNotification(title, options);
       })
     );
   } catch (err) {

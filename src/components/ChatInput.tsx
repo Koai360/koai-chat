@@ -402,15 +402,15 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
       )}
 
       {/* Input row */}
-      <div className="flex items-end gap-1 px-2 py-1.5">
+      <div className="flex items-end gap-1.5 px-2 py-1.5">
         {/* Plus button with popup menu — OUTSIDE overflow-hidden container */}
         <div className="relative flex-shrink-0" ref={plusMenuRef}>
           <button
             onClick={() => setShowPlusMenu((p) => !p)}
             disabled={isDisabled}
-            className={`w-[44px] h-[44px] rounded-full flex items-center justify-center active:scale-90 disabled:opacity-40 transition-all duration-200 ${
+            className={`w-[38px] h-[44px] flex items-center justify-center active:scale-90 disabled:opacity-40 transition-all duration-200 ${
               showPlusMenu
-                ? "text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 rotate-45"
+                ? "text-purple-600 dark:text-purple-400 rotate-45"
                 : "text-gray-500 dark:text-gray-400"
             }`}
           >
@@ -466,7 +466,7 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
             onKeyDown={handleKeyDown}
             onFocus={handleFocus}
             onPaste={handlePaste}
-            className="flex-1 py-[11px] text-[16px] leading-[22px] max-h-[120px] overflow-y-auto text-gray-900 dark:text-gray-100"
+            className="flex-1 py-[11px] pl-4 text-[16px] leading-[22px] max-h-[120px] overflow-y-auto text-gray-900 dark:text-gray-100"
           />
 
           {/* Camera button (inside input pill) */}

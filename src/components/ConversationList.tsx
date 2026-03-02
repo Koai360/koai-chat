@@ -94,12 +94,34 @@ export function ConversationList({ conversations, activeId, onSelect, onNew, onD
     }
   }, []);
 
+  // Reset the previously swiped item's transform
+  const resetSwiped = useCallback(() => {
+    if (swipedId) {
+      const prev = itemRefs.current.get(swipedId);
+      if (prev) {
+        prev.style.transition = "transform 0.15s";
+        prev.style.transform = "";
+        setTimeout(() => { if (prev) prev.style.transition = ""; }, 150);
+      }
+      setSwipedId(null);
+    }
+  }, [swipedId]);
+
   const handleItemTouchStart = useCallback((id: string, e: React.TouchEvent) => {
+    // Close any previously swiped item
+    if (swipedId && swipedId !== id) {
+      const prev = itemRefs.current.get(swipedId);
+      if (prev) {
+        prev.style.transition = "transform 0.15s";
+        prev.style.transform = "";
+        setTimeout(() => { if (prev) prev.style.transition = ""; }, 150);
+      }
+      setSwipedId(null);
+    }
     touchStartX.current = e.touches[0].clientX;
     touchCurrentX.current = 0;
     swipingItemId.current = id;
-    setSwipedId(null);
-  }, []);
+  }, [swipedId]);
 
   const handleItemTouchMove = useCallback((id: string, e: React.TouchEvent) => {
     if (swipingItemId.current !== id) return;
@@ -170,7 +192,8 @@ export function ConversationList({ conversations, activeId, onSelect, onNew, onD
         onTouchMove={(e) => handleItemTouchMove(c.id, e)}
         onTouchEnd={() => handleItemTouchEnd(c.id)}
         onClick={() => {
-          if (swipedId === c.id) { setSwipedId(null); const el = itemRefs.current.get(c.id); if (el) { el.style.transition = "transform 0.15s"; el.style.transform = ""; } return; }
+          if (swipedId === c.id) { resetSwiped(); return; }
+          if (swipedId) { resetSwiped(); return; }
           haptic(); onSelect(c.id);
         }}
         className={`relative flex items-center justify-between px-3 py-2 cursor-pointer bg-white dark:bg-[#0a0a0c] ${
@@ -294,7 +317,7 @@ export function ConversationList({ conversations, activeId, onSelect, onNew, onD
       )}
 
       {/* Conversations list grouped by projects */}
-      <div className="flex-1 overflow-y-auto px-2">
+      <div className="flex-1 overflow-y-auto px-2" onScroll={resetSwiped}>
         {filtered.length === 0 ? (
           <p className="text-center text-sm text-gray-400 mt-8">
             {search ? "Sin resultados" : "Sin conversaciones"}

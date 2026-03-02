@@ -9,21 +9,20 @@ createRoot(document.getElementById("root")!).render(
   </StrictMode>,
 );
 
-// Register service worker + update detection
+// Register service worker + auto-update
 if ("serviceWorker" in navigator) {
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!refreshing) {
+      refreshing = true;
+      window.location.reload();
+    }
+  });
+
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("/sw.js").then((reg) => {
-      reg.addEventListener("updatefound", () => {
-        const newWorker = reg.installing;
-        if (newWorker) {
-          newWorker.addEventListener("statechange", () => {
-            if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-              // Dispatch custom event for React to pick up
-              window.dispatchEvent(new CustomEvent("sw-update-available"));
-            }
-          });
-        }
-      });
+      // Check for updates every 60s
+      setInterval(() => reg.update(), 60000);
     }).catch(() => {});
   });
 }

@@ -1,4 +1,4 @@
-const CACHE_NAME = "koai-chat-v4";
+const CACHE_NAME = "koai-chat-v5";
 const PRECACHE = ["/", "/manifest.json"];
 
 self.addEventListener("install", (e) => {
@@ -36,7 +36,15 @@ self.addEventListener("push", (e) => {
       data: { url: data.url || "/" },
       vibrate: [100, 50, 100],
     };
-    e.waitUntil(self.registration.showNotification(title, options));
+    // Solo mostrar notificación si la app NO está visible en primer plano
+    e.waitUntil(
+      clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
+        const isVisible = windowClients.some((c) => c.visibilityState === "visible");
+        if (!isVisible) {
+          return self.registration.showNotification(title, options);
+        }
+      })
+    );
   } catch (err) {
     console.error("[SW] Push parse error:", err);
   }

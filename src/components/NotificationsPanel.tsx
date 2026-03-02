@@ -114,7 +114,7 @@ export function NotificationsPanel({ notifications, onMarkRead, onMarkAllRead, o
   return (
     <div className="flex flex-col h-full bg-white dark:bg-[#0a0a0c]">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-white/10">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-white/10 safe-top">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Notificaciones</h2>
         <div className="flex items-center gap-2">
           {unreadCount > 0 && (

@@ -1,4 +1,4 @@
-const CACHE_NAME = "koai-chat-v8";
+const CACHE_NAME = "koai-chat-v9";
 const PRECACHE = ["/", "/manifest.json"];
 
 self.addEventListener("install", (e) => {
@@ -28,7 +28,7 @@ self.addEventListener("push", (e) => {
   if (!e.data) return;
   try {
     const data = e.data.json();
-    const title = data.title || "KOAI Chat";
+    const title = data.title || "Kira AI";
     const options = {
       body: data.body || "",
       icon: "/icons/koai-192.png",

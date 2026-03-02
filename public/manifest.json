@@ -1,6 +1,6 @@
 {
-  "name": "KOAI Chat",
-  "short_name": "KOAI Chat",
+  "name": "Kira AI",
+  "short_name": "Kira AI",
   "description": "Chat con Kira y Kronos — KOAI Studios",
   "start_url": "/",
   "display": "standalone",

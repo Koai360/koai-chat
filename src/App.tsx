@@ -241,12 +241,12 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
       {showSidebar && !sidebarPinned && (
         <>
           <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-40 animate-fade-in"
+            className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[60] animate-fade-in"
             onClick={() => setShowSidebar(false)}
           />
           <div
             ref={sidebarRef}
-            className="fixed inset-y-0 left-0 w-[min(300px,85vw)] z-50 shadow-2xl animate-slide-in"
+            className="fixed inset-y-0 left-0 w-[min(300px,85vw)] z-[70] shadow-2xl animate-slide-in"
             onTouchStart={handleSidebarTouchStart}
             onTouchMove={handleSidebarTouchMove}
             onTouchEnd={handleSidebarTouchEnd}
@@ -271,10 +271,10 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
       {showNotifications && (
         <>
           <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-40 animate-fade-in"
+            className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[60] animate-fade-in"
             onClick={() => setShowNotifications(false)}
           />
-          <div className="fixed inset-y-0 right-0 w-[min(340px,90vw)] z-50 shadow-2xl animate-slide-in-right">
+          <div className="fixed inset-y-0 right-0 w-[min(340px,90vw)] z-[70] shadow-2xl animate-slide-in-right">
             <NotificationsPanel
               notifications={notifications}
               onMarkRead={markRead}

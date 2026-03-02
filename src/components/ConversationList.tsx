@@ -104,6 +104,7 @@ export function ConversationList({ conversations, activeId, onSelect, onNew, onD
   const handleItemTouchMove = useCallback((id: string, e: React.TouchEvent) => {
     if (swipingItemId.current !== id) return;
     const diff = touchStartX.current - e.touches[0].clientX;
+    if (diff > 10) e.stopPropagation(); // Evitar que el sidebar se cierre
     if (diff > 0) {
       touchCurrentX.current = diff;
       const el = itemRefs.current.get(id);

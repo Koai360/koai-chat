@@ -9,21 +9,12 @@ createRoot(document.getElementById("root")!).render(
   </StrictMode>,
 );
 
-// Register service worker + auto-update
+// Register service worker + background update (no auto-reload)
 if ("serviceWorker" in navigator) {
-  // Solo recargar si ya había un SW controlando (= es una actualización, no primer load)
-  const hadController = !!navigator.serviceWorker.controller;
-  let refreshing = false;
-  navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (hadController && !refreshing) {
-      refreshing = true;
-      window.location.reload();
-    }
-  });
-
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("/sw.js").then((reg) => {
-      // Check for updates every 60s
+      // Check for updates every 60s — SW se actualiza en background,
+      // el usuario recibe la nueva versión al próximo load natural
       setInterval(() => reg.update(), 60000);
     }).catch(() => {});
   });

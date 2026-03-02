@@ -402,56 +402,59 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
       )}
 
       {/* Input row */}
-      <div className="flex items-end gap-2 px-2 py-1.5">
-        {/* Input container with + and camera inside */}
+      <div className="flex items-end gap-1 px-2 py-1.5">
+        {/* Plus button with popup menu — OUTSIDE overflow-hidden container */}
+        <div className="relative flex-shrink-0" ref={plusMenuRef}>
+          <button
+            onClick={() => setShowPlusMenu((p) => !p)}
+            disabled={isDisabled}
+            className={`w-[44px] h-[44px] rounded-full flex items-center justify-center active:scale-90 disabled:opacity-40 transition-all duration-200 ${
+              showPlusMenu
+                ? "text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 rotate-45"
+                : "text-gray-500 dark:text-gray-400"
+            }`}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
+          {showPlusMenu && (
+            <div className="absolute bottom-full left-0 mb-2 min-w-[200px] bg-white dark:bg-[#1c1c1e] rounded-2xl shadow-xl border border-gray-200 dark:border-white/10 overflow-hidden z-50 animate-fade-in">
+              <button
+                onClick={() => { fileInputRef.current?.click(); setShowPlusMenu(false); }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+              >
+                <span className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-base">📎</span>
+                <div className="text-left">
+                  <div className="font-medium text-xs">Fotos y archivos</div>
+                  <div className="text-[10px] text-gray-400">Adjuntar imagen</div>
+                </div>
+              </button>
+              <div className="h-px bg-gray-100 dark:bg-white/5 mx-3" />
+              <button
+                onClick={() => { setImageMode(true); setShowPlusMenu(false); editorRef.current?.focus(); }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+              >
+                <span className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-base">🎨</span>
+                <div className="text-left">
+                  <div className="font-medium text-xs">Crear imagen</div>
+                  <div className="text-[10px] text-gray-400">Gemini o Flux 2</div>
+                </div>
+              </button>
+            </div>
+          )}
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleImageSelect}
+          className="hidden"
+        />
+
+        {/* Input container */}
         <div className="flex-1 flex items-end bg-gray-100 dark:bg-[#2c2c2e] rounded-[22px] min-h-[44px] overflow-hidden">
-          {/* Plus button with menu */}
-          <div className="relative" ref={plusMenuRef}>
-            <button
-              onClick={() => setShowPlusMenu((p) => !p)}
-              disabled={isDisabled}
-              className={`flex-shrink-0 w-11 h-[44px] flex items-center justify-center active:scale-90 disabled:opacity-40 transition-transform ${
-                showPlusMenu ? "text-purple-600 dark:text-purple-400 rotate-45" : "text-gray-500 dark:text-gray-400"
-              }`}
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            </button>
-            {showPlusMenu && (
-              <div className="absolute bottom-full left-0 mb-2 min-w-[200px] bg-white dark:bg-[#1c1c1e] rounded-2xl shadow-xl border border-gray-200 dark:border-white/10 overflow-hidden z-50 animate-fade-in">
-                <button
-                  onClick={() => { fileInputRef.current?.click(); setShowPlusMenu(false); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
-                >
-                  <span className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-base">📎</span>
-                  <div className="text-left">
-                    <div className="font-medium text-xs">Fotos y archivos</div>
-                    <div className="text-[10px] text-gray-400">Adjuntar imagen</div>
-                  </div>
-                </button>
-                <div className="h-px bg-gray-100 dark:bg-white/5 mx-3" />
-                <button
-                  onClick={() => { setImageMode(true); setShowPlusMenu(false); editorRef.current?.focus(); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
-                >
-                  <span className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-base">🎨</span>
-                  <div className="text-left">
-                    <div className="font-medium text-xs">Crear imagen</div>
-                    <div className="text-[10px] text-gray-400">Gemini o Flux 2</div>
-                  </div>
-                </button>
-              </div>
-            )}
-          </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleImageSelect}
-            className="hidden"
-          />
 
           {/* ContentEditable input — NO accessory bar on iOS */}
           <div

@@ -13,6 +13,7 @@ import { NotificationsPanel } from "./components/NotificationsPanel";
 import { ImageGallery } from "./components/ImageGallery";
 import { ImageModal } from "./components/ImageModal";
 import { requestPushPermission, isPushSubscribed } from "./lib/push";
+import { PushToast } from "./components/PushToast";
 
 export default function App() {
   const auth = useAuth();
@@ -291,6 +292,9 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
       {modalImage && (
         <ImageModal imageSrc={modalImage} onClose={() => setModalImage(null)} />
       )}
+
+      {/* Push toast in-app (foreground notifications) */}
+      <PushToast />
     </div>
   );
 }

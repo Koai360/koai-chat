@@ -36,7 +36,17 @@ self.addEventListener("push", (e) => {
       data: { url: data.url || "/" },
       vibrate: [100, 50, 100],
     };
-    e.waitUntil(self.registration.showNotification(title, options));
+    // Siempre mostrar notificación del sistema (para background)
+    e.waitUntil(
+      self.registration.showNotification(title, options).then(() => {
+        // También enviar al app para toast in-app (para foreground)
+        return clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
+          windowClients.forEach((client) => {
+            client.postMessage({ type: "PUSH_RECEIVED", title, body: data.body || "" });
+          });
+        });
+      })
+    );
   } catch (err) {
     console.error("[SW] Push parse error:", err);
   }

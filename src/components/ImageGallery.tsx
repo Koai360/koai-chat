@@ -28,10 +28,12 @@ function formatDate(iso: string): string {
 export function ImageGallery({ onClose, onImageClick }: Props) {
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [menuId, setMenuId] = useState<string | null>(null);
+  const [menuPos, setMenuPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [deleting, setDeleting] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didLongPress = useRef(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchImages()
@@ -40,25 +42,34 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
       .finally(() => setLoading(false));
   }, []);
 
-  // Close selection on outside tap
+  // Close context menu on outside tap
   useEffect(() => {
-    if (!selectedId) return;
-    const handle = (e: MouseEvent) => {
+    if (!menuId) return;
+    const handle = (e: MouseEvent | TouchEvent) => {
       const target = e.target as HTMLElement;
-      if (!target.closest("[data-gallery-item]")) {
-        setSelectedId(null);
+      if (!target.closest("[data-context-menu]")) {
+        setMenuId(null);
       }
     };
     document.addEventListener("mousedown", handle);
-    return () => document.removeEventListener("mousedown", handle);
-  }, [selectedId]);
+    document.addEventListener("touchstart", handle);
+    return () => {
+      document.removeEventListener("mousedown", handle);
+      document.removeEventListener("touchstart", handle);
+    };
+  }, [menuId]);
 
-  const handleLongPressStart = useCallback((id: string) => {
+  const handleLongPressStart = useCallback((id: string, clientX: number, clientY: number) => {
     didLongPress.current = false;
     longPressTimer.current = setTimeout(() => {
       didLongPress.current = true;
       if (navigator.vibrate) navigator.vibrate(20);
-      setSelectedId(id);
+      // Position menu relative to scroll container
+      const rect = scrollRef.current?.getBoundingClientRect();
+      const x = clientX - (rect?.left ?? 0);
+      const y = clientY - (rect?.top ?? 0) + (scrollRef.current?.scrollTop ?? 0);
+      setMenuPos({ x, y });
+      setMenuId(id);
     }, 500);
   }, []);
 
@@ -69,23 +80,21 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
     }
   }, []);
 
-  const handleTap = useCallback((id: string, src: string) => {
+  const handleTap = useCallback((_id: string, src: string) => {
     if (didLongPress.current) return;
-    if (selectedId === id) {
-      setSelectedId(null);
-    } else if (selectedId) {
-      setSelectedId(null);
+    if (menuId) {
+      setMenuId(null);
     } else {
       onImageClick?.(src);
     }
-  }, [selectedId, onImageClick]);
+  }, [menuId, onImageClick]);
 
   const handleDelete = useCallback(async (id: string) => {
     setDeleting(true);
     try {
       await deleteImage(id);
       setImages((prev) => prev.filter((img) => img.id !== id));
-      setSelectedId(null);
+      setMenuId(null);
     } catch (err) {
       console.error("[ImageGallery] Delete error:", err);
     } finally {
@@ -113,9 +122,9 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
             </p>
           )}
         </div>
-        {selectedId && (
+        {menuId && (
           <button
-            onClick={() => setSelectedId(null)}
+            onClick={() => setMenuId(null)}
             className="text-xs text-gray-400 px-3 py-1.5 rounded-full bg-white/5 active:scale-95"
           >
             Cancelar
@@ -124,7 +133,7 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto bg-[#0a0a0c]">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto bg-[#0a0a0c] relative">
         {loading ? (
           <div className="flex flex-col items-center justify-center h-full gap-3">
             <svg className="animate-spin w-7 h-7 text-[#572c77]" viewBox="0 0 24 24" fill="none">
@@ -149,59 +158,67 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
           <div className="columns-3 gap-1.5 p-1.5">
             {images.map((img) => {
               const src = imageSrcFromBase64(img.image);
-              const isSelected = selectedId === img.id;
               return (
                 <div
                   key={img.id}
                   data-gallery-item
                   className="relative mb-1.5 break-inside-avoid"
-                  onTouchStart={() => handleLongPressStart(img.id)}
+                  onTouchStart={(e) => {
+                    const t = e.touches[0];
+                    handleLongPressStart(img.id, t.clientX, t.clientY);
+                  }}
                   onTouchEnd={handleLongPressEnd}
                   onTouchCancel={handleLongPressEnd}
-                  onMouseDown={() => handleLongPressStart(img.id)}
+                  onMouseDown={(e) => handleLongPressStart(img.id, e.clientX, e.clientY)}
                   onMouseUp={handleLongPressEnd}
                   onMouseLeave={handleLongPressEnd}
                   onClick={() => handleTap(img.id, src)}
+                  onContextMenu={(e) => e.preventDefault()}
                 >
                   <img
                     src={src}
                     alt="Imagen generada"
-                    className={`w-full block rounded-lg transition-all duration-200 ${
-                      isSelected ? "brightness-50 scale-95" : "brightness-100"
-                    }`}
+                    className="w-full block rounded-lg"
                     loading="lazy"
                     draggable={false}
                   />
-                  {/* Date overlay — always visible */}
+                  {/* Date overlay */}
                   <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent pt-6 pb-1 px-1.5 pointer-events-none">
                     <p className="text-[9px] text-white/80 font-medium">{formatDate(img.created_at)}</p>
                   </div>
-                  {/* Selected state — delete button */}
-                  {isSelected && (
-                    <div
-                      className="absolute inset-0 flex items-center justify-center animate-fade-in"
-                      onTouchStart={(e) => e.stopPropagation()}
-                      onMouseDown={(e) => e.stopPropagation()}
-                    >
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(img.id);
-                        }}
-                        disabled={deleting}
-                        className="flex flex-col items-center gap-1.5 px-4 py-3 rounded-2xl bg-red-500/90 text-white active:scale-90 transition-transform disabled:opacity-50"
-                      >
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="3 6 5 6 21 6" />
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                        </svg>
-                        <span className="text-[11px] font-semibold">Eliminar</span>
-                      </button>
-                    </div>
-                  )}
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Context menu */}
+        {menuId && (
+          <div
+            data-context-menu
+            className="absolute z-50 animate-fade-in"
+            style={{
+              left: `${Math.min(menuPos.x, (scrollRef.current?.clientWidth ?? 200) - 160)}px`,
+              top: `${menuPos.y}px`,
+              transform: "translate(-50%, -100%)",
+            }}
+          >
+            <div className="bg-[#2a2a2e] rounded-xl shadow-2xl border border-white/10 overflow-hidden min-w-[140px]">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete(menuId);
+                }}
+                disabled={deleting}
+                className="flex items-center gap-3 w-full px-4 py-3 text-red-400 hover:bg-white/5 active:bg-white/10 transition-colors disabled:opacity-50"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                </svg>
+                <span className="text-sm font-medium">Eliminar</span>
+              </button>
+            </div>
           </div>
         )}
       </div>

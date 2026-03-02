@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
 import type { Notification } from "../lib/api";
 
 interface Props {
@@ -29,6 +29,7 @@ export function NotificationsPanel({ notifications, onMarkRead, onMarkAllRead, o
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   // Swipe-to-delete state per notification
+  const [swipedId, setSwipedId] = useState<string | null>(null);
   const touchStartX = useRef(0);
   const touchCurrentX = useRef(0);
   const swipingId = useRef<string | null>(null);
@@ -39,11 +40,34 @@ export function NotificationsPanel({ notifications, onMarkRead, onMarkAllRead, o
     else itemRefs.current.delete(id);
   }, []);
 
+  // Reset previously swiped item
+  const resetSwiped = useCallback(() => {
+    if (swipedId) {
+      const prev = itemRefs.current.get(swipedId);
+      if (prev) {
+        prev.style.transition = "transform 0.15s";
+        prev.style.transform = "";
+        setTimeout(() => { if (prev) prev.style.transition = ""; }, 150);
+      }
+      setSwipedId(null);
+    }
+  }, [swipedId]);
+
   const handleTouchStart = useCallback((id: string, e: React.TouchEvent) => {
+    // Close any previously swiped item
+    if (swipedId && swipedId !== id) {
+      const prev = itemRefs.current.get(swipedId);
+      if (prev) {
+        prev.style.transition = "transform 0.15s";
+        prev.style.transform = "";
+        setTimeout(() => { if (prev) prev.style.transition = ""; }, 150);
+      }
+      setSwipedId(null);
+    }
     touchStartX.current = e.touches[0].clientX;
     touchCurrentX.current = 0;
     swipingId.current = id;
-  }, []);
+  }, [swipedId]);
 
   const handleTouchMove = useCallback((id: string, e: React.TouchEvent) => {
     if (swipingId.current !== id) return;
@@ -58,22 +82,33 @@ export function NotificationsPanel({ notifications, onMarkRead, onMarkAllRead, o
   const handleTouchEnd = useCallback((id: string) => {
     const el = itemRefs.current.get(id);
     if (touchCurrentX.current > 60) {
-      // Delete
+      // Swiped far enough → keep open with delete button
       if (el) {
-        el.style.transition = "transform 0.2s, opacity 0.2s";
-        el.style.transform = "translateX(-100%)";
-        el.style.opacity = "0";
+        el.style.transition = "transform 0.15s";
+        el.style.transform = "translateX(-80px)";
+        setTimeout(() => { if (el) el.style.transition = ""; }, 150);
       }
-      setTimeout(() => onDelete(id), 200);
+      setSwipedId(id);
     } else {
+      // Snap back
       if (el) {
-        el.style.transition = "transform 0.2s";
+        el.style.transition = "transform 0.15s";
         el.style.transform = "";
-        setTimeout(() => { if (el) el.style.transition = ""; }, 200);
+        setTimeout(() => { if (el) el.style.transition = ""; }, 150);
       }
     }
     swipingId.current = null;
     touchCurrentX.current = 0;
+  }, []);
+
+  const handleSwipeDelete = useCallback((id: string) => {
+    const el = itemRefs.current.get(id);
+    if (el) {
+      el.style.transition = "transform 0.2s, opacity 0.2s";
+      el.style.transform = "translateX(-100%)";
+      el.style.opacity = "0";
+    }
+    setTimeout(() => { onDelete(id); setSwipedId(null); }, 200);
   }, [onDelete]);
 
   return (
@@ -111,7 +146,7 @@ export function NotificationsPanel({ notifications, onMarkRead, onMarkAllRead, o
       </div>
 
       {/* List */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto" onScroll={resetSwiped}>
         {notifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-8">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300 dark:text-gray-600 mb-3">
@@ -128,10 +163,15 @@ export function NotificationsPanel({ notifications, onMarkRead, onMarkAllRead, o
             >
               {/* Red delete background (visible on swipe) */}
               <div className="absolute inset-y-0 right-0 w-20 bg-red-500 flex items-center justify-center">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="3 6 5 6 21 6" />
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                </svg>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleSwipeDelete(notif.id); }}
+                  className="w-full h-full flex items-center justify-center"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                </button>
               </div>
 
               {/* Notification item (swipeable) */}
@@ -140,7 +180,11 @@ export function NotificationsPanel({ notifications, onMarkRead, onMarkAllRead, o
                 onTouchStart={(e) => handleTouchStart(notif.id, e)}
                 onTouchMove={(e) => handleTouchMove(notif.id, e)}
                 onTouchEnd={() => handleTouchEnd(notif.id)}
-                onClick={() => { if (!notif.read) onMarkRead(notif.id); }}
+                onClick={() => {
+                  if (swipedId === notif.id) { resetSwiped(); return; }
+                  if (swipedId) { resetSwiped(); return; }
+                  if (!notif.read) onMarkRead(notif.id);
+                }}
                 className={`relative w-full text-left px-4 py-3 border-b border-gray-100 dark:border-white/5 transition-colors active:bg-gray-50 dark:active:bg-white/5 bg-white dark:bg-[#0a0a0c] ${
                   !notif.read ? "bg-[#572c77]/5 dark:bg-[#572c77]/10" : ""
                 }`}

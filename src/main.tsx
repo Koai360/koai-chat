@@ -11,9 +11,11 @@ createRoot(document.getElementById("root")!).render(
 
 // Register service worker + auto-update
 if ("serviceWorker" in navigator) {
+  // Solo recargar si ya había un SW controlando (= es una actualización, no primer load)
+  const hadController = !!navigator.serviceWorker.controller;
   let refreshing = false;
   navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (!refreshing) {
+    if (hadController && !refreshing) {
       refreshing = true;
       window.location.reload();
     }

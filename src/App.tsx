@@ -12,7 +12,7 @@ import { OnlineStatus } from "./components/OnlineStatus";
 import { NotificationsPanel } from "./components/NotificationsPanel";
 import { ImageGallery } from "./components/ImageGallery";
 import { ImageModal } from "./components/ImageModal";
-import { requestPushPermission, isPushSubscribed } from "./lib/push";
+import { requestPushPermission } from "./lib/push";
 import { PushToast } from "./components/PushToast";
 
 export default function App() {
@@ -94,14 +94,10 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
     sidebarTranslateX.current = 0;
   }, []);
 
-  // Request push notification permission after login (once)
+  // Siempre sincronizar push subscription al abrir (Apple cambia endpoint cada sesión)
   useEffect(() => {
-    isPushSubscribed().then((subscribed) => {
-      if (!subscribed) {
-        const timer = setTimeout(() => requestPushPermission(), 3000);
-        return () => clearTimeout(timer);
-      }
-    });
+    const timer = setTimeout(() => requestPushPermission(), 2000);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {

@@ -7,6 +7,7 @@ interface Props {
   conversation: Conversation | null;
   agent: Agent;
   loading: boolean;
+  loadingHint?: string | null;
   streamingText: string;
   onSend: (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string) => void;
   onTranscribe: (blob: Blob) => Promise<string>;
@@ -73,7 +74,7 @@ function shouldShowDate(messages: Message[], index: number): boolean {
   return prev !== curr;
 }
 
-export function ChatView({ conversation, agent, loading, streamingText, onSend, onTranscribe, userName, onImageClick }: Props) {
+export function ChatView({ conversation, agent, loading, loadingHint, streamingText, onSend, onTranscribe, userName, onImageClick }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
@@ -163,15 +164,25 @@ export function ChatView({ conversation, agent, loading, streamingText, onSend, 
           <StreamingBubble text={streamingText} agent={agent} />
         )}
 
-        {/* Typing indicator */}
+        {/* Typing / generating indicator */}
         {loading && !streamingText && (
           <div className="flex justify-start mb-2 animate-bubble-in">
             <div className="rounded-[18px] px-4 py-3 rounded-bl-[4px] bg-[#f5f3f7] dark:bg-[#1e1b22]">
-              <div className="flex gap-1">
-                <span className="w-[7px] h-[7px] bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce [animation-delay:0ms]" />
-                <span className="w-[7px] h-[7px] bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce [animation-delay:150ms]" />
-                <span className="w-[7px] h-[7px] bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce [animation-delay:300ms]" />
-              </div>
+              {loadingHint ? (
+                <div className="flex items-center gap-2">
+                  <svg className="animate-spin w-4 h-4 text-[#572c77] dark:text-[#bcd431] flex-shrink-0" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">{loadingHint}</span>
+                </div>
+              ) : (
+                <div className="flex gap-1">
+                  <span className="w-[7px] h-[7px] bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce [animation-delay:0ms]" />
+                  <span className="w-[7px] h-[7px] bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce [animation-delay:150ms]" />
+                  <span className="w-[7px] h-[7px] bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce [animation-delay:300ms]" />
+                </div>
+              )}
             </div>
           </div>
         )}

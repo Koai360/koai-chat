@@ -64,6 +64,7 @@ export function useChat(userId: string | null = null) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [agent, setAgentState] = useState<Agent>("kira");
   const [loading, setLoading] = useState(false);
+  const [loadingHint, setLoadingHint] = useState<string | null>(null);
   const [streamingText, setStreamingText] = useState("");
   const [syncing, setSyncing] = useState(true);
   const initialLoadDone = useRef(false);
@@ -181,6 +182,13 @@ export function useChat(userId: string | null = null) {
       }
 
       setLoading(true);
+      setLoadingHint(
+        imageMode
+          ? imageEngine === "flux"
+            ? "Generando imagen con Flux 2..."
+            : "Generando imagen..."
+          : null,
+      );
       setStreamingText("");
 
       try {
@@ -249,6 +257,7 @@ export function useChat(userId: string | null = null) {
         setStreamingText("");
       } finally {
         setLoading(false);
+        setLoadingHint(null);
       }
     },
     [activeId, agent, loading, conversations, newConversation],
@@ -289,6 +298,7 @@ export function useChat(userId: string | null = null) {
     agent,
     setAgent,
     loading,
+    loadingHint,
     syncing,
     streamingText,
     sendMessage,

@@ -43,6 +43,7 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
     agent,
     setAgent,
     loading,
+    loadingHint,
     streamingText,
     sendMessage,
     newConversation,
@@ -227,6 +228,7 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
               conversation={active}
               agent={agent}
               loading={loading}
+              loadingHint={loadingHint}
               streamingText={streamingText}
               onSend={sendMessage}
               onTranscribe={transcribeAudio}

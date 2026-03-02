@@ -29,13 +29,30 @@ export async function sendKiraMessage(
   if (imageMode) body.image_mode = true;
   if (imageEngine) body.image_engine = imageEngine;
 
-  const res = await fetch(`${API_URL}/api/chat`, {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`Kira error: ${res.status}`);
-  return res.json();
+  // Timeout largo para generación de imágenes (Flux puede tomar ~40s)
+  const timeoutMs = imageMode ? 90_000 : 60_000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(`${API_URL}/api/chat`, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    if (!res.ok) throw new Error(`Kira error: ${res.status}`);
+    return res.json();
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new Error(imageMode
+        ? "La generación de imagen tardó demasiado. Intenta de nuevo o usa el motor Rápido (Gemini)."
+        : "La solicitud tardó demasiado. Intenta de nuevo.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export async function streamKronosMessage(

@@ -39,6 +39,14 @@ export function ConversationList({ conversations, activeId, onSelect, onNew, onD
   const [newProjectName, setNewProjectName] = useState("");
 
   const touchStartX = useRef(0);
+  const touchCurrentX = useRef(0);
+  const swipingItemId = useRef<string | null>(null);
+  const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  const setItemRef = useCallback((id: string) => (el: HTMLDivElement | null) => {
+    if (el) itemRefs.current.set(id, el);
+    else itemRefs.current.delete(id);
+  }, []);
 
   // Load projects
   useEffect(() => {
@@ -86,46 +94,88 @@ export function ConversationList({ conversations, activeId, onSelect, onNew, onD
     }
   }, []);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
+  const handleItemTouchStart = useCallback((id: string, e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
-  };
+    touchCurrentX.current = 0;
+    swipingItemId.current = id;
+    setSwipedId(null);
+  }, []);
 
-  const handleTouchEnd = (e: React.TouchEvent, id: string) => {
-    const diff = touchStartX.current - e.changedTouches[0].clientX;
-    if (diff > 80) {
-      setSwipedId(id);
-    } else if (diff < -40) {
-      setSwipedId(null);
+  const handleItemTouchMove = useCallback((id: string, e: React.TouchEvent) => {
+    if (swipingItemId.current !== id) return;
+    const diff = touchStartX.current - e.touches[0].clientX;
+    if (diff > 0) {
+      touchCurrentX.current = diff;
+      const el = itemRefs.current.get(id);
+      if (el) el.style.transform = `translateX(-${Math.min(diff, 80)}px)`;
     }
-  };
+  }, []);
+
+  const handleItemTouchEnd = useCallback((id: string) => {
+    const el = itemRefs.current.get(id);
+    if (touchCurrentX.current > 60) {
+      // Swipe far enough → animate out and show confirm
+      if (el) {
+        el.style.transition = "transform 0.15s";
+        el.style.transform = "translateX(-80px)";
+        setTimeout(() => { if (el) el.style.transition = ""; }, 150);
+      }
+      setSwipedId(id);
+    } else {
+      // Snap back
+      if (el) {
+        el.style.transition = "transform 0.15s";
+        el.style.transform = "";
+        setTimeout(() => { if (el) el.style.transition = ""; }, 150);
+      }
+    }
+    swipingItemId.current = null;
+    touchCurrentX.current = 0;
+  }, []);
+
+  const handleSwipeDelete = useCallback((id: string) => {
+    const el = itemRefs.current.get(id);
+    if (el) {
+      el.style.transition = "transform 0.2s, opacity 0.2s";
+      el.style.transform = "translateX(-100%)";
+      el.style.opacity = "0";
+    }
+    haptic(15);
+    setTimeout(() => { onDelete(id); setSwipedId(null); }, 200);
+  }, [onDelete]);
 
   const renderConvoItem = (c: Conversation) => (
     <div
       key={c.id}
       className="relative overflow-hidden rounded-xl mb-0.5"
-      onTouchStart={handleTouchStart}
-      onTouchEnd={(e) => handleTouchEnd(e, c.id)}
     >
-      <div className={`absolute right-0 top-0 bottom-0 flex items-center transition-all ${swipedId === c.id ? "w-16" : "w-0"} overflow-hidden`}>
+      {/* Red delete background */}
+      <div className="absolute inset-y-0 right-0 w-20 bg-red-500 flex items-center justify-center">
         <button
-          onClick={(e) => { e.stopPropagation(); haptic(15); setConfirmDeleteId(c.id); setSwipedId(null); }}
-          className="w-full h-full bg-red-500 flex items-center justify-center text-white"
+          onClick={(e) => { e.stopPropagation(); handleSwipeDelete(c.id); }}
+          className="w-full h-full flex items-center justify-center"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="3 6 5 6 21 6" />
             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
           </svg>
         </button>
       </div>
 
+      {/* Conversation item (swipeable) */}
       <div
-        onClick={() => { haptic(); onSelect(c.id); setSwipedId(null); }}
-        className={`flex items-center justify-between px-3 py-2 cursor-pointer transition-all ${
-          swipedId === c.id ? "-translate-x-16" : ""
-        } ${
+        ref={setItemRef(c.id)}
+        onTouchStart={(e) => handleItemTouchStart(c.id, e)}
+        onTouchMove={(e) => handleItemTouchMove(c.id, e)}
+        onTouchEnd={() => handleItemTouchEnd(c.id)}
+        onClick={() => {
+          if (swipedId === c.id) { setSwipedId(null); const el = itemRefs.current.get(c.id); if (el) { el.style.transition = "transform 0.15s"; el.style.transform = ""; } return; }
+          haptic(); onSelect(c.id);
+        }}
+        className={`relative flex items-center justify-between px-3 py-2 cursor-pointer bg-white dark:bg-[#0a0a0c] ${
           c.id === activeId
             ? "bg-[#572c77]/10 dark:bg-[#572c77]/20"
-            : "hover:bg-gray-50 dark:hover:bg-[#1a1a1e]"
+            : "active:bg-gray-50 dark:active:bg-[#1a1a1e]"
         }`}
       >
         <div className="flex-1 min-w-0">
@@ -149,16 +199,6 @@ export function ConversationList({ conversations, activeId, onSelect, onNew, onD
               </svg>
             </button>
           )}
-          {/* Delete */}
-          <button
-            onClick={(e) => { e.stopPropagation(); haptic(15); setConfirmDeleteId(c.id); }}
-            className="w-7 h-7 flex items-center justify-center text-gray-300 hover:text-red-500 rounded-lg"
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="3 6 5 6 21 6" />
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-            </svg>
-          </button>
         </div>
       </div>
     </div>

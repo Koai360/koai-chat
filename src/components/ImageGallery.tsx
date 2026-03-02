@@ -146,7 +146,7 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
             <p className="text-xs text-gray-400 mt-1">Pídele a Kira que genere una imagen</p>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-1 p-1">
+          <div className="columns-3 gap-1.5 p-1.5">
             {images.map((img) => {
               const src = imageSrcFromBase64(img.image);
               const isSelected = selectedId === img.id;
@@ -154,7 +154,7 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
                 <div
                   key={img.id}
                   data-gallery-item
-                  className="relative aspect-square"
+                  className="relative mb-1.5 break-inside-avoid"
                   onTouchStart={() => handleLongPressStart(img.id)}
                   onTouchEnd={handleLongPressEnd}
                   onTouchCancel={handleLongPressEnd}
@@ -166,8 +166,8 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
                   <img
                     src={src}
                     alt="Imagen generada"
-                    className={`w-full h-full object-cover transition-all duration-200 ${
-                      isSelected ? "brightness-50 scale-95 rounded-lg" : "brightness-100"
+                    className={`w-full block rounded-lg transition-all duration-200 ${
+                      isSelected ? "brightness-50 scale-95" : "brightness-100"
                     }`}
                     loading="lazy"
                     draggable={false}
@@ -178,7 +178,11 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
                   </div>
                   {/* Selected state — delete button */}
                   {isSelected && (
-                    <div className="absolute inset-0 flex items-center justify-center animate-fade-in">
+                    <div
+                      className="absolute inset-0 flex items-center justify-center animate-fade-in"
+                      onTouchStart={(e) => e.stopPropagation()}
+                      onMouseDown={(e) => e.stopPropagation()}
+                    >
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

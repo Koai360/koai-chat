@@ -272,6 +272,14 @@ export async function fetchImages(): Promise<GalleryImage[]> {
   return res.json();
 }
 
+export async function deleteImage(messageId: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/chat/images/${messageId}`, {
+    method: "DELETE",
+    headers: getHeaders(),
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+}
+
 // --- Notifications ---
 
 export interface Notification {

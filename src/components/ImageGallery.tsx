@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { fetchImages, type GalleryImage } from "../lib/api";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { fetchImages, deleteImage, type GalleryImage } from "../lib/api";
 
 interface Props {
   onClose: () => void;
@@ -28,12 +28,69 @@ function formatDate(iso: string): string {
 export function ImageGallery({ onClose, onImageClick }: Props) {
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const didLongPress = useRef(false);
 
   useEffect(() => {
     fetchImages()
       .then(setImages)
       .catch((err) => console.error("[ImageGallery] Error:", err))
       .finally(() => setLoading(false));
+  }, []);
+
+  // Close selection on outside tap
+  useEffect(() => {
+    if (!selectedId) return;
+    const handle = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-gallery-item]")) {
+        setSelectedId(null);
+      }
+    };
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, [selectedId]);
+
+  const handleLongPressStart = useCallback((id: string) => {
+    didLongPress.current = false;
+    longPressTimer.current = setTimeout(() => {
+      didLongPress.current = true;
+      if (navigator.vibrate) navigator.vibrate(20);
+      setSelectedId(id);
+    }, 500);
+  }, []);
+
+  const handleLongPressEnd = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
+
+  const handleTap = useCallback((id: string, src: string) => {
+    if (didLongPress.current) return;
+    if (selectedId === id) {
+      setSelectedId(null);
+    } else if (selectedId) {
+      setSelectedId(null);
+    } else {
+      onImageClick?.(src);
+    }
+  }, [selectedId, onImageClick]);
+
+  const handleDelete = useCallback(async (id: string) => {
+    setDeleting(true);
+    try {
+      await deleteImage(id);
+      setImages((prev) => prev.filter((img) => img.id !== id));
+      setSelectedId(null);
+    } catch (err) {
+      console.error("[ImageGallery] Delete error:", err);
+    } finally {
+      setDeleting(false);
+    }
   }, []);
 
   return (
@@ -48,14 +105,22 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
-        <div>
+        <div className="flex-1">
           <h2 className="font-semibold text-gray-100 text-base">Galería</h2>
           {!loading && images.length > 0 && (
             <p className="text-[11px] text-gray-400 -mt-0.5">
-              {images.length} {images.length === 1 ? "imagen" : "imágenes"} generadas
+              {images.length} {images.length === 1 ? "imagen" : "imágenes"}
             </p>
           )}
         </div>
+        {selectedId && (
+          <button
+            onClick={() => setSelectedId(null)}
+            className="text-xs text-gray-400 px-3 py-1.5 rounded-full bg-white/5 active:scale-95"
+          >
+            Cancelar
+          </button>
+        )}
       </div>
 
       {/* Content */}
@@ -81,31 +146,56 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
             <p className="text-xs text-gray-400 mt-1">Pídele a Kira que genere una imagen</p>
           </div>
         ) : (
-          <div className="columns-2 gap-3 p-3 sm:columns-3 sm:p-4 md:columns-4 lg:columns-5">
+          <div className="grid grid-cols-3 gap-1 p-1">
             {images.map((img) => {
               const src = imageSrcFromBase64(img.image);
+              const isSelected = selectedId === img.id;
               return (
-                <button
+                <div
                   key={img.id}
-                  onClick={() => onImageClick?.(src)}
-                  className="block w-full mb-3 break-inside-avoid group"
+                  data-gallery-item
+                  className="relative aspect-square"
+                  onTouchStart={() => handleLongPressStart(img.id)}
+                  onTouchEnd={handleLongPressEnd}
+                  onTouchCancel={handleLongPressEnd}
+                  onMouseDown={() => handleLongPressStart(img.id)}
+                  onMouseUp={handleLongPressEnd}
+                  onMouseLeave={handleLongPressEnd}
+                  onClick={() => handleTap(img.id, src)}
                 >
-                  <div className="relative rounded-2xl overflow-hidden bg-[#1a1a1e] shadow-sm hover:shadow-lg hover:scale-[1.02] active:scale-[0.97] transition-all duration-200">
-                    <img
-                      src={src}
-                      alt="Imagen generada"
-                      className="w-full block"
-                      loading="lazy"
-                    />
-                    {/* Overlay con fecha + descripción */}
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/50 to-transparent pt-8 pb-2.5 px-3 opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity duration-200">
-                      <p className="text-[11px] text-white/90 font-medium">{formatDate(img.created_at)}</p>
-                      {img.content && (
-                        <p className="text-[10px] text-white/60 truncate mt-0.5">{img.content}</p>
-                      )}
-                    </div>
+                  <img
+                    src={src}
+                    alt="Imagen generada"
+                    className={`w-full h-full object-cover transition-all duration-200 ${
+                      isSelected ? "brightness-50 scale-95 rounded-lg" : "brightness-100"
+                    }`}
+                    loading="lazy"
+                    draggable={false}
+                  />
+                  {/* Date overlay — always visible */}
+                  <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent pt-6 pb-1 px-1.5 pointer-events-none">
+                    <p className="text-[9px] text-white/80 font-medium">{formatDate(img.created_at)}</p>
                   </div>
-                </button>
+                  {/* Selected state — delete button */}
+                  {isSelected && (
+                    <div className="absolute inset-0 flex items-center justify-center animate-fade-in">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(img.id);
+                        }}
+                        disabled={deleting}
+                        className="flex flex-col items-center gap-1.5 px-4 py-3 rounded-2xl bg-red-500/90 text-white active:scale-90 transition-transform disabled:opacity-50"
+                      >
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                        <span className="text-[11px] font-semibold">Eliminar</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>

@@ -8,7 +8,7 @@ interface Props {
   agent: Agent;
   loading: boolean;
   streamingText: string;
-  onSend: (text: string, imageBase64?: string) => void;
+  onSend: (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string) => void;
   onTranscribe: (blob: Blob) => Promise<string>;
   userName?: string;
   onImageClick?: (imageSrc: string) => void;

@@ -17,6 +17,8 @@ export async function sendKiraMessage(
   message: string,
   conversationId?: string,
   imageBase64?: string,
+  imageMode?: boolean,
+  imageEngine?: string,
 ): Promise<{ conversation_id: string; messages: Array<{ role: string; agent: string; content: string; image?: string }> }> {
   const body: Record<string, unknown> = {
     message,
@@ -24,6 +26,8 @@ export async function sendKiraMessage(
     conversation_id: conversationId,
   };
   if (imageBase64) body.image_base64 = imageBase64;
+  if (imageMode) body.image_mode = true;
+  if (imageEngine) body.image_engine = imageEngine;
 
   const res = await fetch(`${API_URL}/api/chat`, {
     method: "POST",

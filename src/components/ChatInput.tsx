@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 interface Props {
-  onSend: (text: string, imageBase64?: string) => void;
+  onSend: (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string) => void;
   onTranscribe: (blob: Blob) => Promise<string>;
   disabled?: boolean;
   placeholder?: string;
@@ -11,6 +11,11 @@ interface Props {
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 
+const ENGINE_OPTIONS = [
+  { value: "gemini", label: "Rápida", icon: "⚡", desc: "Gemini · gratis" },
+  { value: "flux", label: "Profesional", icon: "✨", desc: "Flux 2 · premium" },
+] as const;
+
 export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escribe un mensaje...", autoFocus, agent = "kira" }: Props) {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -19,8 +24,14 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
   const [recordingTime, setRecordingTime] = useState(0);
   const [transcribing, setTranscribing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPlusMenu, setShowPlusMenu] = useState(false);
+  const [imageMode, setImageMode] = useState(false);
+  const [imageEngine, setImageEngine] = useState("gemini");
+  const [showModelMenu, setShowModelMenu] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const plusMenuRef = useRef<HTMLDivElement>(null);
+  const modelMenuRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -82,14 +93,30 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
     }
   }, [error]);
 
+  // Close menus on outside click
+  useEffect(() => {
+    if (!showPlusMenu && !showModelMenu) return;
+    const handleClick = (e: MouseEvent) => {
+      if (showPlusMenu && plusMenuRef.current && !plusMenuRef.current.contains(e.target as Node)) {
+        setShowPlusMenu(false);
+      }
+      if (showModelMenu && modelMenuRef.current && !modelMenuRef.current.contains(e.target as Node)) {
+        setShowModelMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showPlusMenu, showModelMenu]);
+
   const handleSubmit = () => {
     if ((!text.trim() && !imageBase64) || disabled) return;
     if (navigator.vibrate) navigator.vibrate(10);
-    onSend(text, imageBase64 || undefined);
+    onSend(text, imageBase64 || undefined, imageMode || undefined, imageMode ? imageEngine : undefined);
     setText("");
     if (editorRef.current) editorRef.current.innerText = "";
     setImagePreview(null);
     setImageBase64(null);
+    if (imageMode) setImageMode(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -317,21 +344,107 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
         </div>
       )}
 
+      {/* Image mode bar */}
+      {imageMode && !recording && (
+        <div className="flex items-center gap-2 px-3 py-2 animate-fade-in">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
+            🎨 Crear imagen
+            <button
+              onClick={() => setImageMode(false)}
+              className="ml-0.5 hover:text-purple-900 dark:hover:text-purple-100"
+              aria-label="Cancelar modo imagen"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </span>
+          <div className="relative" ref={modelMenuRef}>
+            <button
+              onClick={() => setShowModelMenu((p) => !p)}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border border-gray-200 dark:border-white/10 bg-white dark:bg-[#2c2c2e] text-gray-700 dark:text-gray-300 active:scale-95"
+            >
+              {ENGINE_OPTIONS.find((e) => e.value === imageEngine)?.icon}{" "}
+              {ENGINE_OPTIONS.find((e) => e.value === imageEngine)?.label}
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="ml-0.5">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+            {showModelMenu && (
+              <div className="absolute bottom-full mb-1 left-0 min-w-[180px] bg-white dark:bg-[#2c2c2e] rounded-xl shadow-xl border border-gray-200 dark:border-white/10 overflow-hidden z-50 animate-fade-in">
+                {ENGINE_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => { setImageEngine(opt.value); setShowModelMenu(false); }}
+                    className={`w-full flex items-center gap-2 px-3 py-2.5 text-left text-sm transition-colors ${
+                      imageEngine === opt.value
+                        ? "bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300"
+                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5"
+                    }`}
+                  >
+                    <span className="text-base">{opt.icon}</span>
+                    <div>
+                      <div className="font-medium text-xs">{opt.label}</div>
+                      <div className="text-[10px] text-gray-400">{opt.desc}</div>
+                    </div>
+                    {imageEngine === opt.value && (
+                      <svg className="ml-auto w-4 h-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Input row */}
       <div className="flex items-end gap-2 px-2 py-1.5">
         {/* Input container with + and camera inside */}
         <div className="flex-1 flex items-end bg-gray-100 dark:bg-[#2c2c2e] rounded-[22px] min-h-[44px] overflow-hidden">
-          {/* Plus / gallery button */}
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isDisabled}
-            className="flex-shrink-0 w-11 h-[44px] flex items-center justify-center text-gray-500 dark:text-gray-400 active:scale-90 disabled:opacity-40"
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-          </button>
+          {/* Plus button with menu */}
+          <div className="relative" ref={plusMenuRef}>
+            <button
+              onClick={() => setShowPlusMenu((p) => !p)}
+              disabled={isDisabled}
+              className={`flex-shrink-0 w-11 h-[44px] flex items-center justify-center active:scale-90 disabled:opacity-40 transition-transform ${
+                showPlusMenu ? "text-purple-600 dark:text-purple-400 rotate-45" : "text-gray-500 dark:text-gray-400"
+              }`}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
+            {showPlusMenu && (
+              <div className="absolute bottom-full left-0 mb-2 min-w-[200px] bg-white dark:bg-[#1c1c1e] rounded-2xl shadow-xl border border-gray-200 dark:border-white/10 overflow-hidden z-50 animate-fade-in">
+                <button
+                  onClick={() => { fileInputRef.current?.click(); setShowPlusMenu(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+                >
+                  <span className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-base">📎</span>
+                  <div className="text-left">
+                    <div className="font-medium text-xs">Fotos y archivos</div>
+                    <div className="text-[10px] text-gray-400">Adjuntar imagen</div>
+                  </div>
+                </button>
+                <div className="h-px bg-gray-100 dark:bg-white/5 mx-3" />
+                <button
+                  onClick={() => { setImageMode(true); setShowPlusMenu(false); editorRef.current?.focus(); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+                >
+                  <span className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-base">🎨</span>
+                  <div className="text-left">
+                    <div className="font-medium text-xs">Crear imagen</div>
+                    <div className="text-[10px] text-gray-400">Gemini o Flux 2</div>
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
           <input
             ref={fileInputRef}
             type="file"
@@ -345,7 +458,7 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
             ref={editorRef}
             contentEditable={!isDisabled}
             role="textbox"
-            data-placeholder={transcribing ? "Transcribiendo..." : placeholder}
+            data-placeholder={transcribing ? "Transcribiendo..." : imageMode ? "Describe la imagen que quieres crear..." : placeholder}
             onInput={handleInput}
             onKeyDown={handleKeyDown}
             onFocus={handleFocus}

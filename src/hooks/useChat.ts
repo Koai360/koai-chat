@@ -146,7 +146,7 @@ export function useChat(userId: string | null = null) {
   }, [agent]);
 
   const sendMessage = useCallback(
-    async (text: string, imageBase64?: string) => {
+    async (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string) => {
       if ((!text.trim() && !imageBase64) || loading) return;
 
       let convoId = activeId;
@@ -188,7 +188,7 @@ export function useChat(userId: string | null = null) {
         let assistantImage: string | undefined;
 
         if (agent === "kira") {
-          const res = await sendKiraMessage(displayText, convoId, imageBase64);
+          const res = await sendKiraMessage(displayText, convoId, imageBase64, imageMode, imageEngine);
           assistantContent = res.messages?.[0]?.content || "Sin respuesta";
           assistantImage = res.messages?.[0]?.image || undefined;
         } else {

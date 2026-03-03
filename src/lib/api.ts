@@ -304,6 +304,7 @@ export interface GalleryImage {
   image: string;
   content: string;
   created_at: string;
+  engine?: string;
 }
 
 export async function fetchImages(): Promise<GalleryImage[]> {

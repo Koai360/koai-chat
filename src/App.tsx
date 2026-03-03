@@ -20,9 +20,9 @@ export default function App() {
 
   if (auth.isLoading) {
     return (
-      <div className="h-full flex flex-col items-center justify-center bg-gradient-to-b from-[#572c77]/10 to-white dark:from-[#572c77]/20 dark:to-[#0a0a0c]">
+      <div className="h-full flex flex-col items-center justify-center bg-[#212121]">
         <img src="/icons/kira-logo.svg" alt="KOAI" className="w-20 h-20 rounded-2xl animate-gentle-pulse shadow-lg" />
-        <p className="mt-4 text-sm text-gray-400 animate-gentle-pulse">Cargando...</p>
+        <p className="mt-4 text-sm text-[#9b9b9b] animate-gentle-pulse">Cargando...</p>
       </div>
     );
   }
@@ -132,10 +132,10 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
   }, [newConversation, sidebarPinned]);
 
   return (
-    <div className="h-full flex bg-white dark:bg-[#0a0a0c] text-gray-900 dark:text-gray-100">
+    <div className="h-full flex bg-[#212121] text-[#ececec]">
       {/* Pinned sidebar (desktop) */}
       {sidebarPinned && (
-        <div className="hidden md:flex w-[300px] flex-shrink-0 border-r border-gray-200 dark:border-gray-800 h-full">
+        <div className="hidden md:flex w-[300px] flex-shrink-0 border-r border-white/[0.06] h-full">
           <ConversationList
             conversations={conversations}
             activeId={activeId}
@@ -158,18 +158,14 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
       {swUpdate && <UpdateBanner onUpdate={handleUpdate} />}
 
       <div className="flex-1 flex flex-col h-full min-w-0">
-        {/* Header */}
-        <header className={`flex items-center justify-between px-2 py-1.5 safe-top transition-colors duration-500 ${
-          agent === "kronos"
-            ? "bg-gradient-to-r from-[#0f0f11] to-[#1a1a1e]"
-            : "bg-gradient-to-r from-[#572c77] to-[#7c4d9e]"
-        }`}>
+        {/* Header — neutral dark */}
+        <header className="flex items-center justify-between px-2 py-1.5 safe-top bg-[#212121] border-b border-white/[0.06]">
           <button
             onClick={() => {
               if (isDesktop) { togglePin(); }
               else { setShowSidebar(true); }
             }}
-            className="w-11 h-11 flex items-center justify-center rounded-full text-white/80 active:text-white active:bg-white/10 transition-colors active:scale-95"
+            className="w-11 h-11 flex items-center justify-center rounded-full text-[#9b9b9b] hover:text-[#ececec] active:bg-white/5 transition-colors active:scale-95"
           >
             {sidebarPinned ? (
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -193,7 +189,7 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
           <div className="flex items-center">
             <button
               onClick={() => setShowNotifications(true)}
-              className="relative w-11 h-11 flex items-center justify-center rounded-full text-white/80 active:text-white active:bg-white/10 transition-colors active:scale-95"
+              className="relative w-11 h-11 flex items-center justify-center rounded-full text-[#9b9b9b] hover:text-[#ececec] active:bg-white/5 transition-colors active:scale-95"
             >
               <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -208,7 +204,7 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
 
             <button
               onClick={newConversation}
-              className="w-11 h-11 flex items-center justify-center rounded-full text-white/80 active:text-white active:bg-white/10 transition-colors active:scale-95"
+              className="w-11 h-11 flex items-center justify-center rounded-full text-[#9b9b9b] hover:text-[#ececec] active:bg-white/5 transition-colors active:scale-95"
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -218,7 +214,7 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
         </header>
 
         {/* Chat area or Gallery */}
-        <main className="flex-1 overflow-hidden bg-white dark:bg-[#0a0a0c]">
+        <main className="flex-1 overflow-hidden bg-[#212121]">
           {showGallery ? (
             <ImageGallery
               onClose={() => setShowGallery(false)}

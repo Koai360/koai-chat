@@ -105,19 +105,19 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-800 bg-[#0a0a0c]">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06] bg-[#171717]">
         <button
           onClick={onClose}
-          className="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-gray-200 rounded-xl active:scale-95 transition-all"
+          className="w-9 h-9 flex items-center justify-center text-[#9b9b9b] hover:text-[#ececec] rounded-xl active:scale-95 transition-all"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
         <div className="flex-1">
-          <h2 className="font-semibold text-gray-100 text-base">Galería</h2>
+          <h2 className="font-semibold text-[#ececec] text-base">Galería</h2>
           {!loading && images.length > 0 && (
-            <p className="text-[11px] text-gray-400 -mt-0.5">
+            <p className="text-[11px] text-[#9b9b9b] -mt-0.5">
               {images.length} {images.length === 1 ? "imagen" : "imágenes"}
             </p>
           )}
@@ -125,7 +125,7 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
         {menuId && (
           <button
             onClick={() => setMenuId(null)}
-            className="text-xs text-gray-400 px-3 py-1.5 rounded-full bg-white/5 active:scale-95"
+            className="text-xs text-[#9b9b9b] px-3 py-1.5 rounded-full bg-white/[0.06] active:scale-95"
           >
             Cancelar
           </button>
@@ -133,36 +133,36 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
       </div>
 
       {/* Content */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto bg-[#0a0a0c] relative">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto bg-[#171717] relative">
         {loading ? (
           <div className="flex flex-col items-center justify-center h-full gap-3">
-            <svg className="animate-spin w-7 h-7 text-[#572c77]" viewBox="0 0 24 24" fill="none">
+            <svg className="animate-spin w-7 h-7 text-[#57C74A]" viewBox="0 0 24 24" fill="none">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
-            <p className="text-sm text-gray-400">Cargando galería...</p>
+            <p className="text-sm text-[#9b9b9b]">Cargando galería...</p>
           </div>
         ) : images.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-8">
-            <div className="w-16 h-16 rounded-2xl bg-[#1a1a1e] flex items-center justify-center mb-4">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-600">
+            <div className="w-16 h-16 rounded-2xl bg-[#2f2f2f] flex items-center justify-center mb-4">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-[#9b9b9b]">
                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
                 <circle cx="8.5" cy="8.5" r="1.5" />
                 <polyline points="21 15 16 10 5 21" />
               </svg>
             </div>
-            <p className="text-sm font-medium text-gray-400">No hay imágenes aún</p>
-            <p className="text-xs text-gray-400 mt-1">Pídele a Kira que genere una imagen</p>
+            <p className="text-sm font-medium text-[#9b9b9b]">No hay imágenes aún</p>
+            <p className="text-xs text-[#9b9b9b]/60 mt-1">Pídele a Kira que genere una imagen</p>
           </div>
         ) : (
-          <div className="columns-3 gap-1.5 p-1.5">
+          <div className="columns-2 sm:columns-3 lg:columns-4 gap-3 p-3">
             {images.map((img) => {
               const src = imageSrcFromBase64(img.image);
               return (
                 <div
                   key={img.id}
                   data-gallery-item
-                  className="relative mb-1.5 break-inside-avoid"
+                  className="relative mb-3 break-inside-avoid group/card"
                   onTouchStart={(e) => {
                     const t = e.touches[0];
                     handleLongPressStart(img.id, t.clientX, t.clientY);
@@ -175,16 +175,25 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
                   onClick={() => handleTap(img.id, src)}
                   onContextMenu={(e) => e.preventDefault()}
                 >
-                  <img
-                    src={src}
-                    alt="Imagen generada"
-                    className="w-full block rounded-lg"
-                    loading="lazy"
-                    draggable={false}
-                  />
-                  {/* Date overlay */}
-                  <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent pt-6 pb-1 px-1.5 pointer-events-none">
-                    <p className="text-[9px] text-white/80 font-medium">{formatDate(img.created_at)}</p>
+                  <div className="rounded-2xl overflow-hidden border border-white/[0.06] transition-transform duration-300 hover:scale-[1.03]">
+                    <img
+                      src={src}
+                      alt="Imagen generada"
+                      className="w-full block"
+                      loading="lazy"
+                      draggable={false}
+                    />
+                    {/* Overlay with date + engine badge */}
+                    <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent pt-8 pb-2 px-2.5 pointer-events-none rounded-b-2xl">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] text-white/80 font-medium">{formatDate(img.created_at)}</p>
+                        {img.engine && (
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-medium bg-[#57C74A]/20 text-[#57C74A]">
+                            {img.engine}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               );
@@ -203,7 +212,7 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
               transform: "translate(-50%, -100%)",
             }}
           >
-            <div className="bg-[#2a2a2e] rounded-xl shadow-2xl border border-white/10 overflow-hidden min-w-[140px]">
+            <div className="bg-[#2f2f2f] rounded-xl shadow-2xl border border-white/[0.06] overflow-hidden min-w-[140px]">
               <button
                 onClick={(e) => {
                   e.stopPropagation();

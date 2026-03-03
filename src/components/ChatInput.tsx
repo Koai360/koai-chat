@@ -18,7 +18,7 @@ const ENGINE_OPTIONS = [
   { value: "studioflux-raw", label: "Studio RAW", icon: "🔓", desc: "Sin filtro" },
 ] as const;
 
-export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escribe un mensaje...", autoFocus, agent = "kira" }: Props) {
+export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escribe un mensaje...", autoFocus }: Props) {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
@@ -301,7 +301,7 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
   const isDisabled = disabled || transcribing;
 
   return (
-    <div className="input-bar-bg safe-bottom">
+    <div className="input-bar-bg safe-bottom max-w-[48rem] mx-auto w-full">
       {/* Error toast */}
       {error && (
         <div className="mx-3 mb-1 px-3 py-1.5 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-500 text-center animate-fade-in">
@@ -316,11 +316,11 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
             <img
               src={imagePreview}
               alt="Preview"
-              className="h-20 w-auto rounded-2xl object-cover border border-white/10 shadow-sm"
+              className="h-20 w-auto rounded-2xl object-cover border border-white/[0.06]"
             />
             <button
               onClick={clearImage}
-              className="absolute -top-2 -right-2 w-6 h-6 bg-gray-900/80 dark:bg-white/80 text-white dark:text-gray-900 rounded-full flex items-center justify-center active:scale-90 shadow-sm"
+              className="absolute -top-2 -right-2 w-6 h-6 bg-white/80 text-black rounded-full flex items-center justify-center active:scale-90"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
                 <line x1="18" y1="6" x2="6" y2="18" />
@@ -349,11 +349,11 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
       {/* Image mode bar */}
       {imageMode && !recording && (
         <div className="flex items-center gap-2 px-3 py-2 animate-fade-in">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[#57C74A]/15 text-[#57C74A]">
             🎨 Crear imagen
             <button
               onClick={() => setImageMode(false)}
-              className="ml-0.5 hover:text-purple-900 dark:hover:text-purple-100"
+              className="ml-0.5 hover:text-white"
               aria-label="Cancelar modo imagen"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
@@ -365,7 +365,7 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
           <div className="relative" ref={modelMenuRef}>
             <button
               onClick={() => setShowModelMenu((p) => !p)}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border border-gray-200 dark:border-white/10 bg-white dark:bg-[#2c2c2e] text-gray-700 dark:text-gray-300 active:scale-95"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border border-white/[0.06] bg-[#2f2f2f] text-[#ececec] active:scale-95"
             >
               {ENGINE_OPTIONS.find((e) => e.value === imageEngine)?.icon}{" "}
               {ENGINE_OPTIONS.find((e) => e.value === imageEngine)?.label}
@@ -374,24 +374,24 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
               </svg>
             </button>
             {showModelMenu && (
-              <div className="absolute bottom-full mb-1 left-0 min-w-[180px] bg-white dark:bg-[#2c2c2e] rounded-xl shadow-xl border border-gray-200 dark:border-white/10 overflow-hidden z-50 animate-fade-in">
+              <div className="absolute bottom-full mb-1 left-0 min-w-[180px] bg-[#2f2f2f] rounded-xl shadow-xl border border-white/[0.06] overflow-hidden z-50 animate-fade-in">
                 {ENGINE_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
                     onClick={() => { setImageEngine(opt.value); setShowModelMenu(false); }}
                     className={`w-full flex items-center gap-2 px-3 py-2.5 text-left text-sm transition-colors ${
                       imageEngine === opt.value
-                        ? "bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300"
-                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5"
+                        ? "bg-[#57C74A]/10 text-[#57C74A]"
+                        : "text-[#ececec] hover:bg-white/5"
                     }`}
                   >
                     <span className="text-base">{opt.icon}</span>
                     <div>
                       <div className="font-medium text-xs">{opt.label}</div>
-                      <div className="text-[10px] text-gray-400">{opt.desc}</div>
+                      <div className="text-[10px] text-[#9b9b9b]">{opt.desc}</div>
                     </div>
                     {imageEngine === opt.value && (
-                      <svg className="ml-auto w-4 h-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                      <svg className="ml-auto w-4 h-4 text-[#57C74A]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
                     )}
@@ -412,8 +412,8 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
             disabled={isDisabled}
             className={`w-[38px] h-[44px] flex items-center justify-center active:scale-90 disabled:opacity-40 transition-all duration-200 ${
               showPlusMenu
-                ? "text-purple-600 dark:text-purple-400 rotate-45"
-                : "text-gray-500 dark:text-gray-400"
+                ? "text-[#bcd431] rotate-45"
+                : "text-[#9b9b9b]"
             }`}
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -422,26 +422,26 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
             </svg>
           </button>
           {showPlusMenu && (
-            <div className="absolute bottom-full left-0 mb-2 min-w-[200px] bg-white dark:bg-[#1c1c1e] rounded-2xl shadow-xl border border-gray-200 dark:border-white/10 overflow-hidden z-50 animate-fade-in">
+            <div className="absolute bottom-full left-0 mb-2 min-w-[200px] bg-[#2f2f2f] rounded-xl shadow-xl border border-white/[0.06] overflow-hidden z-50 animate-fade-in">
               <button
                 onClick={() => { fileInputRef.current?.click(); setShowPlusMenu(false); }}
-                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#ececec] hover:bg-white/5 transition-colors"
               >
-                <span className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-base">📎</span>
+                <span className="w-8 h-8 rounded-full bg-white/[0.06] flex items-center justify-center text-base">📎</span>
                 <div className="text-left">
                   <div className="font-medium text-xs">Fotos y archivos</div>
-                  <div className="text-[10px] text-gray-400">Adjuntar imagen</div>
+                  <div className="text-[10px] text-[#9b9b9b]">Adjuntar imagen</div>
                 </div>
               </button>
-              <div className="h-px bg-gray-100 dark:bg-white/5 mx-3" />
+              <div className="h-px bg-white/[0.06] mx-3" />
               <button
                 onClick={() => { setImageMode(true); setShowPlusMenu(false); editorRef.current?.focus(); }}
-                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#ececec] hover:bg-white/5 transition-colors"
               >
-                <span className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-base">🎨</span>
+                <span className="w-8 h-8 rounded-full bg-[#57C74A]/15 flex items-center justify-center text-base">🎨</span>
                 <div className="text-left">
                   <div className="font-medium text-xs">Crear imagen</div>
-                  <div className="text-[10px] text-gray-400">Gemini, Flux 2 o Studio</div>
+                  <div className="text-[10px] text-[#9b9b9b]">Gemini, Flux 2 o Studio</div>
                 </div>
               </button>
             </div>
@@ -455,8 +455,8 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
           className="hidden"
         />
 
-        {/* Input container */}
-        <div className="flex-1 flex items-end bg-gray-100 dark:bg-[#2c2c2e] rounded-[22px] min-h-[44px] overflow-hidden">
+        {/* Input container — pill shape */}
+        <div className="flex-1 flex items-end bg-[#2f2f2f] rounded-[26px] min-h-[44px] overflow-hidden">
 
           {/* ContentEditable input — NO accessory bar on iOS */}
           <div
@@ -468,13 +468,12 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
             onKeyDown={handleKeyDown}
             onFocus={handleFocus}
             onPaste={handlePaste}
-            className="flex-1 py-[11px] pl-4 text-[16px] leading-[22px] max-h-[120px] overflow-y-auto text-gray-900 dark:text-gray-100"
+            className="flex-1 py-[11px] pl-4 text-[16px] leading-[22px] max-h-[120px] overflow-y-auto text-[#ececec]"
           />
 
           {/* Camera button (inside input pill) */}
           <button
             onClick={() => {
-              // Create a separate camera-only input
               const input = document.createElement("input");
               input.type = "file";
               input.accept = "image/*";
@@ -498,7 +497,7 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
               input.click();
             }}
             disabled={isDisabled}
-            className="flex-shrink-0 w-10 h-[44px] flex items-center justify-center text-gray-500 dark:text-gray-400 active:scale-90 disabled:opacity-40"
+            className="flex-shrink-0 w-10 h-[44px] flex items-center justify-center text-[#9b9b9b] active:scale-90 disabled:opacity-40"
           >
             <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
@@ -507,48 +506,41 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
           </button>
         </div>
 
-        {/* Right action button: Send or Mic */}
+        {/* Right action button: Send or Mic — white circle (ChatGPT style) */}
         {hasContent ? (
           <button
             onClick={handleSubmit}
             disabled={isDisabled}
-            className={`flex-shrink-0 w-[44px] h-[44px] rounded-full flex items-center justify-center active:scale-90 disabled:opacity-50 transition-all duration-300 ${
-              agent === "kronos"
-                ? "bg-[#bcd431] text-[#0f0f11] active:bg-[#9ab321] shadow-md shadow-[#bcd431]/30"
-                : "bg-[#bcd431] text-[#3d1e54] active:bg-[#9ab321]"
-            }`}
+            className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center active:scale-90 disabled:opacity-50 transition-all duration-300 bg-white text-black mr-1.5 mb-1.5"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="19" x2="12" y2="5" />
+              <polyline points="5 12 12 5 19 12" />
             </svg>
           </button>
         ) : (
           <button
             onClick={toggleRecording}
             disabled={isDisabled}
-            className={`flex-shrink-0 w-[44px] h-[44px] rounded-full flex items-center justify-center transition-all duration-300 active:scale-90 ${
+            className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 active:scale-90 mr-1.5 mb-1.5 ${
               recording
                 ? "bg-red-500 text-white animate-gentle-pulse"
                 : transcribing
-                  ? agent === "kronos"
-                    ? "bg-[#bcd431]/20 text-[#bcd431]"
-                    : "bg-[#572c77]/20 text-[#572c77]"
-                  : agent === "kronos"
-                    ? "bg-[#bcd431] text-[#0f0f11] shadow-md shadow-[#bcd431]/30"
-                    : "bg-[#572c77] text-white"
+                  ? "bg-white/20 text-white"
+                  : "bg-white text-black"
             } disabled:opacity-50`}
           >
             {transcribing ? (
-              <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none">
+              <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
             ) : recording ? (
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                 <rect x="6" y="6" width="12" height="12" rx="2" />
               </svg>
             ) : (
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
                 <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
                 <line x1="12" y1="19" x2="12" y2="23" />

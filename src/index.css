@@ -5,22 +5,24 @@
 @custom-variant dark (&:is(.dark, .dark *));
 
 @theme {
-  /* Brand KOAI oficial — del PDF de entrega */
+  /* Brand KOAI */
   --color-koai-purple: #572c77;
   --color-koai-purple-light: #7c4d9e;
   --color-koai-purple-dark: #3d1e54;
   --color-koai-lime: #bcd431;
   --color-koai-lime-dark: #9ab321;
-  --color-koai-beige: #e3dcc9;
 
-  /* Functional */
-  --color-koai-bg: #ffffff;
-  --color-koai-bg-dark: #0a0a0c;
-  --color-koai-surface: #f5f3f7;
-  --color-koai-surface-dark: #1a1a1e;
-  --color-koai-text: #1a1a1e;
-  --color-koai-text-dark: #f1f0f3;
-  --color-koai-muted: #6b6b76;
+  /* UI — ChatGPT inspired dark palette */
+  --color-koai-bg: #212121;
+  --color-koai-sidebar: #171717;
+  --color-koai-surface: #2f2f2f;
+  --color-koai-hover: #3a3a3a;
+  --color-koai-text: #ececec;
+  --color-koai-muted: #9b9b9b;
+  --color-koai-border: rgba(255,255,255,0.06);
+
+  /* Accent — Lovart green for images */
+  --color-koai-green: #57C74A;
 }
 
 html {
@@ -31,7 +33,7 @@ html, body, #root {
   height: 100%;
   margin: 0;
   overscroll-behavior: none;
-  background-color: #0a0a0c;
+  background-color: #212121;
 }
 
 @supports (height: 100dvh) {
@@ -69,9 +71,9 @@ button:active:not(:disabled) {
   .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
 }
 
-/* === INPUT BAR — matches iOS keyboard === */
+/* === INPUT BAR — blends with main bg === */
 .input-bar-bg {
-  background-color: #1c1c1e;
+  background-color: #212121;
 }
 
 /* === ANIMATIONS === */
@@ -123,7 +125,7 @@ button:active:not(:disabled) {
 
 /* === CODE BLOCKS === */
 .prose code:not(pre code) {
-  background: var(--color-koai-surface-dark);
+  background: var(--color-koai-surface);
   padding: 0.15em 0.35em;
   border-radius: 4px;
   font-size: 0.85em;
@@ -178,5 +180,5 @@ button:active:not(:disabled) {
 
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.3); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 0.5); }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }

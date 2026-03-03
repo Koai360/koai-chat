@@ -12,16 +12,14 @@ function haptic() {
 
 export function AgentToggle({ agent, onChange, disabled }: Props) {
   return (
-    <div className={`flex rounded-full p-[3px] gap-[2px] transition-colors duration-500 ${
-      agent === "kronos" ? "bg-[#bcd431]/15" : "bg-white/15"
-    }`}>
+    <div className="flex rounded-full p-[3px] gap-[2px] bg-white/[0.06]">
       <button
         onClick={() => { haptic(); onChange("kira"); }}
         disabled={disabled}
         className={`px-5 py-[5px] rounded-full text-[13px] font-bold tracking-wide transition-all duration-300 ${
           agent === "kira"
-            ? "bg-[#bcd431] text-[#3d1e54] shadow-md shadow-[#bcd431]/30"
-            : "text-white/50"
+            ? "bg-[#bcd431] text-black"
+            : "text-[#9b9b9b]"
         } disabled:opacity-50 active:scale-95`}
       >
         Kira
@@ -31,8 +29,8 @@ export function AgentToggle({ agent, onChange, disabled }: Props) {
         disabled={disabled}
         className={`px-5 py-[5px] rounded-full text-[13px] font-bold tracking-wide transition-all duration-300 ${
           agent === "kronos"
-            ? "bg-[#bcd431] text-[#0f0f11] shadow-md shadow-[#bcd431]/50"
-            : "text-white/50"
+            ? "bg-[#bcd431] text-black"
+            : "text-[#9b9b9b]"
         } disabled:opacity-50 active:scale-95`}
       >
         Kronos

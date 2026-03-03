@@ -1,13 +1,18 @@
 import { useCallback, useRef, useState, useEffect } from "react";
 import { MaskEditor } from "./MaskEditor";
 import { editImage, saveEditedImage } from "../lib/api";
+import type { EditEngine } from "../lib/api";
 
 interface Props {
   imageSrc: string;
   onClose: () => void;
 }
 
-type EditEngine = "gemini" | "flux";
+const ENGINE_INFO: Record<EditEngine, { label: string; hint: string }> = {
+  gemini: { label: "Gemini", hint: "Gemini — rápido (~5s), gratis" },
+  flux: { label: "Flux", hint: "Flux Kontext — fotorealista (~15s)" },
+  studio: { label: "Studio", hint: "StudioFlux — sin filtros, raw (~30-60s)" },
+};
 
 // Create a display-optimized version (max 1200px, JPEG 85%)
 function createDisplayVersion(src: string): Promise<string> {
@@ -142,7 +147,7 @@ export function ImageModal({ imageSrc, onClose }: Props) {
     );
   }
 
-  const engineLabel = engine === "gemini" ? "Gemini" : "Flux";
+  const { label: engineLabel, hint: engineHint } = ENGINE_INFO[engine];
 
   return (
     <div className="fixed inset-0 z-[80] bg-black/95 flex flex-col animate-fade-in">
@@ -241,28 +246,20 @@ export function ImageModal({ imageSrc, onClose }: Props) {
           )}
           {/* Engine selector */}
           <div className="flex items-center justify-center gap-2 mb-2">
-            <button
-              onClick={() => setEngine("gemini")}
-              disabled={editing}
-              className={`px-3 py-1.5 rounded-full text-xs transition-all ${
-                engine === "gemini"
-                  ? "bg-[#bcd431] text-black"
-                  : "bg-white/10 text-white/50 active:bg-white/20"
-              }`}
-            >
-              Gemini
-            </button>
-            <button
-              onClick={() => setEngine("flux")}
-              disabled={editing}
-              className={`px-3 py-1.5 rounded-full text-xs transition-all ${
-                engine === "flux"
-                  ? "bg-[#bcd431] text-black"
-                  : "bg-white/10 text-white/50 active:bg-white/20"
-              }`}
-            >
-              Flux
-            </button>
+            {(["gemini", "flux", "studio"] as EditEngine[]).map((eng) => (
+              <button
+                key={eng}
+                onClick={() => setEngine(eng)}
+                disabled={editing}
+                className={`px-3 py-1.5 rounded-full text-xs transition-all ${
+                  engine === eng
+                    ? "bg-[#bcd431] text-black"
+                    : "bg-white/10 text-white/50 active:bg-white/20"
+                }`}
+              >
+                {ENGINE_INFO[eng].label}
+              </button>
+            ))}
           </div>
           {/* Input */}
           <div className="flex items-center gap-2 bg-[#2f2f2f] rounded-[22px] px-4 py-2">
@@ -299,11 +296,7 @@ export function ImageModal({ imageSrc, onClose }: Props) {
             </button>
           </div>
           <p className="text-[10px] text-white/30 text-center mt-1.5">
-            {engine === "gemini"
-              ? "Gemini — rápido (~5s), gratis"
-              : "Flux Kontext — fotorealista (~15s)"
-            }
-            {" · "}Se guarda automáticamente en galería
+            {engineHint} · Se guarda en galería
           </p>
         </div>
       ) : (

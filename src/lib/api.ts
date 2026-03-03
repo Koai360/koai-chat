@@ -364,14 +364,16 @@ export async function inpaintImage(
   }
 }
 
-// --- Image Edit (Gemini o Flux Kontext, sin máscara) ---
+// --- Image Edit (Gemini, Flux Kontext, o StudioFlux — sin máscara) ---
+
+export type EditEngine = "gemini" | "flux" | "studio";
 
 export async function editImage(
   imageBase64: string,
   instruction: string,
-  engine: "gemini" | "flux" = "gemini",
+  engine: EditEngine = "gemini",
 ): Promise<{ image: string; error?: string | null }> {
-  const timeoutMs = engine === "flux" ? 120_000 : 60_000;
+  const timeoutMs = engine === "studio" ? 180_000 : engine === "flux" ? 120_000 : 60_000;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -395,9 +397,12 @@ export async function editImage(
     return res.json();
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {
-      throw new Error(engine === "flux"
-        ? "La edición con Flux tardó demasiado (>2min). Intenta de nuevo."
-        : "La edición tardó demasiado. Intenta de nuevo.");
+      const labels: Record<EditEngine, string> = {
+        gemini: "La edición tardó demasiado. Intenta de nuevo.",
+        flux: "La edición con Flux tardó demasiado (>2min). Intenta de nuevo.",
+        studio: "StudioFlux tardó demasiado (>3min). El servidor puede estar arrancando.",
+      };
+      throw new Error(labels[engine]);
     }
     if (err instanceof TypeError) {
       throw new Error("No se pudo conectar al servidor. Verifica tu conexión.");

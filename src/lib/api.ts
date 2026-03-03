@@ -29,8 +29,10 @@ export async function sendKiraMessage(
   if (imageMode) body.image_mode = true;
   if (imageEngine) body.image_engine = imageEngine;
 
-  // Timeout largo para generación de imágenes (Flux puede tomar ~40s)
-  const timeoutMs = imageMode ? 90_000 : 60_000;
+  // Timeout: StudioFlux cold start ~100s, warm ~45s; Flux ~10s; Gemini ~3s
+  const timeoutMs = imageMode
+    ? (imageEngine === "studioflux" ? 180_000 : 90_000)
+    : 60_000;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 

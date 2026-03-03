@@ -14,6 +14,7 @@ const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 const ENGINE_OPTIONS = [
   { value: "gemini", label: "Rápida", icon: "⚡", desc: "Gemini · gratis" },
   { value: "flux", label: "Profesional", icon: "✨", desc: "Flux 2 · premium" },
+  { value: "studioflux", label: "Studio", icon: "🎬", desc: "Flux Dev · pro" },
 ] as const;
 
 export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escribe un mensaje...", autoFocus, agent = "kira" }: Props) {
@@ -439,7 +440,7 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
                 <span className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-base">🎨</span>
                 <div className="text-left">
                   <div className="font-medium text-xs">Crear imagen</div>
-                  <div className="text-[10px] text-gray-400">Gemini o Flux 2</div>
+                  <div className="text-[10px] text-gray-400">Gemini, Flux 2 o Studio</div>
                 </div>
               </button>
             </div>

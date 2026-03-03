@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState, useEffect } from "react";
+import { MaskEditor } from "./MaskEditor";
 
 interface Props {
   imageSrc: string;
@@ -35,20 +36,22 @@ export function ImageModal({ imageSrc, onClose }: Props) {
   const translateY = useRef(0);
   const imgRef = useRef<HTMLDivElement>(null);
   const [displaySrc, setDisplaySrc] = useState<string | null>(null);
+  const [editorMode, setEditorMode] = useState(false);
+  const [currentSrc, setCurrentSrc] = useState(imageSrc);
 
-  // Generate optimized display version on mount
+  // Generate optimized display version on mount or when currentSrc changes
   useEffect(() => {
     setDisplaySrc(null);
-    createDisplayVersion(imageSrc).then(setDisplaySrc);
-  }, [imageSrc]);
+    createDisplayVersion(currentSrc).then(setDisplaySrc);
+  }, [currentSrc]);
 
-  // Download the ORIGINAL full-res image
+  // Download the current full-res image
   const handleDownload = useCallback(() => {
     const link = document.createElement("a");
-    link.href = imageSrc;
+    link.href = currentSrc;
     link.download = `koai-image-${Date.now()}.png`;
     link.click();
-  }, [imageSrc]);
+  }, [currentSrc]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
@@ -74,6 +77,22 @@ export function ImageModal({ imageSrc, onClose }: Props) {
     translateY.current = 0;
   }, [onClose]);
 
+  const handleEditorResult = useCallback((resultSrc: string) => {
+    setCurrentSrc(resultSrc);
+    setEditorMode(false);
+  }, []);
+
+  // Show MaskEditor when in editor mode
+  if (editorMode) {
+    return (
+      <MaskEditor
+        imageSrc={currentSrc}
+        onClose={() => setEditorMode(false)}
+        onResult={handleEditorResult}
+      />
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-[80] bg-black/95 flex flex-col animate-fade-in">
       {/* Top bar */}
@@ -87,17 +106,31 @@ export function ImageModal({ imageSrc, onClose }: Props) {
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
-        <button
-          onClick={handleDownload}
-          className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 text-white/80 text-sm active:bg-white/20 active:scale-95 transition-all"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="7 10 12 15 17 10" />
-            <line x1="12" y1="15" x2="12" y2="3" />
-          </svg>
-          Descargar HD
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setEditorMode(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 text-white/80 text-sm active:bg-white/20 active:scale-95 transition-all"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 19l7-7 3 3-7 7-3-3z" />
+              <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
+              <path d="M2 2l7.586 7.586" />
+              <circle cx="11" cy="11" r="2" />
+            </svg>
+            Editar
+          </button>
+          <button
+            onClick={handleDownload}
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 text-white/80 text-sm active:bg-white/20 active:scale-95 transition-all"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Descargar HD
+          </button>
+        </div>
       </div>
 
       {/* Image */}

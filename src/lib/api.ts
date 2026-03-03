@@ -323,6 +323,47 @@ export async function deleteImage(messageId: string): Promise<void> {
   if (!res.ok) throw new Error(`Error ${res.status}`);
 }
 
+// --- Inpainting ---
+
+export async function inpaintImage(
+  imageBase64: string,
+  maskBase64: string,
+  prompt: string,
+): Promise<{ image: string; error?: string | null }> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 180_000);
+
+  try {
+    const res = await fetch(`${API_URL}/api/inpaint`, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify({
+        image_base64: imageBase64,
+        mask_base64: maskBase64,
+        prompt,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: `Error ${res.status}` }));
+      throw new Error(err.detail || `Inpaint error: ${res.status}`);
+    }
+
+    return res.json();
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new Error("El inpainting tardó demasiado (>3min). Intenta con un área más pequeña.");
+    }
+    if (err instanceof TypeError) {
+      throw new Error("No se pudo conectar al servidor. Verifica tu conexión.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // --- Notifications ---
 
 export interface Notification {

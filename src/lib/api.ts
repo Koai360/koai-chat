@@ -238,6 +238,14 @@ export async function saveMessages(
   });
 }
 
+export async function deleteMessages(conversationId: string, messageIds: string[]): Promise<void> {
+  await fetch(`${API_URL}/api/chat/conversations/${conversationId}/messages`, {
+    method: "DELETE",
+    headers: getHeaders(),
+    body: JSON.stringify({ message_ids: messageIds }),
+  });
+}
+
 // --- Projects ---
 
 export interface ServerProject {

@@ -12,6 +12,7 @@ interface Props {
   onSend: (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string) => void;
   onTranscribe: (blob: Blob) => Promise<string>;
   onDelete?: (id: string) => void;
+  onDeleteMessages?: (conversationId: string, messageIds: string[]) => void;
   userName?: string;
   onImageClick?: (imageSrc: string) => void;
 }
@@ -35,7 +36,6 @@ function getSuggestions(agent: Agent): string[] {
     ];
   }
 
-  // Kira — sugerencias según hora
   if (hour < 12) {
     return [
       "Qué tengo pendiente hoy?",
@@ -75,12 +75,14 @@ function shouldShowDate(messages: Message[], index: number): boolean {
   return prev !== curr;
 }
 
-export function ChatView({ conversation, agent, loading, loadingHint, streamingText, onSend, onTranscribe, onDelete, userName, onImageClick }: Props) {
+export function ChatView({ conversation, agent, loading, loadingHint, streamingText, onSend, onTranscribe, onDelete, onDeleteMessages, userName, onImageClick }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
   const [showMenu, setShowMenu] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Track if user is near bottom
@@ -104,6 +106,12 @@ export function ChatView({ conversation, agent, loading, loadingHint, streamingT
     bottomRef.current?.scrollIntoView({ behavior: "auto" });
   }, [conversation?.id]);
 
+  // Exit select mode when conversation changes
+  useEffect(() => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  }, [conversation?.id]);
+
   // Close menu on outside click
   useEffect(() => {
     if (!showMenu) return;
@@ -117,68 +125,123 @@ export function ChatView({ conversation, agent, loading, loadingHint, streamingT
     return () => document.removeEventListener("mousedown", handler);
   }, [showMenu]);
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleDeleteSelected = () => {
+    if (onDeleteMessages && conversation && selectedIds.size > 0) {
+      onDeleteMessages(conversation.id, Array.from(selectedIds));
+    }
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  };
+
   const suggestions = getSuggestions(agent);
 
   return (
     <div className="flex flex-col h-full">
-      {/* Conversation header — visible when there's an active conversation with messages */}
+      {/* Header: normal mode or select mode */}
       {conversation && conversation.messages.length > 0 && (
         <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200/60 dark:border-white/5 bg-white/80 dark:bg-[#0d0b10]/80 backdrop-blur-sm">
-          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate flex-1 mr-2">
-            {conversation.title}
-          </h3>
-          <div className="relative" ref={menuRef}>
-            <button
-              onClick={() => { setShowMenu(!showMenu); setConfirmDelete(false); }}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
-              aria-label="Opciones"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                <circle cx="12" cy="5" r="2" />
-                <circle cx="12" cy="12" r="2" />
-                <circle cx="12" cy="19" r="2" />
-              </svg>
-            </button>
-            {showMenu && (
-              <div className="absolute right-0 top-full mt-1 w-48 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#1a1720] shadow-lg z-50 overflow-hidden animate-fade-in">
-                {!confirmDelete ? (
-                  <button
-                    onClick={() => setConfirmDelete(true)}
-                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-                    </svg>
-                    Eliminar conversación
-                  </button>
-                ) : (
-                  <div className="p-3">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">¿Eliminar esta conversación?</p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => { setShowMenu(false); setConfirmDelete(false); }}
-                        className="flex-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors"
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (onDelete && conversation) {
-                            onDelete(conversation.id);
-                          }
-                          setShowMenu(false);
-                          setConfirmDelete(false);
-                        }}
-                        className="flex-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500 text-white hover:bg-red-600 transition-colors"
-                      >
-                        Eliminar
-                      </button>
-                    </div>
+          {selectMode ? (
+            <>
+              <button
+                onClick={() => { setSelectMode(false); setSelectedIds(new Set()); }}
+                className="p-1.5 rounded-lg text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                {selectedIds.size} seleccionado{selectedIds.size !== 1 ? "s" : ""}
+              </span>
+              <button
+                onClick={handleDeleteSelected}
+                disabled={selectedIds.size === 0}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500 text-white hover:bg-red-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                </svg>
+                Eliminar
+              </button>
+            </>
+          ) : (
+            <>
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate flex-1 mr-2">
+                {conversation.title}
+              </h3>
+              <div className="relative" ref={menuRef}>
+                <button
+                  onClick={() => { setShowMenu(!showMenu); setConfirmDelete(false); }}
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+                  aria-label="Opciones"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="12" cy="5" r="2" />
+                    <circle cx="12" cy="12" r="2" />
+                    <circle cx="12" cy="19" r="2" />
+                  </svg>
+                </button>
+                {showMenu && (
+                  <div className="absolute right-0 top-full mt-1 w-52 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#1a1720] shadow-lg z-50 overflow-hidden animate-fade-in">
+                    {!confirmDelete ? (
+                      <>
+                        <button
+                          onClick={() => { setSelectMode(true); setShowMenu(false); }}
+                          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="9 11 12 14 22 4" />
+                            <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
+                          </svg>
+                          Seleccionar mensajes
+                        </button>
+                        <button
+                          onClick={() => setConfirmDelete(true)}
+                          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                          </svg>
+                          Eliminar conversación
+                        </button>
+                      </>
+                    ) : (
+                      <div className="p-3">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">¿Eliminar esta conversación?</p>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => { setShowMenu(false); setConfirmDelete(false); }}
+                            className="flex-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (onDelete && conversation) onDelete(conversation.id);
+                              setShowMenu(false);
+                              setConfirmDelete(false);
+                            }}
+                            className="flex-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500 text-white hover:bg-red-600 transition-colors"
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
       )}
 
@@ -226,13 +289,28 @@ export function ChatView({ conversation, agent, loading, loadingHint, streamingT
           </div>
         ) : (
           conversation.messages.map((msg, i) => (
-            <div key={msg.id}>
-              {shouldShowDate(conversation.messages, i) && (
-                <div className="date-separator text-gray-500 dark:text-gray-400">
-                  <span>{formatDateLabel(msg.timestamp)}</span>
+            <div key={msg.id} className={`flex items-start gap-2 ${selectMode ? "cursor-pointer" : ""}`} onClick={selectMode ? () => toggleSelect(msg.id) : undefined}>
+              {selectMode && (
+                <div className={`flex-shrink-0 mt-3 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
+                  selectedIds.has(msg.id)
+                    ? "bg-red-500 border-red-500"
+                    : "border-gray-300 dark:border-gray-600"
+                }`}>
+                  {selectedIds.has(msg.id) && (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
                 </div>
               )}
-              <MessageBubble message={msg} onImageClick={onImageClick} />
+              <div className="flex-1 min-w-0">
+                {shouldShowDate(conversation.messages, i) && (
+                  <div className="date-separator text-gray-500 dark:text-gray-400">
+                    <span>{formatDateLabel(msg.timestamp)}</span>
+                  </div>
+                )}
+                <MessageBubble message={msg} onImageClick={selectMode ? undefined : onImageClick} />
+              </div>
             </div>
           ))
         )}

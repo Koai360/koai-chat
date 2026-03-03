@@ -8,6 +8,7 @@ import {
   updateConversationTitle,
   fetchMessages,
   saveMessages,
+  deleteMessages as deleteMessagesApi,
   assignConversationProject,
   type ServerConversation,
   type ServerMessage,
@@ -320,6 +321,22 @@ export function useChat(userId: string | null = null) {
     [activeId],
   );
 
+  const deleteMessages = useCallback(
+    (conversationId: string, messageIds: string[]) => {
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === conversationId
+            ? { ...c, messages: c.messages.filter((m) => !messageIds.includes(m.id)) }
+            : c,
+        ),
+      );
+      deleteMessagesApi(conversationId, messageIds).catch((err) =>
+        console.error("[useChat] Failed to delete messages:", err),
+      );
+    },
+    [],
+  );
+
   const agentConversations = conversations.filter((c) => c.agent === agent);
 
   return {
@@ -336,6 +353,7 @@ export function useChat(userId: string | null = null) {
     sendMessage,
     newConversation,
     deleteConversation,
+    deleteMessages,
     moveToProject,
   };
 }

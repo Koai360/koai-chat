@@ -48,6 +48,7 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
     sendMessage,
     newConversation,
     deleteConversation,
+    deleteMessages,
     moveToProject,
   } = useChat(user.id);
 
@@ -233,6 +234,7 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
               onSend={sendMessage}
               onTranscribe={transcribeAudio}
               onDelete={deleteConversation}
+              onDeleteMessages={deleteMessages}
               userName={user.name}
               onImageClick={setModalImage}
             />

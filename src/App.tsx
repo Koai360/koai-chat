@@ -232,6 +232,7 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
               streamingText={streamingText}
               onSend={sendMessage}
               onTranscribe={transcribeAudio}
+              onDelete={deleteConversation}
               userName={user.name}
               onImageClick={setModalImage}
             />

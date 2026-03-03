@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { MessageBubble, StreamingBubble } from "./MessageBubble";
 import { ChatInput } from "./ChatInput";
 import type { Conversation, Agent, Message } from "../hooks/useChat";
@@ -11,6 +11,7 @@ interface Props {
   streamingText: string;
   onSend: (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string) => void;
   onTranscribe: (blob: Blob) => Promise<string>;
+  onDelete?: (id: string) => void;
   userName?: string;
   onImageClick?: (imageSrc: string) => void;
 }
@@ -74,10 +75,13 @@ function shouldShowDate(messages: Message[], index: number): boolean {
   return prev !== curr;
 }
 
-export function ChatView({ conversation, agent, loading, loadingHint, streamingText, onSend, onTranscribe, userName, onImageClick }: Props) {
+export function ChatView({ conversation, agent, loading, loadingHint, streamingText, onSend, onTranscribe, onDelete, userName, onImageClick }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
+  const [showMenu, setShowMenu] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   // Track if user is near bottom
   const handleScroll = useCallback(() => {
@@ -100,10 +104,84 @@ export function ChatView({ conversation, agent, loading, loadingHint, streamingT
     bottomRef.current?.scrollIntoView({ behavior: "auto" });
   }, [conversation?.id]);
 
+  // Close menu on outside click
+  useEffect(() => {
+    if (!showMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false);
+        setConfirmDelete(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showMenu]);
+
   const suggestions = getSuggestions(agent);
 
   return (
     <div className="flex flex-col h-full">
+      {/* Conversation header — visible when there's an active conversation with messages */}
+      {conversation && conversation.messages.length > 0 && (
+        <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200/60 dark:border-white/5 bg-white/80 dark:bg-[#0d0b10]/80 backdrop-blur-sm">
+          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate flex-1 mr-2">
+            {conversation.title}
+          </h3>
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => { setShowMenu(!showMenu); setConfirmDelete(false); }}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+              aria-label="Opciones"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="5" r="2" />
+                <circle cx="12" cy="12" r="2" />
+                <circle cx="12" cy="19" r="2" />
+              </svg>
+            </button>
+            {showMenu && (
+              <div className="absolute right-0 top-full mt-1 w-48 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#1a1720] shadow-lg z-50 overflow-hidden animate-fade-in">
+                {!confirmDelete ? (
+                  <button
+                    onClick={() => setConfirmDelete(true)}
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                    </svg>
+                    Eliminar conversación
+                  </button>
+                ) : (
+                  <div className="p-3">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">¿Eliminar esta conversación?</p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { setShowMenu(false); setConfirmDelete(false); }}
+                        className="flex-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (onDelete && conversation) {
+                            onDelete(conversation.id);
+                          }
+                          setShowMenu(false);
+                          setConfirmDelete(false);
+                        }}
+                        className="flex-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500 text-white hover:bg-red-600 transition-colors"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Messages */}
       <div
         ref={scrollContainerRef}

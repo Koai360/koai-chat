@@ -193,6 +193,14 @@ export function useChat(userId: string | null = null) {
       );
       setStreamingText("");
 
+      // Wake Lock: mantener pantalla encendida durante generación (evita que iOS mate el fetch)
+      let wakeLock: WakeLockSentinel | null = null;
+      try {
+        if ("wakeLock" in navigator) {
+          wakeLock = await navigator.wakeLock.request("screen");
+        }
+      } catch { /* Wake Lock no disponible o denegado — continuar sin él */ }
+
       try {
         let assistantContent = "";
         let assistantImage: string | undefined;
@@ -260,6 +268,7 @@ export function useChat(userId: string | null = null) {
       } finally {
         setLoading(false);
         setLoadingHint(null);
+        if (wakeLock) { wakeLock.release().catch(() => {}); }
       }
     },
     [activeId, agent, loading, conversations, newConversation],

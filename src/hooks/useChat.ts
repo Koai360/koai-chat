@@ -193,13 +193,33 @@ export function useChat(userId: string | null = null) {
       );
       setStreamingText("");
 
-      // Wake Lock: mantener pantalla encendida durante generación (evita que iOS mate el fetch)
+      // Mantener pantalla encendida durante generación (evita que iOS mate el fetch)
       let wakeLock: WakeLockSentinel | null = null;
+      let noSleepVideo: HTMLVideoElement | null = null;
       try {
         if ("wakeLock" in navigator) {
           wakeLock = await navigator.wakeLock.request("screen");
         }
-      } catch { /* Wake Lock no disponible o denegado — continuar sin él */ }
+      } catch { /* Wake Lock API no disponible */ }
+      // Fallback iOS: video silencioso mantiene pantalla activa
+      if (!wakeLock) {
+        try {
+          noSleepVideo = document.createElement("video");
+          noSleepVideo.setAttribute("playsinline", "");
+          noSleepVideo.setAttribute("muted", "");
+          noSleepVideo.muted = true;
+          noSleepVideo.loop = true;
+          // Tiny blank MP4 (smallest valid video, ~200 bytes base64)
+          noSleepVideo.src = "data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAAAhmcmVlAAAAGm1kYXQAAABfAQAAAF8BAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHG==";
+          noSleepVideo.style.position = "fixed";
+          noSleepVideo.style.top = "-1px";
+          noSleepVideo.style.width = "1px";
+          noSleepVideo.style.height = "1px";
+          noSleepVideo.style.opacity = "0";
+          document.body.appendChild(noSleepVideo);
+          await noSleepVideo.play().catch(() => {});
+        } catch { /* fallback no disponible */ }
+      }
 
       try {
         let assistantContent = "";
@@ -269,6 +289,7 @@ export function useChat(userId: string | null = null) {
         setLoading(false);
         setLoadingHint(null);
         if (wakeLock) { wakeLock.release().catch(() => {}); }
+        if (noSleepVideo) { noSleepVideo.pause(); noSleepVideo.remove(); }
       }
     },
     [activeId, agent, loading, conversations, newConversation],

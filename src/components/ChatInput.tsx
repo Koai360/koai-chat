@@ -14,7 +14,8 @@ const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 const ENGINE_OPTIONS = [
   { value: "gemini", label: "Rápida", icon: "⚡", desc: "Gemini · gratis" },
   { value: "flux", label: "Profesional", icon: "✨", desc: "Flux 2 · premium" },
-  { value: "studioflux", label: "Studio", icon: "🎬", desc: "Flux Dev · pro" },
+  { value: "studioflux", label: "Studio", icon: "🎬", desc: "Flux Dev · enhanced" },
+  { value: "studioflux-raw", label: "Studio RAW", icon: "🔓", desc: "Sin filtro" },
 ] as const;
 
 export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escribe un mensaje...", autoFocus, agent = "kira" }: Props) {

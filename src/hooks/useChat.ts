@@ -184,7 +184,7 @@ export function useChat(userId: string | null = null) {
       setLoading(true);
       setLoadingHint(
         imageMode
-          ? imageEngine === "studioflux"
+          ? imageEngine === "studioflux" || imageEngine === "studioflux-raw"
             ? "Generando con Studio (puede tardar ~60s)..."
             : imageEngine === "flux"
               ? "Generando imagen con Flux 2..."

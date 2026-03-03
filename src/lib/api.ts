@@ -30,8 +30,9 @@ export async function sendKiraMessage(
   if (imageEngine) body.image_engine = imageEngine;
 
   // Timeout: StudioFlux cold start ~100s, warm ~45s; Flux ~10s; Gemini ~3s
+  const isStudio = imageEngine === "studioflux" || imageEngine === "studioflux-raw";
   const timeoutMs = imageMode
-    ? (imageEngine === "studioflux" ? 180_000 : 90_000)
+    ? (isStudio ? 180_000 : 90_000)
     : 60_000;
 
   const MAX_RETRIES = 1;

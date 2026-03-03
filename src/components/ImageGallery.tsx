@@ -16,8 +16,9 @@ function imageSrcFromBase64(base64: string): string {
   return `data:${mime};base64,${base64}`;
 }
 
-// Generate a smaller thumbnail for the grid (max 400px, JPEG 70%)
+// Generate a smaller thumbnail for the grid (WebP for Squoosh-like quality/size)
 const thumbCache = new Map<string, string>();
+const supportsWebP = document.createElement("canvas").toDataURL("image/webp").startsWith("data:image/webp");
 
 function getThumbnail(id: string, base64: string): Promise<string> {
   const cached = thumbCache.get(id);
@@ -25,7 +26,7 @@ function getThumbnail(id: string, base64: string): Promise<string> {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
-      const MAX = 200;
+      const MAX = 320;
       const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
       const w = Math.round(img.width * ratio);
       const h = Math.round(img.height * ratio);
@@ -33,8 +34,14 @@ function getThumbnail(id: string, base64: string): Promise<string> {
       canvas.width = w;
       canvas.height = h;
       const ctx = canvas.getContext("2d");
-      ctx?.drawImage(img, 0, 0, w, h);
-      const thumb = canvas.toDataURL("image/jpeg", 0.6);
+      if (ctx) {
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        ctx.drawImage(img, 0, 0, w, h);
+      }
+      const thumb = supportsWebP
+        ? canvas.toDataURL("image/webp", 0.78)
+        : canvas.toDataURL("image/jpeg", 0.82);
       thumbCache.set(id, thumb);
       resolve(thumb);
     };

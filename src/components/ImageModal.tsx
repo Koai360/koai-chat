@@ -10,8 +10,8 @@ interface Props {
 
 const ENGINE_INFO: Record<EditEngine, { label: string; hint: string }> = {
   gemini: { label: "Gemini", hint: "Gemini — rápido (~5s), gratis" },
-  flux: { label: "Flux", hint: "Flux Kontext — fotorealista (~15s)" },
-  studio: { label: "Studio", hint: "StudioFlux — sin filtros, raw (~30-60s)" },
+  flux: { label: "Flux", hint: "Flux Kontext Pro — fotorealista (~15s)" },
+  studio: { label: "Studio", hint: "Kontext Dev — tu GPU, sin filtros (~30-60s)" },
 };
 
 // Create a display-optimized version (max 1200px, JPEG 85%)

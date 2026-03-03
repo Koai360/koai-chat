@@ -227,7 +227,7 @@ export function ConversationList({ conversations, activeId, onSelect, onNew, onD
   );
 
   return (
-    <div className="flex flex-col h-full bg-[#171717]">
+    <div className="flex flex-col h-full bg-[#171717] overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06] safe-top">
         <h2 className="font-semibold text-[#ececec]">Conversaciones</h2>
@@ -288,7 +288,7 @@ export function ConversationList({ conversations, activeId, onSelect, onNew, onD
       )}
 
       {/* Conversations list grouped by projects */}
-      <div className="flex-1 overflow-y-auto px-2" onScroll={resetSwiped}>
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-2 min-w-0" onScroll={resetSwiped}>
         {filtered.length === 0 ? (
           <p className="text-center text-sm text-[#9b9b9b] mt-8">
             {search ? "Sin resultados" : "Sin conversaciones"}

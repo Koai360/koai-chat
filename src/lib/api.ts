@@ -33,28 +33,42 @@ export async function sendKiraMessage(
   const timeoutMs = imageMode
     ? (imageEngine === "studioflux" ? 180_000 : 90_000)
     : 60_000;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-  try {
-    const res = await fetch(`${API_URL}/api/chat`, {
-      method: "POST",
-      headers: getHeaders(),
-      body: JSON.stringify(body),
-      signal: controller.signal,
-    });
-    if (!res.ok) throw new Error(`Kira error: ${res.status}`);
-    return res.json();
-  } catch (err) {
-    if (err instanceof DOMException && err.name === "AbortError") {
-      throw new Error(imageMode
-        ? "La generación de imagen tardó demasiado. Intenta de nuevo o usa el motor Rápido (Gemini)."
-        : "La solicitud tardó demasiado. Intenta de nuevo.");
+  const MAX_RETRIES = 1;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const res = await fetch(`${API_URL}/api/chat`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+      if (!res.ok) throw new Error(`Kira error: ${res.status}`);
+      return res.json();
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        throw new Error(imageMode
+          ? "La generación de imagen tardó demasiado. Intenta de nuevo o usa el motor Rápido (Gemini)."
+          : "La solicitud tardó demasiado. Intenta de nuevo.");
+      }
+      // Retry once on network errors (Safari "Load failed", Chrome "Failed to fetch")
+      if (err instanceof TypeError && attempt < MAX_RETRIES) {
+        console.warn(`[API] Network error, retrying (${attempt + 1}/${MAX_RETRIES})...`);
+        await new Promise((r) => setTimeout(r, 1500));
+        continue;
+      }
+      if (err instanceof TypeError) {
+        throw new Error("No se pudo conectar al servidor. Verifica tu conexión e intenta de nuevo.");
+      }
+      throw err;
+    } finally {
+      clearTimeout(timer);
     }
-    throw err;
-  } finally {
-    clearTimeout(timer);
   }
+  throw new Error("No se pudo conectar al servidor.");
 }
 
 export async function streamKronosMessage(

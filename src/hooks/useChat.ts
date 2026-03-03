@@ -184,9 +184,11 @@ export function useChat(userId: string | null = null) {
       setLoading(true);
       setLoadingHint(
         imageMode
-          ? imageEngine === "flux"
-            ? "Generando imagen con Flux 2..."
-            : "Generando imagen..."
+          ? imageEngine === "studioflux"
+            ? "Generando con Studio (puede tardar ~60s)..."
+            : imageEngine === "flux"
+              ? "Generando imagen con Flux 2..."
+              : "Generando imagen..."
           : null,
       );
       setStreamingText("");

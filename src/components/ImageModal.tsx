@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState, useEffect } from "react";
 import { MaskEditor } from "./MaskEditor";
+import { editImage } from "../lib/api";
 
 interface Props {
   imageSrc: string;
@@ -39,6 +40,12 @@ export function ImageModal({ imageSrc, onClose }: Props) {
   const [editorMode, setEditorMode] = useState(false);
   const [currentSrc, setCurrentSrc] = useState(imageSrc);
 
+  // Quick Edit state
+  const [quickEditOpen, setQuickEditOpen] = useState(false);
+  const [instruction, setInstruction] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
   // Generate optimized display version on mount or when currentSrc changes
   useEffect(() => {
     setDisplaySrc(null);
@@ -54,20 +61,23 @@ export function ImageModal({ imageSrc, onClose }: Props) {
   }, [currentSrc]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (quickEditOpen) return; // Don't swipe when editing
     touchStartY.current = e.touches[0].clientY;
     translateY.current = 0;
-  }, []);
+  }, [quickEditOpen]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (quickEditOpen) return;
     const diff = e.touches[0].clientY - touchStartY.current;
     if (diff > 0 && imgRef.current) {
       translateY.current = diff;
       imgRef.current.style.transform = `translateY(${diff}px)`;
       imgRef.current.style.opacity = `${Math.max(0.3, 1 - diff / 400)}`;
     }
-  }, []);
+  }, [quickEditOpen]);
 
   const handleTouchEnd = useCallback(() => {
+    if (quickEditOpen) return;
     if (translateY.current > 120) {
       onClose();
     } else if (imgRef.current) {
@@ -75,12 +85,42 @@ export function ImageModal({ imageSrc, onClose }: Props) {
       imgRef.current.style.opacity = "";
     }
     translateY.current = 0;
-  }, [onClose]);
+  }, [onClose, quickEditOpen]);
 
   const handleEditorResult = useCallback((resultSrc: string) => {
     setCurrentSrc(resultSrc);
     setEditorMode(false);
   }, []);
+
+  // Quick Edit: send instruction to Gemini
+  const handleQuickEdit = useCallback(async () => {
+    if (!instruction.trim() || editing) return;
+    setEditError(null);
+    setEditing(true);
+
+    try {
+      // Get raw base64 from current image
+      const rawBase64 = currentSrc.includes(",") ? currentSrc.split(",")[1] : currentSrc;
+      const result = await editImage(rawBase64, instruction.trim());
+
+      if (result.error) {
+        setEditError(result.error);
+      } else if (result.image) {
+        const mime = result.image.startsWith("iVBOR") ? "image/png"
+          : result.image.startsWith("R0lGOD") ? "image/gif"
+          : result.image.startsWith("UklGR") ? "image/webp"
+          : "image/jpeg";
+        setCurrentSrc(`data:${mime};base64,${result.image}`);
+        setInstruction("");
+      } else {
+        setEditError("No se recibió imagen de resultado");
+      }
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : "Error desconocido");
+    } finally {
+      setEditing(false);
+    }
+  }, [instruction, editing, currentSrc]);
 
   // Show MaskEditor when in editor mode
   if (editorMode) {
@@ -96,7 +136,7 @@ export function ImageModal({ imageSrc, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-[80] bg-black/95 flex flex-col animate-fade-in">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-4 py-3 safe-top">
+      <div className="flex items-center justify-between px-3 py-3 safe-top">
         <button
           onClick={onClose}
           className="w-10 h-10 flex items-center justify-center rounded-full text-white/70 active:text-white active:bg-white/10"
@@ -106,29 +146,44 @@ export function ImageModal({ imageSrc, onClose }: Props) {
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
+          {/* Quick Edit toggle */}
+          <button
+            onClick={() => setQuickEditOpen(!quickEditOpen)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm active:scale-95 transition-all ${
+              quickEditOpen ? "bg-[#bcd431] text-black" : "bg-white/10 text-white/80 active:bg-white/20"
+            }`}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+            </svg>
+            Quick Edit
+          </button>
+          {/* Mask Editor */}
           <button
             onClick={() => setEditorMode(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 text-white/80 text-sm active:bg-white/20 active:scale-95 transition-all"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/10 text-white/80 text-sm active:bg-white/20 active:scale-95 transition-all"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 19l7-7 3 3-7 7-3-3z" />
               <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
               <path d="M2 2l7.586 7.586" />
               <circle cx="11" cy="11" r="2" />
             </svg>
-            Editar
+            Máscara
           </button>
+          {/* Download */}
           <button
             onClick={handleDownload}
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 text-white/80 text-sm active:bg-white/20 active:scale-95 transition-all"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/10 text-white/80 text-sm active:bg-white/20 active:scale-95 transition-all"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
-            Descargar HD
+            HD
           </button>
         </div>
       </div>
@@ -145,7 +200,7 @@ export function ImageModal({ imageSrc, onClose }: Props) {
           <img
             src={displaySrc}
             alt="Imagen generada"
-            className="max-w-full max-h-full object-contain rounded-lg"
+            className={`max-w-full max-h-full object-contain rounded-lg ${editing ? "opacity-50" : ""}`}
             decoding="async"
           />
         ) : (
@@ -154,12 +209,65 @@ export function ImageModal({ imageSrc, onClose }: Props) {
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
         )}
+        {editing && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+            <svg className="animate-spin w-8 h-8 text-[#bcd431]" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            <p className="text-sm text-white/70">Editando con Gemini...</p>
+          </div>
+        )}
       </div>
 
-      {/* Hint */}
-      <p className="text-center text-xs text-white/30 pb-4 safe-bottom">
-        Desliza hacia abajo para cerrar
-      </p>
+      {/* Quick Edit input */}
+      {quickEditOpen ? (
+        <div className="px-3 pb-3 safe-bottom">
+          {editError && (
+            <p className="text-xs text-red-400 text-center mb-2">{editError}</p>
+          )}
+          <div className="flex items-center gap-2 bg-[#2f2f2f] rounded-[22px] px-4 py-2">
+            <input
+              type="text"
+              value={instruction}
+              onChange={(e) => setInstruction(e.target.value)}
+              placeholder="Ponle un traje azul, cambia el fondo..."
+              className="flex-1 bg-transparent text-sm text-[#ececec] placeholder-[#9b9b9b]/60 outline-none"
+              disabled={editing}
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleQuickEdit();
+                }
+              }}
+            />
+            <button
+              onClick={handleQuickEdit}
+              disabled={editing || !instruction.trim()}
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-[#bcd431] text-black shrink-0 disabled:opacity-40 active:scale-95 transition-all"
+            >
+              {editing ? (
+                <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              )}
+            </button>
+          </div>
+          <p className="text-[10px] text-white/30 text-center mt-1.5">
+            Describe qué cambiar — Gemini edita la imagen automáticamente
+          </p>
+        </div>
+      ) : (
+        <p className="text-center text-xs text-white/30 pb-4 safe-bottom">
+          Desliza hacia abajo para cerrar
+        </p>
+      )}
     </div>
   );
 }

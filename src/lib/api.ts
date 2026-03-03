@@ -364,6 +364,45 @@ export async function inpaintImage(
   }
 }
 
+// --- Image Edit (Gemini, sin máscara) ---
+
+export async function editImage(
+  imageBase64: string,
+  instruction: string,
+): Promise<{ image: string; error?: string | null }> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 60_000);
+
+  try {
+    const res = await fetch(`${API_URL}/api/image-edit`, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify({
+        image_base64: imageBase64,
+        instruction,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: `Error ${res.status}` }));
+      throw new Error(err.detail || `Edit error: ${res.status}`);
+    }
+
+    return res.json();
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new Error("La edición tardó demasiado. Intenta de nuevo.");
+    }
+    if (err instanceof TypeError) {
+      throw new Error("No se pudo conectar al servidor. Verifica tu conexión.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // --- Notifications ---
 
 export interface Notification {

@@ -6,7 +6,7 @@ interface Props {
   onImageClick?: (src: string) => void;
 }
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 24;
 
 function imageSrcFromBase64(base64: string): string {
   const mime = base64.startsWith("iVBOR") ? "image/png"
@@ -25,7 +25,7 @@ function getThumbnail(id: string, base64: string): Promise<string> {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
-      const MAX = 400;
+      const MAX = 200;
       const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
       const w = Math.round(img.width * ratio);
       const h = Math.round(img.height * ratio);
@@ -34,7 +34,7 @@ function getThumbnail(id: string, base64: string): Promise<string> {
       canvas.height = h;
       const ctx = canvas.getContext("2d");
       ctx?.drawImage(img, 0, 0, w, h);
-      const thumb = canvas.toDataURL("image/jpeg", 0.7);
+      const thumb = canvas.toDataURL("image/jpeg", 0.6);
       thumbCache.set(id, thumb);
       resolve(thumb);
     };
@@ -220,7 +220,7 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
             <p className="text-xs text-[#9b9b9b]/60 mt-1">Pídele a Kira que genere una imagen</p>
           </div>
         ) : (
-          <div className="columns-2 sm:columns-3 lg:columns-4 gap-3 p-3">
+          <div className="columns-3 sm:columns-4 md:columns-5 lg:columns-6 xl:columns-8 gap-1.5 p-2">
             {images.slice(0, visibleCount).map((img) => {
               const thumb = thumbs.get(img.id);
               const fullSrc = imageSrcFromBase64(img.image);
@@ -228,7 +228,7 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
                 <div
                   key={img.id}
                   data-gallery-item
-                  className="relative mb-3 break-inside-avoid group/card"
+                  className="relative mb-1.5 break-inside-avoid group/card"
                   onTouchStart={(e) => {
                     const t = e.touches[0];
                     handleLongPressStart(img.id, t.clientX, t.clientY);
@@ -241,7 +241,7 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
                   onClick={() => handleTap(img.id, fullSrc)}
                   onContextMenu={(e) => e.preventDefault()}
                 >
-                  <div className="rounded-2xl overflow-hidden border border-white/[0.06] transition-transform duration-300 hover:scale-[1.03]">
+                  <div className="rounded-xl overflow-hidden border border-white/[0.06] transition-transform duration-300 hover:scale-[1.03]">
                     {thumb ? (
                       <img
                         src={thumb}
@@ -259,11 +259,11 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
                       </div>
                     )}
                     {/* Overlay with date + engine badge */}
-                    <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent pt-8 pb-2 px-2.5 pointer-events-none rounded-b-2xl">
-                      <div className="flex items-center justify-between">
-                        <p className="text-[10px] text-white/80 font-medium">{formatDate(img.created_at)}</p>
+                    <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent pt-5 pb-1 px-1.5 pointer-events-none rounded-b-xl">
+                      <div className="flex items-center justify-between gap-1">
+                        <p className="text-[8px] text-white/80 font-medium truncate">{formatDate(img.created_at)}</p>
                         {img.engine && (
-                          <span className="px-2 py-0.5 rounded-full text-[9px] font-medium bg-[#57C74A]/20 text-[#57C74A]">
+                          <span className="px-1.5 py-px rounded-full text-[7px] font-medium bg-[#57C74A]/20 text-[#57C74A] shrink-0">
                             {img.engine}
                           </span>
                         )}

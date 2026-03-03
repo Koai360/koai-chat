@@ -6,12 +6,41 @@ interface Props {
   onImageClick?: (src: string) => void;
 }
 
+const PAGE_SIZE = 12;
+
 function imageSrcFromBase64(base64: string): string {
   const mime = base64.startsWith("iVBOR") ? "image/png"
     : base64.startsWith("R0lGOD") ? "image/gif"
     : base64.startsWith("UklGR") ? "image/webp"
     : "image/jpeg";
   return `data:${mime};base64,${base64}`;
+}
+
+// Generate a smaller thumbnail for the grid (max 400px, JPEG 70%)
+const thumbCache = new Map<string, string>();
+
+function getThumbnail(id: string, base64: string): Promise<string> {
+  const cached = thumbCache.get(id);
+  if (cached) return Promise.resolve(cached);
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 400;
+      const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
+      const w = Math.round(img.width * ratio);
+      const h = Math.round(img.height * ratio);
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      ctx?.drawImage(img, 0, 0, w, h);
+      const thumb = canvas.toDataURL("image/jpeg", 0.7);
+      thumbCache.set(id, thumb);
+      resolve(thumb);
+    };
+    img.onerror = () => resolve(imageSrcFromBase64(base64));
+    img.src = imageSrcFromBase64(base64);
+  });
 }
 
 function formatDate(iso: string): string {
@@ -31,9 +60,12 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
   const [menuId, setMenuId] = useState<string | null>(null);
   const [menuPos, setMenuPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [deleting, setDeleting] = useState(false);
+  const [thumbs, setThumbs] = useState<Map<string, string>>(new Map());
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didLongPress = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchImages()
@@ -41,6 +73,39 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
       .catch((err) => console.error("[ImageGallery] Error:", err))
       .finally(() => setLoading(false));
   }, []);
+
+  // Generate thumbnails progressively for visible images
+  useEffect(() => {
+    const visible = images.slice(0, visibleCount);
+    let cancelled = false;
+    (async () => {
+      for (const img of visible) {
+        if (cancelled) break;
+        if (thumbs.has(img.id)) continue;
+        const thumb = await getThumbnail(img.id, img.image);
+        if (!cancelled) {
+          setThumbs((prev) => new Map(prev).set(img.id, thumb));
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [images, visibleCount]);
+
+  // Infinite scroll — load more when sentinel enters viewport
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, images.length));
+        }
+      },
+      { root: scrollRef.current, rootMargin: "200px" }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [images.length]);
 
   // Close context menu on outside tap
   useEffect(() => {
@@ -156,8 +221,9 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
           </div>
         ) : (
           <div className="columns-2 sm:columns-3 lg:columns-4 gap-3 p-3">
-            {images.map((img) => {
-              const src = imageSrcFromBase64(img.image);
+            {images.slice(0, visibleCount).map((img) => {
+              const thumb = thumbs.get(img.id);
+              const fullSrc = imageSrcFromBase64(img.image);
               return (
                 <div
                   key={img.id}
@@ -172,17 +238,26 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
                   onMouseDown={(e) => handleLongPressStart(img.id, e.clientX, e.clientY)}
                   onMouseUp={handleLongPressEnd}
                   onMouseLeave={handleLongPressEnd}
-                  onClick={() => handleTap(img.id, src)}
+                  onClick={() => handleTap(img.id, fullSrc)}
                   onContextMenu={(e) => e.preventDefault()}
                 >
                   <div className="rounded-2xl overflow-hidden border border-white/[0.06] transition-transform duration-300 hover:scale-[1.03]">
-                    <img
-                      src={src}
-                      alt="Imagen generada"
-                      className="w-full block"
-                      loading="lazy"
-                      draggable={false}
-                    />
+                    {thumb ? (
+                      <img
+                        src={thumb}
+                        alt="Imagen generada"
+                        className="w-full block"
+                        decoding="async"
+                        draggable={false}
+                      />
+                    ) : (
+                      <div className="w-full aspect-square bg-[#2f2f2f] flex items-center justify-center">
+                        <svg className="animate-spin w-5 h-5 text-[#9b9b9b]" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                      </div>
+                    )}
                     {/* Overlay with date + engine badge */}
                     <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent pt-8 pb-2 px-2.5 pointer-events-none rounded-b-2xl">
                       <div className="flex items-center justify-between">
@@ -198,6 +273,10 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
                 </div>
               );
             })}
+            {/* Infinite scroll sentinel */}
+            {visibleCount < images.length && (
+              <div ref={sentinelRef} className="w-full h-8" />
+            )}
           </div>
         )}
 

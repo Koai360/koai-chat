@@ -364,14 +364,16 @@ export async function inpaintImage(
   }
 }
 
-// --- Image Edit (Gemini, sin máscara) ---
+// --- Image Edit (Gemini o Flux Kontext, sin máscara) ---
 
 export async function editImage(
   imageBase64: string,
   instruction: string,
+  engine: "gemini" | "flux" = "gemini",
 ): Promise<{ image: string; error?: string | null }> {
+  const timeoutMs = engine === "flux" ? 120_000 : 60_000;
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 60_000);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const res = await fetch(`${API_URL}/api/image-edit`, {
@@ -380,6 +382,7 @@ export async function editImage(
       body: JSON.stringify({
         image_base64: imageBase64,
         instruction,
+        engine,
       }),
       signal: controller.signal,
     });
@@ -392,7 +395,9 @@ export async function editImage(
     return res.json();
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {
-      throw new Error("La edición tardó demasiado. Intenta de nuevo.");
+      throw new Error(engine === "flux"
+        ? "La edición con Flux tardó demasiado (>2min). Intenta de nuevo."
+        : "La edición tardó demasiado. Intenta de nuevo.");
     }
     if (err instanceof TypeError) {
       throw new Error("No se pudo conectar al servidor. Verifica tu conexión.");
@@ -400,6 +405,24 @@ export async function editImage(
     throw err;
   } finally {
     clearTimeout(timer);
+  }
+}
+
+// --- Save edited image to gallery ---
+
+export async function saveEditedImage(
+  imageBase64: string,
+  instruction: string,
+): Promise<void> {
+  try {
+    await fetch(`${API_URL}/api/chat/images/save`, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify({ image_base64: imageBase64, content: instruction }),
+    });
+  } catch {
+    // Silent fail — editing worked, save is best-effort
+    console.warn("[saveEditedImage] Failed to save to gallery");
   }
 }
 

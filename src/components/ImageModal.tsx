@@ -1,11 +1,13 @@
 import { useCallback, useRef, useState, useEffect } from "react";
 import { MaskEditor } from "./MaskEditor";
-import { editImage } from "../lib/api";
+import { editImage, saveEditedImage } from "../lib/api";
 
 interface Props {
   imageSrc: string;
   onClose: () => void;
 }
+
+type EditEngine = "gemini" | "flux";
 
 // Create a display-optimized version (max 1200px, JPEG 85%)
 function createDisplayVersion(src: string): Promise<string> {
@@ -45,6 +47,7 @@ export function ImageModal({ imageSrc, onClose }: Props) {
   const [instruction, setInstruction] = useState("");
   const [editing, setEditing] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+  const [engine, setEngine] = useState<EditEngine>("gemini");
 
   // Generate optimized display version on mount or when currentSrc changes
   useEffect(() => {
@@ -61,7 +64,7 @@ export function ImageModal({ imageSrc, onClose }: Props) {
   }, [currentSrc]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (quickEditOpen) return; // Don't swipe when editing
+    if (quickEditOpen) return;
     touchStartY.current = e.touches[0].clientY;
     translateY.current = 0;
   }, [quickEditOpen]);
@@ -90,18 +93,22 @@ export function ImageModal({ imageSrc, onClose }: Props) {
   const handleEditorResult = useCallback((resultSrc: string) => {
     setCurrentSrc(resultSrc);
     setEditorMode(false);
+    // Auto-save inpaint result to gallery
+    const raw = resultSrc.includes(",") ? resultSrc.split(",")[1] : resultSrc;
+    saveEditedImage(raw, "Inpainting edit");
   }, []);
 
-  // Quick Edit: send instruction to Gemini
+  // Quick Edit: send instruction to Gemini or Flux Kontext
   const handleQuickEdit = useCallback(async () => {
     if (!instruction.trim() || editing) return;
     setEditError(null);
     setEditing(true);
 
+    const inst = instruction.trim();
+
     try {
-      // Get raw base64 from current image
       const rawBase64 = currentSrc.includes(",") ? currentSrc.split(",")[1] : currentSrc;
-      const result = await editImage(rawBase64, instruction.trim());
+      const result = await editImage(rawBase64, inst, engine);
 
       if (result.error) {
         setEditError(result.error);
@@ -112,6 +119,8 @@ export function ImageModal({ imageSrc, onClose }: Props) {
           : "image/jpeg";
         setCurrentSrc(`data:${mime};base64,${result.image}`);
         setInstruction("");
+        // Auto-save to gallery
+        saveEditedImage(result.image, inst);
       } else {
         setEditError("No se recibió imagen de resultado");
       }
@@ -120,7 +129,7 @@ export function ImageModal({ imageSrc, onClose }: Props) {
     } finally {
       setEditing(false);
     }
-  }, [instruction, editing, currentSrc]);
+  }, [instruction, editing, currentSrc, engine]);
 
   // Show MaskEditor when in editor mode
   if (editorMode) {
@@ -132,6 +141,8 @@ export function ImageModal({ imageSrc, onClose }: Props) {
       />
     );
   }
+
+  const engineLabel = engine === "gemini" ? "Gemini" : "Flux";
 
   return (
     <div className="fixed inset-0 z-[80] bg-black/95 flex flex-col animate-fade-in">
@@ -215,17 +226,45 @@ export function ImageModal({ imageSrc, onClose }: Props) {
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
-            <p className="text-sm text-white/70">Editando con Gemini...</p>
+            <p className="text-sm text-white/70">
+              Editando con {engineLabel}...
+            </p>
           </div>
         )}
       </div>
 
-      {/* Quick Edit input */}
+      {/* Quick Edit panel */}
       {quickEditOpen ? (
         <div className="px-3 pb-3 safe-bottom">
           {editError && (
             <p className="text-xs text-red-400 text-center mb-2">{editError}</p>
           )}
+          {/* Engine selector */}
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <button
+              onClick={() => setEngine("gemini")}
+              disabled={editing}
+              className={`px-3 py-1.5 rounded-full text-xs transition-all ${
+                engine === "gemini"
+                  ? "bg-[#bcd431] text-black"
+                  : "bg-white/10 text-white/50 active:bg-white/20"
+              }`}
+            >
+              Gemini
+            </button>
+            <button
+              onClick={() => setEngine("flux")}
+              disabled={editing}
+              className={`px-3 py-1.5 rounded-full text-xs transition-all ${
+                engine === "flux"
+                  ? "bg-[#bcd431] text-black"
+                  : "bg-white/10 text-white/50 active:bg-white/20"
+              }`}
+            >
+              Flux
+            </button>
+          </div>
+          {/* Input */}
           <div className="flex items-center gap-2 bg-[#2f2f2f] rounded-[22px] px-4 py-2">
             <input
               type="text"
@@ -260,7 +299,11 @@ export function ImageModal({ imageSrc, onClose }: Props) {
             </button>
           </div>
           <p className="text-[10px] text-white/30 text-center mt-1.5">
-            Describe qué cambiar — Gemini edita la imagen automáticamente
+            {engine === "gemini"
+              ? "Gemini — rápido (~5s), gratis"
+              : "Flux Kontext — fotorealista (~15s)"
+            }
+            {" · "}Se guarda automáticamente en galería
           </p>
         </div>
       ) : (

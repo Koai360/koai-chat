@@ -28,7 +28,7 @@ function haptic(ms = 8) {
   if (navigator.vibrate) navigator.vibrate(ms);
 }
 
-export function ConversationList({ conversations, activeId, onSelect, onNew, onDelete, onMoveToProject, onClose, onTogglePin, isPinned, user, onLogout, onOpenGallery }: Props) {
+export function ConversationList({ conversations, activeId, onSelect, onNew, onDelete, onMoveToProject, onClose, user, onLogout, onOpenGallery }: Props) {
   const [search, setSearch] = useState("");
   const [swipedId, setSwipedId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -196,10 +196,10 @@ export function ConversationList({ conversations, activeId, onSelect, onNew, onD
           if (swipedId) { resetSwiped(); return; }
           haptic(); onSelect(c.id);
         }}
-        className={`relative flex items-center justify-between px-3 py-2 cursor-pointer bg-[#171717] ${
+        className={`group/item relative flex items-center px-3 py-2 cursor-pointer ${
           c.id === activeId
             ? "bg-[#2f2f2f] border-l-2 border-[#bcd431]"
-            : "hover:bg-[#212121] active:bg-[#212121]"
+            : "bg-[#171717] hover:bg-[#212121] active:bg-[#212121]"
         }`}
       >
         <div className="flex-1 min-w-0">
@@ -210,20 +210,18 @@ export function ConversationList({ conversations, activeId, onSelect, onNew, onD
             {relativeTime(c.createdAt)}
           </span>
         </div>
-        <div className="flex items-center flex-shrink-0 ml-1">
-          {/* Move to project */}
-          {onMoveToProject && projects.length > 0 && (
-            <button
-              onClick={(e) => { e.stopPropagation(); haptic(); setMoveConvoId(c.id); }}
-              className="w-7 h-7 flex items-center justify-center text-[#9b9b9b] hover:text-[#bcd431] rounded-lg"
-              title="Mover a proyecto"
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-              </svg>
-            </button>
-          )}
-        </div>
+        {/* Move to project — only on hover */}
+        {onMoveToProject && projects.length > 0 && (
+          <button
+            onClick={(e) => { e.stopPropagation(); haptic(); setMoveConvoId(c.id); }}
+            className="flex-shrink-0 ml-1 w-7 h-7 flex items-center justify-center text-[#9b9b9b] hover:text-[#bcd431] rounded-lg opacity-0 group-hover/item:opacity-100 transition-opacity"
+            title="Mover a proyecto"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+            </svg>
+          </button>
+        )}
       </div>
     </div>
   );
@@ -233,39 +231,12 @@ export function ConversationList({ conversations, activeId, onSelect, onNew, onD
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06] safe-top">
         <h2 className="font-semibold text-[#ececec]">Conversaciones</h2>
-        <div className="flex items-center">
-          {onTogglePin && (
-            <button
-              onClick={onTogglePin}
-              className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors ${
-                isPinned
-                  ? "text-[#bcd431]"
-                  : "text-[#9b9b9b] hover:text-[#ececec]"
-              }`}
-              title={isPinned ? "Ocultar sidebar" : "Fijar sidebar"}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                {isPinned ? (
-                  <>
-                    <rect x="3" y="3" width="18" height="18" rx="2" />
-                    <line x1="9" y1="3" x2="9" y2="21" />
-                  </>
-                ) : (
-                  <>
-                    <line x1="12" y1="17" x2="12" y2="22" />
-                    <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" />
-                  </>
-                )}
-              </svg>
-            </button>
-          )}
-          <button onClick={onClose} className="w-9 h-9 flex items-center justify-center text-[#9b9b9b] hover:text-[#ececec] rounded-xl">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
+        <button onClick={onClose} className="w-9 h-9 flex items-center justify-center text-[#9b9b9b] hover:text-[#ececec] rounded-xl">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
       </div>
 
       {/* Actions row */}

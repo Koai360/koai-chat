@@ -1,15 +1,48 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState, useEffect } from "react";
 
 interface Props {
   imageSrc: string;
   onClose: () => void;
 }
 
+// Create a display-optimized version (max 1200px, JPEG 85%)
+function createDisplayVersion(src: string): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 1200;
+      if (img.width <= MAX && img.height <= MAX) {
+        resolve(src); // Already small enough
+        return;
+      }
+      const ratio = Math.min(MAX / img.width, MAX / img.height);
+      const w = Math.round(img.width * ratio);
+      const h = Math.round(img.height * ratio);
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      ctx?.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL("image/jpeg", 0.85));
+    };
+    img.onerror = () => resolve(src);
+    img.src = src;
+  });
+}
+
 export function ImageModal({ imageSrc, onClose }: Props) {
   const touchStartY = useRef(0);
   const translateY = useRef(0);
   const imgRef = useRef<HTMLDivElement>(null);
+  const [displaySrc, setDisplaySrc] = useState<string | null>(null);
 
+  // Generate optimized display version on mount
+  useEffect(() => {
+    setDisplaySrc(null);
+    createDisplayVersion(imageSrc).then(setDisplaySrc);
+  }, [imageSrc]);
+
+  // Download the ORIGINAL full-res image
   const handleDownload = useCallback(() => {
     const link = document.createElement("a");
     link.href = imageSrc;
@@ -63,7 +96,7 @@ export function ImageModal({ imageSrc, onClose }: Props) {
             <polyline points="7 10 12 15 17 10" />
             <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
-          Descargar
+          Descargar HD
         </button>
       </div>
 
@@ -75,11 +108,19 @@ export function ImageModal({ imageSrc, onClose }: Props) {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <img
-          src={imageSrc}
-          alt="Imagen generada"
-          className="max-w-full max-h-full object-contain rounded-lg"
-        />
+        {displaySrc ? (
+          <img
+            src={displaySrc}
+            alt="Imagen generada"
+            className="max-w-full max-h-full object-contain rounded-lg"
+            decoding="async"
+          />
+        ) : (
+          <svg className="animate-spin w-8 h-8 text-white/50" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+        )}
       </div>
 
       {/* Hint */}

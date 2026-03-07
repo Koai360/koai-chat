@@ -130,6 +130,111 @@ export async function streamKronosMessage(
   return fullText;
 }
 
+export interface KiraStreamCallbacks {
+  onToken: (accumulated: string) => void;
+  onImage?: (base64: string) => void;
+  onAgent?: (agent: string) => void;
+}
+
+export async function streamKiraMessage(
+  message: string,
+  conversationId?: string,
+  imageBase64?: string,
+  imageMode?: boolean,
+  imageEngine?: string,
+  callbacks: KiraStreamCallbacks = { onToken: () => {} },
+): Promise<{ conversation_id: string; agent_used: string; fullText: string; image?: string }> {
+  const body: Record<string, unknown> = {
+    message,
+    agent: "kira",
+    conversation_id: conversationId,
+  };
+  if (imageBase64) body.image_base64 = imageBase64;
+  if (imageMode) body.image_mode = true;
+  if (imageEngine) body.image_engine = imageEngine;
+
+  const isStudio = imageEngine === "studioflux" || imageEngine === "studioflux-raw";
+  const timeoutMs = imageMode ? (isStudio ? 180_000 : 90_000) : 120_000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(`${API_URL}/api/chat/stream`, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+
+    if (!res.ok) throw new Error(`Kira stream error: ${res.status}`);
+
+    const reader = res.body?.getReader();
+    if (!reader) throw new Error("No stream body");
+
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let fullText = "";
+    let image: string | undefined;
+    let conversationIdResult = conversationId || "";
+    let agentUsed = "kira";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      let currentEvent = "";
+      for (const line of lines) {
+        if (line.startsWith("event: ")) {
+          currentEvent = line.slice(7).trim();
+        } else if (line.startsWith("data: ")) {
+          const data = line.slice(6);
+          try {
+            const parsed = JSON.parse(data);
+
+            if (currentEvent === "token" && parsed.text) {
+              fullText += parsed.text;
+              callbacks.onToken(fullText);
+            } else if (currentEvent === "image" && parsed.image) {
+              image = parsed.image;
+              callbacks.onImage?.(parsed.image);
+            } else if (currentEvent === "agent" && parsed.agent) {
+              agentUsed = parsed.agent;
+              callbacks.onAgent?.(parsed.agent);
+            } else if (currentEvent === "done") {
+              conversationIdResult = parsed.conversation_id || conversationIdResult;
+              agentUsed = parsed.agent_used || agentUsed;
+            } else if (currentEvent === "error") {
+              throw new Error(parsed.error || "Error del servidor");
+            }
+          } catch (e) {
+            if (e instanceof SyntaxError) continue;
+            throw e;
+          }
+          currentEvent = "";
+        }
+      }
+    }
+
+    return { conversation_id: conversationIdResult, agent_used: agentUsed, fullText, image };
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new Error(imageMode
+        ? "La generación tardó demasiado. Intenta de nuevo."
+        : "La solicitud tardó demasiado. Intenta de nuevo.");
+    }
+    if (err instanceof TypeError) {
+      throw new Error("No se pudo conectar al servidor. Verifica tu conexión.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function transcribeAudio(audioBlob: Blob): Promise<string> {
   const token = getAuthToken();
   const headers: Record<string, string> = {};
@@ -323,114 +428,6 @@ export async function deleteImage(messageId: string): Promise<void> {
   if (!res.ok) throw new Error(`Error ${res.status}`);
 }
 
-// --- Inpainting ---
-
-export async function inpaintImage(
-  imageBase64: string,
-  maskBase64: string,
-  prompt: string,
-): Promise<{ image: string; error?: string | null }> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 180_000);
-
-  try {
-    const res = await fetch(`${API_URL}/api/inpaint`, {
-      method: "POST",
-      headers: getHeaders(),
-      body: JSON.stringify({
-        image_base64: imageBase64,
-        mask_base64: maskBase64,
-        prompt,
-      }),
-      signal: controller.signal,
-    });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: `Error ${res.status}` }));
-      throw new Error(err.detail || `Inpaint error: ${res.status}`);
-    }
-
-    return res.json();
-  } catch (err) {
-    if (err instanceof DOMException && err.name === "AbortError") {
-      throw new Error("El inpainting tardó demasiado (>3min). Intenta con un área más pequeña.");
-    }
-    if (err instanceof TypeError) {
-      throw new Error("No se pudo conectar al servidor. Verifica tu conexión.");
-    }
-    throw err;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-// --- Image Edit (Gemini, Flux Kontext, o StudioFlux — sin máscara) ---
-
-export type EditEngine = "gemini" | "flux" | "studio";
-
-export async function editImage(
-  imageBase64: string,
-  instruction: string,
-  engine: EditEngine = "gemini",
-): Promise<{ image: string; error?: string | null }> {
-  const timeoutMs = engine === "studio" ? 180_000 : engine === "flux" ? 120_000 : 60_000;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const res = await fetch(`${API_URL}/api/image-edit`, {
-      method: "POST",
-      headers: getHeaders(),
-      body: JSON.stringify({
-        image_base64: imageBase64,
-        instruction,
-        engine,
-      }),
-      signal: controller.signal,
-    });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: `Error ${res.status}` }));
-      throw new Error(err.detail || `Edit error: ${res.status}`);
-    }
-
-    return res.json();
-  } catch (err) {
-    if (err instanceof DOMException && err.name === "AbortError") {
-      const labels: Record<EditEngine, string> = {
-        gemini: "La edición tardó demasiado. Intenta de nuevo.",
-        flux: "La edición con Flux tardó demasiado (>2min). Intenta de nuevo.",
-        studio: "StudioFlux tardó demasiado (>3min). El servidor puede estar arrancando.",
-      };
-      throw new Error(labels[engine]);
-    }
-    if (err instanceof TypeError) {
-      throw new Error("No se pudo conectar al servidor. Verifica tu conexión.");
-    }
-    throw err;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-// --- Save edited image to gallery ---
-
-export async function saveEditedImage(
-  imageBase64: string,
-  instruction: string,
-): Promise<void> {
-  try {
-    await fetch(`${API_URL}/api/chat/images/save`, {
-      method: "POST",
-      headers: getHeaders(),
-      body: JSON.stringify({ image_base64: imageBase64, content: instruction }),
-    });
-  } catch {
-    // Silent fail — editing worked, save is best-effort
-    console.warn("[saveEditedImage] Failed to save to gallery");
-  }
-}
-
 // --- Notifications ---
 
 export interface Notification {
@@ -474,6 +471,93 @@ export async function deleteNotification(id: string): Promise<void> {
 
 export async function deleteAllNotifications(): Promise<void> {
   await fetch(`${API_URL}/api/notifications`, {
+    method: "DELETE",
+    headers: getHeaders(),
+  });
+}
+
+// --- Kronos Mobile: Briefs ---
+export interface KronosBrief {
+  id: string;
+  title: string;
+  summary: string;
+  full_context?: string;
+  priority: string;
+  status: string;
+  created_at: string;
+  completed_at: string | null;
+  notes?: string;
+}
+
+export async function fetchBriefs(status?: string): Promise<KronosBrief[]> {
+  const params = status ? `?status=${status}` : "";
+  const res = await fetch(`${API_URL}/api/kronos/briefs${params}`, { headers: getHeaders() });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+export async function updateBrief(id: string, data: { status?: string; notes?: string }): Promise<KronosBrief> {
+  const res = await fetch(`${API_URL}/api/kronos/briefs/${id}`, {
+    method: "PATCH",
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+// --- Kronos Mobile: System Status ---
+export interface SystemStatus {
+  vps: {
+    cpu_percent: number;
+    ram_used_gb: number;
+    ram_total_gb: number;
+    swap_used_gb: number;
+    uptime_hours: number;
+    disk_used_gb: number;
+    disk_total_gb: number;
+  };
+  services: Record<string, string>;
+  last_checked: string;
+}
+
+export async function fetchSystemStatus(): Promise<SystemStatus> {
+  const res = await fetch(`${API_URL}/api/kronos/system-status`, { headers: getHeaders() });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+// --- Kronos Mobile: Memory ---
+export interface KronosMemory {
+  id: string;
+  type: string;
+  title: string;
+  content: string;
+  tags: string[];
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function fetchMemories(type?: string): Promise<KronosMemory[]> {
+  const params = type ? `?type=${type}` : "";
+  const res = await fetch(`${API_URL}/api/kronos/memory${params}`, { headers: getHeaders() });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+export async function createMemory(data: { type: string; title: string; content: string; tags?: string[] }): Promise<KronosMemory> {
+  const res = await fetch(`${API_URL}/api/kronos/memory`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+export async function deleteMemory(id: string): Promise<void> {
+  await fetch(`${API_URL}/api/kronos/memory/${id}`, {
     method: "DELETE",
     headers: getHeaders(),
   });

@@ -11,9 +11,12 @@ import { UpdateBanner } from "./components/UpdateBanner";
 import { OnlineStatus } from "./components/OnlineStatus";
 import { NotificationsPanel } from "./components/NotificationsPanel";
 import { ImageGallery } from "./components/ImageGallery";
-import { ImageModal } from "./components/ImageModal";
+import { ImageViewer } from "./components/ImageViewer";
 import { requestPushPermission } from "./lib/push";
 import { PushToast } from "./components/PushToast";
+import { BriefsPanel } from "./components/BriefsPanel";
+import { SystemStatusWidget } from "./components/SystemStatusWidget";
+import { MemoryPanel } from "./components/MemoryPanel";
 
 export default function App() {
   const auth = useAuth();
@@ -62,6 +65,8 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
     return false;
   });
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showBriefs, setShowBriefs] = useState(false);
+  const [showMemory, setShowMemory] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [swUpdate, setSwUpdate] = useState(false);
@@ -183,10 +188,39 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
 
           <div className="flex flex-col items-center">
             <AgentToggle agent={agent} onChange={setAgent} disabled={loading} />
-            <OnlineStatus />
+            <div className="flex items-center gap-2">
+              <OnlineStatus />
+              <SystemStatusWidget />
+            </div>
           </div>
 
           <div className="flex items-center">
+            {/* Briefs button */}
+            <button
+              onClick={() => setShowBriefs(true)}
+              className="w-11 h-11 flex items-center justify-center rounded-full text-[#9b9b9b] hover:text-[#ececec] active:bg-white/5 transition-colors active:scale-95"
+              title="Briefs"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+                <polyline points="10 9 9 9 8 9" />
+              </svg>
+            </button>
+            {/* Memory button */}
+            <button
+              onClick={() => setShowMemory(true)}
+              className="w-11 h-11 flex items-center justify-center rounded-full text-[#9b9b9b] hover:text-[#ececec] active:bg-white/5 transition-colors active:scale-95"
+              title="Memoria"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 16v-4" />
+                <path d="M12 8h.01" />
+              </svg>
+            </button>
             <button
               onClick={() => setShowNotifications(true)}
               className="relative w-11 h-11 flex items-center justify-center rounded-full text-[#9b9b9b] hover:text-[#ececec] active:bg-white/5 transition-colors active:scale-95"
@@ -288,9 +322,35 @@ function ChatApp({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
         </>
       )}
 
+      {/* Briefs panel overlay */}
+      {showBriefs && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[60] animate-fade-in"
+            onClick={() => setShowBriefs(false)}
+          />
+          <div className="fixed inset-y-0 right-0 w-[min(380px,92vw)] z-[70] shadow-2xl animate-slide-in-right">
+            <BriefsPanel onClose={() => setShowBriefs(false)} />
+          </div>
+        </>
+      )}
+
+      {/* Memory panel overlay */}
+      {showMemory && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[60] animate-fade-in"
+            onClick={() => setShowMemory(false)}
+          />
+          <div className="fixed inset-y-0 right-0 w-[min(380px,92vw)] z-[70] shadow-2xl animate-slide-in-right">
+            <MemoryPanel onClose={() => setShowMemory(false)} />
+          </div>
+        </>
+      )}
+
       {/* Image modal */}
       {modalImage && (
-        <ImageModal imageSrc={modalImage} onClose={() => setModalImage(null)} />
+        <ImageViewer src={modalImage} onClose={() => setModalImage(null)} />
       )}
 
       {/* Push toast in-app (foreground notifications) */}

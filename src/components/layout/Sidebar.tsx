@@ -192,7 +192,7 @@ export function Sidebar({
   return (
     <div className="flex flex-col h-full bg-bg-sidebar w-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2.5 safe-top shrink-0">
+      <div className="flex items-center justify-between px-3 py-2.5 safe-top shrink-0 border-b border-border-subtle">
         <span className="font-semibold text-sm text-text pl-1">KOAI Chat</span>
         <Button variant="ghost" size="icon" className="h-7 w-7 text-text-muted" onClick={onClose}>
           <X className="h-4 w-4" />
@@ -200,7 +200,7 @@ export function Sidebar({
       </div>
 
       {/* New Chat button */}
-      <div className="px-3 pb-2 shrink-0">
+      <div className="px-3 pt-2 pb-2 shrink-0">
         <Button
           onClick={onNew}
           className="w-full justify-start gap-2 bg-brand/10 hover:bg-brand/20 text-brand border-0 h-9"
@@ -370,7 +370,7 @@ export function Sidebar({
 
       {/* User footer */}
       <Separator className="bg-border-subtle" />
-      <div className="px-3 py-2 flex items-center justify-between">
+      <div className="px-3 py-2 safe-bottom flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2 min-w-0">
           {user.picture ? (
             <img src={user.picture} alt="" className="w-7 h-7 rounded-full" />

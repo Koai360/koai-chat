@@ -58,8 +58,6 @@ export function AppShell({ user, onLogout }: Props) {
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [swUpdate, setSwUpdate] = useState(false);
 
-  const isDesktop = typeof window !== "undefined" && window.innerWidth >= 768;
-
   // Push subscription
   useEffect(() => {
     const timer = setTimeout(() => requestPushPermission(), 2000);
@@ -79,7 +77,8 @@ export function AppShell({ user, onLogout }: Props) {
   };
 
   const toggleSidebar = useCallback(() => {
-    if (isDesktop) {
+    const desktop = window.innerWidth >= 768;
+    if (desktop) {
       setSidebarPinned((prev) => {
         const next = !prev;
         localStorage.setItem("koai-sidebar-pinned", String(next));
@@ -88,7 +87,7 @@ export function AppShell({ user, onLogout }: Props) {
     } else {
       setSidebarOpen(true);
     }
-  }, [isDesktop]);
+  }, []);
 
   const handleSelectConvo = useCallback((id: string) => {
     setActiveId(id);
@@ -133,6 +132,7 @@ export function AppShell({ user, onLogout }: Props) {
         {/* Mobile sidebar drawer */}
         <Drawer open={sidebarOpen && !sidebarPinned} onOpenChange={setSidebarOpen} direction="left">
           <DrawerContent className="h-full w-[min(280px,85vw)] rounded-none border-none bg-bg-sidebar" aria-describedby={undefined}>
+            <span className="sr-only">Menú de navegación</span>
             {sidebarContent}
           </DrawerContent>
         </Drawer>

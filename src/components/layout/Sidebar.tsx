@@ -192,7 +192,7 @@ export function Sidebar({
   return (
     <div className="flex flex-col h-full bg-bg-sidebar w-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-3 safe-top">
+      <div className="flex items-center justify-between px-3 py-3 safe-top shrink-0">
         <div className="flex items-center gap-2">
           <img src="/icons/kira-logo.svg" alt="KOAI" className="w-8 h-8 rounded-lg" />
           <span className="font-semibold text-sm text-text">KOAI Chat</span>
@@ -203,7 +203,7 @@ export function Sidebar({
       </div>
 
       {/* New Chat button */}
-      <div className="px-3 pb-2">
+      <div className="px-3 pb-2 shrink-0">
         <Button
           onClick={onNew}
           className="w-full justify-start gap-2 bg-brand/10 hover:bg-brand/20 text-brand border-0 h-9"
@@ -215,7 +215,7 @@ export function Sidebar({
       </div>
 
       {/* Search */}
-      <div className="px-3 pb-2">
+      <div className="px-3 pb-2 shrink-0">
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-muted" />
           <Input
@@ -229,7 +229,7 @@ export function Sidebar({
 
       {/* Projects row */}
       {projects.length > 0 && (
-        <div className="px-3 pb-2 flex gap-1 overflow-x-auto no-scrollbar">
+        <div className="px-3 pb-2 flex gap-1 overflow-x-auto no-scrollbar shrink-0">
           <Button
             variant={activeProject === null ? "default" : "ghost"}
             size="sm"
@@ -286,7 +286,7 @@ export function Sidebar({
                   const title = convo.title || preview || "Nuevo chat";
 
                   return (
-                    <div key={convo.id} className="relative overflow-hidden mx-1">
+                    <div key={convo.id} className="relative overflow-hidden mx-1 mb-0.5">
                       {/* Delete background */}
                       <div className="absolute inset-y-0 right-0 w-20 bg-destructive flex items-center justify-center rounded-r-lg">
                         <button

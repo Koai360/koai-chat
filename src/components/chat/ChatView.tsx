@@ -92,7 +92,7 @@ export function ChatView({ conversation, agent, loading, loadingHint, streamingT
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto px-3 py-2 bg-bg"
       >
-        <div className="max-w-[48rem] mx-auto w-full">
+        <div className={`max-w-[48rem] mx-auto w-full ${!conversation || conversation.messages.length === 0 ? "h-full" : ""}`}>
           {!conversation || conversation.messages.length === 0 ? (
             <EmptyState
               agent={agent}

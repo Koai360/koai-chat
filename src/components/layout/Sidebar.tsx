@@ -192,12 +192,9 @@ export function Sidebar({
   return (
     <div className="flex flex-col h-full bg-bg-sidebar w-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-3 safe-top shrink-0">
-        <div className="flex items-center gap-2">
-          <img src="/icons/kira-logo.svg" alt="KOAI" className="w-8 h-8 rounded-lg" />
-          <span className="font-semibold text-sm text-text">KOAI Chat</span>
-        </div>
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-text-muted" onClick={onClose}>
+      <div className="flex items-center justify-between px-3 py-2.5 safe-top shrink-0">
+        <span className="font-semibold text-sm text-text pl-1">KOAI Chat</span>
+        <Button variant="ghost" size="icon" className="h-7 w-7 text-text-muted" onClick={onClose}>
           <X className="h-4 w-4" />
         </Button>
       </div>
@@ -324,6 +321,7 @@ export function Sidebar({
                             : "hover:bg-bg-surface active:bg-bg-surface"
                         }`}
                       >
+                        <MessageSquare className={`shrink-0 h-4 w-4 mt-0.5 ${isActive ? "text-brand" : "text-text-muted"}`} />
                         <div className="flex-1 min-w-0">
                           <p className={`text-sm truncate ${isActive ? "text-text font-medium" : "text-text"}`}>
                             {title}

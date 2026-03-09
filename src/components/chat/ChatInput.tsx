@@ -208,7 +208,7 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
   const accentColor = agent === "kronos" ? "kronos" : "kira";
 
   return (
-    <div className="safe-bottom max-w-[48rem] mx-auto w-full px-2 pb-1.5 pt-1">
+    <div className="safe-bottom max-w-[48rem] mx-auto w-full px-3 pb-2 md:pb-4 pt-1">
       {/* Error toast */}
       <AnimatePresence>
         {error && (
@@ -345,7 +345,7 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
 
         {/* Input pill */}
-        <div className="flex-1 flex items-end bg-bg-surface rounded-[22px] min-h-[44px] border border-border-subtle overflow-hidden">
+        <div className="flex-1 flex items-end bg-bg-surface rounded-3xl min-h-[44px] border border-border-subtle overflow-hidden">
           <div
             ref={editorRef}
             contentEditable={!isDisabled}

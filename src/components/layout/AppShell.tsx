@@ -125,14 +125,14 @@ export function AppShell({ user, onLogout }: Props) {
       <div className="h-full flex bg-bg text-text">
         {/* Desktop pinned sidebar */}
         {sidebarPinned && (
-          <div className="hidden md:flex w-[300px] flex-shrink-0 border-r border-border-subtle h-full">
+          <div className="hidden md:flex w-[260px] flex-shrink-0 border-r border-border-subtle h-full">
             {sidebarContent}
           </div>
         )}
 
         {/* Mobile sidebar drawer */}
         <Drawer open={sidebarOpen && !sidebarPinned} onOpenChange={setSidebarOpen} direction="left">
-          <DrawerContent className="h-full w-[min(300px,85vw)] rounded-none border-none bg-bg-sidebar" aria-describedby={undefined}>
+          <DrawerContent className="h-full w-[min(280px,85vw)] rounded-none border-none bg-bg-sidebar" aria-describedby={undefined}>
             {sidebarContent}
           </DrawerContent>
         </Drawer>

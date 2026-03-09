@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { AgentToggle } from "@/components/shared/AgentToggle";
-import { OnlineStatus } from "@/components/shared/OnlineStatus";
 import type { Agent } from "@/hooks/useChat";
 
 interface Props {
@@ -58,31 +57,45 @@ export function Header({
   return (
     <header className="flex items-center justify-between px-2 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 bg-bg/80 backdrop-blur-xl border-b border-border-subtle z-30 shrink-0">
       {/* Left: Sidebar toggle */}
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onToggleSidebar}
-            className="text-text-muted hover:text-text"
-          >
-            {sidebarPinned ? <PanelLeft className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="bottom">
-          {sidebarPinned ? "Ocultar sidebar" : "Abrir sidebar"}
-        </TooltipContent>
-      </Tooltip>
-
-      {/* Center: Agent toggle + online status */}
-      <div className="flex flex-col items-center gap-0.5">
-        <AgentToggle agent={agent} onChange={onAgentChange} disabled={agentDisabled} />
-        <OnlineStatus />
+      <div className="w-10">
+        {!sidebarPinned && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onToggleSidebar}
+                className="text-text-muted hover:text-text"
+              >
+                <Menu className="w-5 h-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Abrir sidebar</TooltipContent>
+          </Tooltip>
+        )}
+        {sidebarPinned && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onToggleSidebar}
+                className="text-text-muted hover:text-text"
+              >
+                <PanelLeft className="w-5 h-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Ocultar sidebar</TooltipContent>
+          </Tooltip>
+        )}
       </div>
+
+      {/* Center: Agent toggle only */}
+      <AgentToggle agent={agent} onChange={onAgentChange} disabled={agentDisabled} />
 
       {/* Right: Actions */}
       <div className="flex items-center gap-0.5">
-        {/* Notifications */}
+        {/* Notifications — always visible */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -105,14 +118,14 @@ export function Header({
           <TooltipContent side="bottom">Notificaciones</TooltipContent>
         </Tooltip>
 
-        {/* New conversation */}
+        {/* New conversation — visible on desktop */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
               onClick={onNewConversation}
-              className="text-text-muted hover:text-text"
+              className="hidden md:flex text-text-muted hover:text-text"
             >
               <MessageSquarePlus className="w-5 h-5" />
             </Button>
@@ -128,6 +141,10 @@ export function Header({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem onClick={onNewConversation} className="md:hidden">
+              <MessageSquarePlus className="w-4 h-4 mr-2" />
+              Nueva conversación
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={onOpenBriefs}>
               <FileText className="w-4 h-4 mr-2" />
               Briefs

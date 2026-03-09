@@ -1,39 +1,108 @@
 @import "tailwindcss";
 @import "highlight.js/styles/github-dark.min.css";
 
-/* Forzar dark mode siempre */
+/* Force dark mode */
 @custom-variant dark (&:is(.dark, .dark *));
 
+/* ===== DESIGN SYSTEM — KOAI Chat v2 ===== */
 @theme {
-  /* Brand KOAI */
-  --color-koai-purple: #572c77;
-  --color-koai-purple-light: #7c4d9e;
-  --color-koai-purple-dark: #3d1e54;
-  --color-koai-lime: #bcd431;
-  --color-koai-lime-dark: #9ab321;
+  /* Backgrounds — scale with purple tint */
+  --color-bg: oklch(0.16 0.015 280);
+  --color-bg-sidebar: oklch(0.13 0.018 280);
+  --color-bg-surface: oklch(0.20 0.012 280);
+  --color-bg-elevated: oklch(0.24 0.010 280);
 
-  /* UI — ChatGPT inspired dark palette */
-  --color-koai-bg: #212121;
-  --color-koai-sidebar: #171717;
-  --color-koai-surface: #2f2f2f;
-  --color-koai-hover: #3a3a3a;
-  --color-koai-text: #ececec;
-  --color-koai-muted: #9b9b9b;
-  --color-koai-border: rgba(255,255,255,0.06);
+  /* Borders */
+  --color-border: oklch(0.30 0.008 280);
+  --color-border-subtle: oklch(0.22 0.008 280);
 
-  /* Accent — Lovart green for images */
-  --color-koai-green: #57C74A;
+  /* Text */
+  --color-text: oklch(0.93 0.005 80);
+  --color-text-muted: oklch(0.60 0.010 280);
+  --color-text-subtle: oklch(0.45 0.008 280);
+
+  /* Accent — Kira (verde lima KOAI) */
+  --color-kira: oklch(0.78 0.19 135);
+  --color-kira-soft: oklch(0.78 0.19 135 / 0.15);
+  --color-kira-glow: oklch(0.78 0.19 135 / 0.25);
+
+  /* Accent — Kronos (púrpura) */
+  --color-kronos: oklch(0.58 0.22 290);
+  --color-kronos-soft: oklch(0.58 0.22 290 / 0.15);
+  --color-kronos-glow: oklch(0.58 0.22 290 / 0.25);
+
+  /* Brand */
+  --color-brand: oklch(0.40 0.18 300);
+  --color-brand-light: oklch(0.50 0.16 300);
+  --color-brand-soft: oklch(0.40 0.18 300 / 0.20);
+
+  /* Semantic */
+  --color-danger: oklch(0.65 0.22 25);
+  --color-danger-soft: oklch(0.65 0.22 25 / 0.15);
+  --color-warning: oklch(0.78 0.15 80);
+  --color-success: oklch(0.72 0.18 145);
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+
+  /* Font families */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }
 
+/* shadcn compatibility variables */
+:root {
+  --radius: 0.75rem;
+  --background: oklch(0.16 0.015 280);
+  --foreground: oklch(0.93 0.005 80);
+  --card: oklch(0.20 0.012 280);
+  --card-foreground: oklch(0.93 0.005 80);
+  --popover: oklch(0.20 0.012 280);
+  --popover-foreground: oklch(0.93 0.005 80);
+  --primary: oklch(0.78 0.19 135);
+  --primary-foreground: oklch(0.16 0.015 280);
+  --secondary: oklch(0.24 0.010 280);
+  --secondary-foreground: oklch(0.93 0.005 80);
+  --muted: oklch(0.24 0.010 280);
+  --muted-foreground: oklch(0.60 0.010 280);
+  --accent: oklch(0.24 0.010 280);
+  --accent-foreground: oklch(0.93 0.005 80);
+  --destructive: oklch(0.65 0.22 25);
+  --destructive-foreground: oklch(0.93 0.005 80);
+  --border: oklch(0.30 0.008 280);
+  --input: oklch(0.30 0.008 280);
+  --ring: oklch(0.78 0.19 135);
+  --chart-1: oklch(0.78 0.19 135);
+  --chart-2: oklch(0.58 0.22 290);
+  --chart-3: oklch(0.65 0.22 25);
+  --chart-4: oklch(0.78 0.15 80);
+  --chart-5: oklch(0.72 0.18 145);
+  --sidebar-background: oklch(0.13 0.018 280);
+  --sidebar-foreground: oklch(0.93 0.005 80);
+  --sidebar-primary: oklch(0.78 0.19 135);
+  --sidebar-primary-foreground: oklch(0.16 0.015 280);
+  --sidebar-accent: oklch(0.24 0.010 280);
+  --sidebar-accent-foreground: oklch(0.93 0.005 80);
+  --sidebar-border: oklch(0.22 0.008 280);
+  --sidebar-ring: oklch(0.78 0.19 135);
+}
+
+/* ===== BASE ===== */
 html {
   color-scheme: dark;
 }
+
 html, body, #root {
   height: 100dvh;
   height: 100%;
   margin: 0;
   overscroll-behavior: none;
-  background-color: #212121;
+  background-color: oklch(0.16 0.015 280);
 }
 
 @supports (height: 100dvh) {
@@ -43,11 +112,12 @@ html, body, #root {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', system-ui, sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   letter-spacing: -0.01em;
+  color: oklch(0.93 0.005 80);
 }
 
 #root {
@@ -60,23 +130,13 @@ button, a, [role="button"] {
   -webkit-touch-callout: none;
 }
 
-button:active:not(:disabled) {
-  opacity: 0.85;
-  transition: opacity 0.05s;
-}
-
-/* iOS safe area */
+/* ===== iOS Safe Area ===== */
 @supports (padding-top: env(safe-area-inset-top)) {
   .safe-top { padding-top: env(safe-area-inset-top); }
   .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
 }
 
-/* === INPUT BAR — blends with main bg === */
-.input-bar-bg {
-  background-color: #212121;
-}
-
-/* === ANIMATIONS === */
+/* ===== ANIMATIONS ===== */
 @keyframes slide-in-left {
   from { transform: translateX(-100%); }
   to { transform: translateX(0); }
@@ -123,20 +183,51 @@ button:active:not(:disabled) {
   animation: gentle-pulse 1.5s ease-in-out infinite;
 }
 
-/* === CODE BLOCKS === */
-.prose code:not(pre code) {
-  background: var(--color-koai-surface);
-  padding: 0.15em 0.35em;
-  border-radius: 4px;
-  font-size: 0.85em;
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 8px 2px var(--glow-color, transparent); }
+  50% { box-shadow: 0 0 16px 4px var(--glow-color, transparent); }
 }
-.prose pre {
-  border-radius: 10px;
-  overflow-x: auto;
-  margin: 0.5em 0;
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
 }
 
-/* === DATE SEPARATOR === */
+@keyframes recording-pulse {
+  0% { box-shadow: 0 0 0 0 oklch(0.65 0.22 25 / 0.4); }
+  70% { box-shadow: 0 0 0 10px oklch(0.65 0.22 25 / 0); }
+  100% { box-shadow: 0 0 0 0 oklch(0.65 0.22 25 / 0); }
+}
+.animate-recording-pulse {
+  animation: recording-pulse 1.5s ease-out infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent 25%, oklch(1 0 0 / 0.08) 50%, transparent 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+/* ===== CODE BLOCKS ===== */
+.prose code:not(pre code) {
+  background: var(--color-bg-surface);
+  padding: 0.15em 0.35em;
+  border-radius: 6px;
+  font-size: 0.85em;
+  font-family: var(--font-mono);
+}
+
+.prose pre {
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  margin: 0.5em 0;
+  background: oklch(0.13 0.018 280) !important;
+  border: 1px solid oklch(0.22 0.008 280);
+}
+
+/* ===== DATE SEPARATOR ===== */
 .date-separator {
   display: flex;
   align-items: center;
@@ -148,9 +239,10 @@ button:active:not(:disabled) {
   content: "";
   flex: 1;
   height: 1px;
-  background: currentColor;
-  opacity: 0.15;
+  background: linear-gradient(to var(--side, right), transparent, oklch(0.30 0.008 280), transparent);
 }
+.date-separator::before { --side: right; }
+.date-separator::after { --side: left; }
 .date-separator span {
   font-size: 11px;
   font-weight: 500;
@@ -158,20 +250,20 @@ button:active:not(:disabled) {
   white-space: nowrap;
 }
 
-/* === CONTENTEDITABLE INPUT (elimina iOS input accessory bar) === */
+/* ===== CONTENTEDITABLE INPUT (iOS keyboard fix) ===== */
 [contenteditable="true"] {
   outline: none;
   word-break: break-word;
   -webkit-user-modify: read-write-plaintext-only;
-  caret-color: #bcd431;
+  caret-color: oklch(0.78 0.19 135);
 }
 [contenteditable="true"]:empty::before {
   content: attr(data-placeholder);
-  color: #6b7280;
+  color: oklch(0.45 0.008 280);
   pointer-events: none;
 }
 
-/* === SCROLL === */
+/* ===== SCROLL ===== */
 .chat-scroll {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
@@ -180,5 +272,59 @@ button:active:not(:disabled) {
 
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
+::-webkit-scrollbar-thumb { background: oklch(0.30 0.008 280); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: oklch(0.40 0.010 280); }
+
+/* ===== AURORA BACKGROUND (LoginScreen) ===== */
+.aurora-bg {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+}
+.aurora-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.3;
+  animation: aurora-float 8s ease-in-out infinite alternate;
+}
+.aurora-blob-1 {
+  width: 400px;
+  height: 400px;
+  background: oklch(0.40 0.18 300);
+  top: -10%;
+  left: -10%;
+  animation-delay: 0s;
+}
+.aurora-blob-2 {
+  width: 350px;
+  height: 350px;
+  background: oklch(0.58 0.22 290);
+  top: 40%;
+  right: -15%;
+  animation-delay: -3s;
+}
+.aurora-blob-3 {
+  width: 300px;
+  height: 300px;
+  background: oklch(0.78 0.19 135);
+  bottom: -10%;
+  left: 20%;
+  animation-delay: -5s;
+}
+@keyframes aurora-float {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(30px, -20px) scale(1.1); }
+}
+.animate-aurora-float {
+  animation: aurora-float 8s ease-in-out infinite alternate;
+}
+
+/* ===== GLASSMORPHISM ===== */
+.glass {
+  backdrop-filter: blur(20px) saturate(1.2);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+  background: oklch(0.20 0.012 280 / 0.6);
+  border: 1px solid oklch(1 0 0 / 0.08);
+}

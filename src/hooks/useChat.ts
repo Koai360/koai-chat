@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import {
-  sendKiraMessage,
+  streamKiraMessage,
   streamKronosMessage,
   fetchConversations,
   createConversation as createConvApi,
@@ -227,9 +227,20 @@ export function useChat(userId: string | null = null) {
         let assistantImage: string | undefined;
 
         if (agent === "kira") {
-          const res = await sendKiraMessage(displayText, convoId, imageBase64, imageMode, imageEngine);
-          assistantContent = res.messages?.[0]?.content || "Sin respuesta";
-          assistantImage = res.messages?.[0]?.image || undefined;
+          const res = await streamKiraMessage(
+            displayText,
+            convoId || undefined,
+            imageBase64,
+            imageMode,
+            imageEngine,
+            {
+              onToken: (accumulated) => setStreamingText(accumulated),
+              onImage: (img) => { assistantImage = img; },
+            },
+          );
+          assistantContent = res.fullText || "Sin respuesta";
+          assistantImage = assistantImage || (res.image ?? undefined);
+          setStreamingText("");
         } else {
           const history =
             conversations

@@ -5,14 +5,12 @@ import { relativeTime } from "@/lib/time";
 import {
   fetchProjects,
   createProject,
-  deleteProject,
   type ServerProject,
 } from "@/lib/api";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,7 +24,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { motion, AnimatePresence } from "framer-motion";
+
+
 import {
   Plus,
   Search,
@@ -37,7 +36,6 @@ import {
   FolderOpen,
   FolderPlus,
   LogOut,
-  ChevronRight,
   Hash,
 } from "lucide-react";
 
@@ -73,7 +71,7 @@ function groupByTime(conversations: Conversation[]) {
   ];
 
   for (const c of conversations) {
-    const d = new Date(c.updated_at || c.created_at);
+    const d = new Date(c.createdAt);
     if (d >= today) groups[0].items.push(c);
     else if (d >= yesterday) groups[1].items.push(c);
     else if (d >= weekAgo) groups[2].items.push(c);
@@ -119,7 +117,7 @@ export function Sidebar({
       if (!title.includes(q) && !lastMsg.includes(q)) return false;
     }
     if (activeProject) {
-      return c.project_id === activeProject;
+      return c.projectId === activeProject;
     }
     return true;
   });
@@ -133,14 +131,6 @@ export function Sidebar({
       setProjects((prev) => [...prev, p]);
       setNewProjectName("");
       setShowNewProject(false);
-    } catch {}
-  };
-
-  const handleDeleteProject = async (id: string) => {
-    try {
-      await deleteProject(id);
-      setProjects((prev) => prev.filter((p) => p.id !== id));
-      if (activeProject === id) setActiveProject(null);
     } catch {}
   };
 
@@ -344,7 +334,7 @@ export function Sidebar({
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
                           <span className="text-[10px] text-text-muted">
-                            {relativeTime(convo.updated_at || convo.created_at)}
+                            {relativeTime(convo.createdAt)}
                           </span>
                           {onMoveToProject && (
                             <DropdownMenu>

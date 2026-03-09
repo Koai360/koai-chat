@@ -5,8 +5,7 @@ import { ChatHeader, SelectModeHeader } from "./ChatHeader";
 import { EmptyState } from "./EmptyState";
 import { TypingIndicator } from "./TypingIndicator";
 import { DateSeparator, formatDateLabel, shouldShowDate } from "./DateSeparator";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import type { Conversation, Agent, Message } from "@/hooks/useChat";
+import type { Conversation, Agent } from "@/hooks/useChat";
 
 interface Props {
   conversation: Conversation | null;

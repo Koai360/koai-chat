@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useAuth, type AuthUser } from "@/hooks/useAuth";
+import type { AuthUser } from "@/hooks/useAuth";
 import { useChat } from "@/hooks/useChat";
 import { useNotifications } from "@/hooks/useNotifications";
 import { transcribeAudio } from "@/lib/api";

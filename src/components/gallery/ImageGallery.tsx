@@ -1,14 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { fetchImages, deleteImage, type GalleryImage } from "@/lib/api";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { motion } from "framer-motion";
 import { ChevronLeft, Image as ImageIcon, Trash2, Loader2 } from "lucide-react";
 
@@ -121,7 +114,7 @@ export function ImageGallery({ onClose, onImageClick }: Props) {
     if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
   }, []);
 
-  const handleTap = useCallback((id: string, src: string) => {
+  const handleTap = useCallback((_id: string, src: string) => {
     if (didLongPress.current) return;
     if (contextId) { setContextId(null); return; }
     onImageClick?.(src);

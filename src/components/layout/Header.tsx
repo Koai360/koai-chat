@@ -56,7 +56,7 @@ export function Header({
   onLogout,
 }: Props) {
   return (
-    <header className="flex items-center justify-between px-2 py-1.5 safe-top bg-bg/80 backdrop-blur-xl border-b border-border-subtle h-14 z-30">
+    <header className="flex items-center justify-between px-2 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 bg-bg/80 backdrop-blur-xl border-b border-border-subtle z-30 shrink-0">
       {/* Left: Sidebar toggle */}
       <Tooltip>
         <TooltipTrigger asChild>

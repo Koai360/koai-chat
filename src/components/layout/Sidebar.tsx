@@ -375,9 +375,9 @@ export function Sidebar({
                           </span>
                         )}
 
-                        {/* Actions — visible on hover */}
+                        {/* Actions — always visible on mobile (no hover on touch) */}
                         {editingId !== convo.id && (
-                          <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className={`flex items-center gap-0.5 shrink-0 transition-opacity ${isActive ? "opacity-100" : "opacity-40"}`}>
                             {onRename && (
                               <button
                                 onClick={(e) => {
@@ -439,8 +439,11 @@ export function Sidebar({
 
       {/* User footer — Figma style */}
       <div
-        className="px-3 py-3 pb-5 safe-bottom shrink-0"
-        style={{ borderTop: "1px solid rgba(91,45,140,0.30)" }}
+        className="px-3 pt-3 shrink-0"
+        style={{
+          borderTop: "1px solid rgba(91,45,140,0.30)",
+          paddingBottom: "max(12px, env(safe-area-inset-bottom))",
+        }}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">

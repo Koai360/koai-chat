@@ -205,10 +205,13 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
 
   const hasContent = text.trim().length > 0 || !!imageBase64;
   const isDisabled = disabled || transcribing;
-  const accentColor = agent === "kronos" ? "kronos" : "kira";
+
+
+  const lime = agent === "kronos" ? "#00E5FF" : "#C5E34A";
+  const bgDeep = agent === "kronos" ? "#000000" : "#1A0A33";
 
   return (
-    <div className="safe-bottom max-w-[48rem] mx-auto w-full px-3 pb-2 md:pb-4 pt-1">
+    <div className="safe-bottom max-w-[48rem] mx-auto w-full px-4 pb-2 md:pb-4 pt-2">
       {/* Error toast */}
       <AnimatePresence>
         {error && (
@@ -344,8 +347,14 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
 
         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
 
-        {/* Input pill */}
-        <div className="flex-1 flex items-end bg-bg-surface rounded-3xl min-h-[44px] border border-border-subtle overflow-hidden">
+        {/* Input pill — Figma design */}
+        <div
+          className="flex-1 flex items-end rounded-[24px] min-h-[44px] overflow-hidden backdrop-blur-xl shadow-lg transition-all duration-300"
+          style={{
+            backgroundColor: "#271648",
+            border: "1px solid rgba(91,45,140,0.40)",
+          }}
+        >
           <div
             ref={editorRef}
             contentEditable={!isDisabled}
@@ -390,32 +399,32 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
             animate={{ scale: 1 }}
             onClick={handleSubmit}
             disabled={isDisabled}
-            className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center active:scale-90 disabled:opacity-50 transition-all mb-0.5 bg-gradient-to-br ${
-              accentColor === "kronos"
-                ? "from-kronos to-kronos/80"
-                : "from-kira to-kira/80"
-            } text-bg shadow-lg`}
+            className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center active:scale-90 disabled:opacity-50 transition-all mb-0.5"
+            style={{
+              backgroundColor: lime,
+              boxShadow: `0 0 20px ${lime}4d`,
+            }}
           >
-            <Send className="h-4 w-4" />
+            <Send className="h-4 w-4" style={{ color: bgDeep }} />
           </motion.button>
         ) : (
           <button
             onClick={toggleRecording}
             disabled={isDisabled}
-            className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 mb-0.5 ${
-              recording
-                ? "bg-destructive text-white animate-pulse"
-                : transcribing
-                  ? "bg-bg-surface text-text-muted"
-                  : `bg-gradient-to-br ${accentColor === "kronos" ? "from-kronos to-kronos/80" : "from-kira to-kira/80"} text-bg shadow-lg`
-            } disabled:opacity-50`}
+            className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 mb-0.5 disabled:opacity-50 ${
+              recording ? "bg-destructive text-white animate-pulse" : ""
+            }`}
+            style={!recording && !transcribing ? {
+              backgroundColor: lime,
+              boxShadow: `0 0 20px ${lime}4d`,
+            } : undefined}
           >
             {transcribing ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin text-text-muted" />
             ) : recording ? (
               <Square className="h-3.5 w-3.5 fill-current" />
             ) : (
-              <Mic className="h-4 w-4" />
+              <Mic className="h-4 w-4" style={{ color: bgDeep }} />
             )}
           </button>
         )}

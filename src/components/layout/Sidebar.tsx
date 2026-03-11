@@ -1,7 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import type { Conversation } from "@/hooks/useChat";
 import type { AuthUser } from "@/hooks/useAuth";
-import { relativeTime } from "@/lib/time";
 import {
   fetchProjects,
   createProject,
@@ -35,8 +34,8 @@ import {
   MoreHorizontal,
   FolderOpen,
   FolderPlus,
-  LogOut,
   Hash,
+  Settings,
 } from "lucide-react";
 
 interface Props {
@@ -190,39 +189,55 @@ export function Sidebar({
   }, [onDelete]);
 
   return (
-    <div className="flex flex-col h-full bg-bg-sidebar w-full">
-      {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2.5 safe-top shrink-0 border-b border-border-subtle">
-        <span className="font-semibold text-sm text-text pl-1">KOAI Chat</span>
-        <Button variant="ghost" size="icon" className="h-7 w-7 text-text-muted" onClick={onClose}>
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
+    <div
+      className="flex flex-col h-full w-full"
+      style={{ backgroundColor: "#150827" }}
+    >
+      {/* Header — Figma style with brand + close */}
+      <div
+        className="pt-14 px-3 pb-3 shrink-0"
+        style={{ borderBottom: "1px solid rgba(91,45,140,0.30)" }}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h2 className="text-[16px] font-medium text-text">Kira</h2>
+            <p className="text-[10px] text-text-muted">by KOAI Studios</p>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-text-muted hover:text-text" onClick={onNew}>
+              <Plus className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-text-muted hover:text-text" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
 
-      {/* New Chat button */}
-      <div className="px-3 pt-2 pb-2 shrink-0">
-        <Button
-          onClick={onNew}
-          className="w-full justify-start gap-2 bg-brand/10 hover:bg-brand/20 text-brand border-0 h-9"
-          variant="outline"
+        {/* Search bar — Figma style */}
+        <div
+          className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg"
+          style={{
+            backgroundColor: "rgba(26,10,51,0.88)",
+            border: "1px solid rgba(91,45,140,0.30)",
+          }}
         >
-          <Plus className="h-4 w-4" />
-          <span className="text-sm font-medium">Nuevo Chat</span>
-        </Button>
-      </div>
-
-      {/* Search */}
-      <div className="px-3 pb-2 shrink-0">
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-muted" />
-          <Input
+          <Search className="w-3.5 h-3.5 flex-shrink-0 text-text-muted" />
+          <input
+            type="text"
+            id="sidebar-search"
+            placeholder="Search chats..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar..."
-            className="pl-8 h-8 text-xs bg-bg-surface border-border-subtle"
+            className="flex-1 bg-transparent text-[12px] outline-none text-text placeholder:text-text-subtle"
           />
+          {search && (
+            <button onClick={() => setSearch("")}>
+              <X className="w-3 h-3 text-text-muted" />
+            </button>
+          )}
         </div>
       </div>
+
 
       {/* Projects row */}
       {projects.length > 0 && (
@@ -258,7 +273,7 @@ export function Sidebar({
         </div>
       )}
 
-      <Separator className="bg-border-subtle" />
+      <Separator className="bg-border-subtle mx-[6px] w-auto" />
 
       {/* Conversation list */}
       <ScrollArea className="flex-1">
@@ -283,7 +298,7 @@ export function Sidebar({
                   const title = convo.title || preview || "Nuevo chat";
 
                   return (
-                    <div key={convo.id} className="relative overflow-hidden mx-1 mb-0.5">
+                    <div key={convo.id} className="group relative overflow-hidden mx-[6px]">
                       {/* Delete background */}
                       <div className="absolute inset-y-0 right-0 w-20 bg-destructive flex items-center justify-center rounded-r-lg">
                         <button
@@ -315,25 +330,19 @@ export function Sidebar({
                           }
                           onSelect(convo.id);
                         }}
-                        className={`relative flex items-center gap-2.5 px-3 py-2.5 rounded-lg cursor-pointer transition-colors bg-bg-sidebar ${
+                        className={`relative flex items-center gap-[6px] h-9 px-[10px] rounded-[10px] cursor-pointer transition-colors bg-bg-sidebar ${
                           isActive
-                            ? "bg-brand/10 border border-brand/20"
-                            : "hover:bg-bg-surface active:bg-bg-surface"
+                            ? "bg-bg-surface"
+                            : "hover:bg-bg-surface/60"
                         }`}
                       >
-                        <MessageSquare className={`shrink-0 h-4 w-4 mt-0.5 ${isActive ? "text-brand" : "text-text-muted"}`} />
+                        <MessageSquare className={`shrink-0 h-4 w-4 ${isActive ? "text-text" : "text-text-muted"}`} />
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm truncate ${isActive ? "text-text font-medium" : "text-text"}`}>
+                          <p className={`text-[14px] leading-5 truncate ${isActive ? "text-text" : "text-text"}`}>
                             {title}
                           </p>
-                          {preview && !convo.title && (
-                            <p className="text-[11px] text-text-muted truncate mt-0.5">{preview}</p>
-                          )}
                         </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <span className="text-[10px] text-text-muted">
-                            {relativeTime(convo.createdAt)}
-                          </span>
+                        <div className="flex items-center gap-1.5 shrink-0 opacity-0 group-hover:opacity-100">
                           {onMoveToProject && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
@@ -368,22 +377,34 @@ export function Sidebar({
         </div>
       </ScrollArea>
 
-      {/* User footer */}
-      <Separator className="bg-border-subtle" />
-      <div className="px-3 py-2 safe-bottom flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2 min-w-0">
-          {user.picture ? (
-            <img src={user.picture} alt="" className="w-7 h-7 rounded-full" />
-          ) : (
-            <div className="w-7 h-7 rounded-full bg-brand/20 flex items-center justify-center text-xs font-medium text-brand">
-              {user.name?.[0]?.toUpperCase() || "U"}
+      {/* User footer — Figma style */}
+      <div
+        className="px-3 py-3 pb-5 safe-bottom shrink-0"
+        style={{ borderTop: "1px solid rgba(91,45,140,0.30)" }}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div
+              className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 overflow-hidden"
+              style={{ background: "linear-gradient(135deg, #C5E34A, #C5E34A99)" }}
+            >
+              {user.picture ? (
+                <img src={user.picture} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-[11px] font-medium" style={{ color: "#1A0A33" }}>
+                  {user.name?.[0]?.toUpperCase() || "U"}
+                </span>
+              )}
             </div>
-          )}
-          <span className="text-xs text-text-muted truncate">{user.name || user.email}</span>
+            <span className="text-[12px] text-text truncate max-w-[140px]">{user.name || user.email}</span>
+          </div>
+          <button
+            onClick={onLogout}
+            className="w-7 h-7 flex items-center justify-center rounded-md transition-colors text-text-muted hover:text-text"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
         </div>
-        <Button variant="ghost" size="icon" className="h-7 w-7 text-text-muted" onClick={onLogout}>
-          <LogOut className="h-3.5 w-3.5" />
-        </Button>
       </div>
 
       {/* Move to project dialog */}

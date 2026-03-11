@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { AnimatePresence } from "framer-motion";
 import type { AuthUser } from "@/hooks/useAuth";
 import { useChat } from "@/hooks/useChat";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -15,6 +16,7 @@ import { MemoryPanel } from "@/components/panels/MemoryPanel";
 import { SystemStatusPanel } from "@/components/panels/SystemStatusPanel";
 import { UpdateBanner } from "@/components/shared/UpdateBanner";
 import { PushToast } from "@/components/shared/PushToast";
+import { SplashScreen } from "@/components/shared/SplashScreen";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -57,6 +59,13 @@ export function AppShell({ user, onLogout }: Props) {
   const [showGallery, setShowGallery] = useState(false);
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [swUpdate, setSwUpdate] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
+
+  // Splash screen — 2.2s
+  useEffect(() => {
+    const t = setTimeout(() => setShowSplash(false), 2200);
+    return () => clearTimeout(t);
+  }, []);
 
   // Push subscription
   useEffect(() => {
@@ -121,7 +130,13 @@ export function AppShell({ user, onLogout }: Props) {
 
   return (
     <TooltipProvider delayDuration={0}>
-      <div className="h-full flex bg-bg text-text">
+      <AnimatePresence>
+        {showSplash && <SplashScreen />}
+      </AnimatePresence>
+      <div
+        className="h-full flex text-text transition-colors duration-300"
+        style={{ backgroundColor: agent === "kronos" ? "#000000" : "#1A0A33" }}
+      >
         {/* Desktop pinned sidebar */}
         {sidebarPinned && (
           <div className="hidden md:flex w-[260px] flex-shrink-0 border-r border-border-subtle h-full">

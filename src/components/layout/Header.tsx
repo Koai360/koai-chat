@@ -1,26 +1,4 @@
-import {
-  Menu,
-  PanelLeft,
-  Bell,
-  MessageSquarePlus,
-  MoreVertical,
-  FileText,
-  Brain,
-  Activity,
-  Images,
-  LogOut,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
-import { AgentToggle } from "@/components/shared/AgentToggle";
+import { Menu, Plus } from "lucide-react";
 import type { Agent } from "@/hooks/useChat";
 
 interface Props {
@@ -39,136 +17,80 @@ interface Props {
   onLogout: () => void;
 }
 
+const AGENT_COLORS = {
+  kira:   { lime: "#C5E34A", accent: "#5B2D8C", bg: "#1A0A33" },
+  kronos: { lime: "#00E5FF", accent: "#0A2A3F", bg: "#000000" },
+};
+
 export function Header({
   agent,
   onAgentChange,
   agentDisabled,
-  sidebarPinned,
   onToggleSidebar,
   onNewConversation,
-  unreadCount,
-  onOpenNotifications,
-  onOpenBriefs,
-  onOpenMemory,
-  onOpenSystemStatus,
-  onOpenGallery,
-  onLogout,
 }: Props) {
+  const colors = AGENT_COLORS[agent];
+
   return (
-    <header className="flex items-center justify-between px-2 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 bg-bg/80 backdrop-blur-xl border-b border-border-subtle z-30 shrink-0">
-      {/* Left: Sidebar toggle */}
-      <div className="w-10">
-        {!sidebarPinned && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onToggleSidebar}
-                className="text-text-muted hover:text-text"
-              >
-                <Menu className="w-5 h-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">Abrir sidebar</TooltipContent>
-          </Tooltip>
-        )}
-        {sidebarPinned && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onToggleSidebar}
-                className="text-text-muted hover:text-text"
-              >
-                <PanelLeft className="w-5 h-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">Ocultar sidebar</TooltipContent>
-          </Tooltip>
-        )}
-      </div>
+    <nav
+      className="fixed top-0 left-0 right-0 z-40 backdrop-blur-xl transition-colors duration-300"
+      style={{
+        backgroundColor: `${colors.bg}cc`,
+        borderBottom: `1px solid ${colors.lime}18`,
+        paddingTop: "env(safe-area-inset-top)",
+      }}
+    >
+      <div className="flex items-center justify-between h-[56px] px-4">
+        {/* Menu button */}
+        <button
+          onClick={onToggleSidebar}
+          className="w-10 h-10 flex items-center justify-center rounded-xl active:bg-white/5 transition-colors"
+        >
+          <Menu className="w-5 h-5" style={{ color: colors.lime }} />
+        </button>
 
-      {/* Center: Agent toggle only */}
-      <AgentToggle agent={agent} onChange={onAgentChange} disabled={agentDisabled} />
-
-      {/* Right: Actions */}
-      <div className="flex items-center gap-0.5">
-        {/* Notifications — always visible */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onOpenNotifications}
-              className="relative text-text-muted hover:text-text"
+        {/* Model Selector — Center */}
+        <div className="relative flex-1 flex justify-center">
+          <div
+            className="flex items-center gap-1 p-1 rounded-full transition-all duration-300"
+            style={{
+              backgroundColor: `${colors.accent}33`,
+              border: `1px solid ${colors.accent}55`,
+            }}
+          >
+            <button
+              onClick={() => !agentDisabled && onAgentChange("kira")}
+              disabled={agentDisabled}
+              className="px-4 py-1.5 rounded-full text-[14px] font-medium transition-all duration-200 disabled:opacity-50"
+              style={{
+                backgroundColor: agent === "kira" ? "#C5E34A" : "transparent",
+                color: agent === "kira" ? "#000000" : "rgba(255,255,255,0.45)",
+              }}
             >
-              <Bell className="w-5 h-5" />
-              {unreadCount > 0 && (
-                <Badge
-                  variant="destructive"
-                  className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 text-[10px] font-bold flex items-center justify-center"
-                >
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </Badge>
-              )}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">Notificaciones</TooltipContent>
-        </Tooltip>
-
-        {/* New conversation — visible on desktop */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onNewConversation}
-              className="hidden md:flex text-text-muted hover:text-text"
+              Kira
+            </button>
+            <button
+              onClick={() => !agentDisabled && onAgentChange("kronos")}
+              disabled={agentDisabled}
+              className="px-4 py-1.5 rounded-full text-[14px] font-medium transition-all duration-200 disabled:opacity-50"
+              style={{
+                backgroundColor: agent === "kronos" ? "#00E5FF" : "transparent",
+                color: agent === "kronos" ? "#000000" : "rgba(255,255,255,0.45)",
+              }}
             >
-              <MessageSquarePlus className="w-5 h-5" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">Nueva conversación</TooltipContent>
-        </Tooltip>
+              Kronos
+            </button>
+          </div>
+        </div>
 
-        {/* More menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="text-text-muted hover:text-text">
-              <MoreVertical className="w-5 h-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onClick={onNewConversation} className="md:hidden">
-              <MessageSquarePlus className="w-4 h-4 mr-2" />
-              Nueva conversación
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onOpenBriefs}>
-              <FileText className="w-4 h-4 mr-2" />
-              Briefs
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onOpenMemory}>
-              <Brain className="w-4 h-4 mr-2" />
-              Memoria
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onOpenSystemStatus}>
-              <Activity className="w-4 h-4 mr-2" />
-              Sistema
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onOpenGallery}>
-              <Images className="w-4 h-4 mr-2" />
-              Galería
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onLogout} className="text-danger focus:text-danger">
-              <LogOut className="w-4 h-4 mr-2" />
-              Cerrar Sesión
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* New Chat */}
+        <button
+          onClick={onNewConversation}
+          className="w-10 h-10 flex items-center justify-center rounded-xl active:bg-white/5 transition-colors"
+        >
+          <Plus className="w-5 h-5" style={{ color: colors.lime }} />
+        </button>
       </div>
-    </header>
+    </nav>
   );
 }

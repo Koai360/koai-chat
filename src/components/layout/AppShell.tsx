@@ -44,6 +44,7 @@ export function AppShell({ user, onLogout }: Props) {
     deleteConversation,
     deleteMessages,
     moveToProject,
+    renameConversation,
   } = useChat(user.id);
 
   const { notifications, unreadCount, markRead, markAllRead, removeOne, removeAll } = useNotifications();
@@ -115,6 +116,7 @@ export function AppShell({ user, onLogout }: Props) {
       onSelect={handleSelectConvo}
       onNew={handleNewConvo}
       onDelete={deleteConversation}
+      onRename={renameConversation}
       onMoveToProject={moveToProject}
       onClose={() => {
         setSidebarOpen(false);

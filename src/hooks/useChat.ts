@@ -350,6 +350,15 @@ export function useChat(userId: string | null = null) {
 
   const agentConversations = conversations.filter((c) => c.agent === agent);
 
+  const renameConversation = (id: string, newTitle: string) => {
+    const trimmed = newTitle.trim();
+    if (!trimmed) return;
+    setConversations((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, title: trimmed } : c))
+    );
+    updateConversationTitle(id, trimmed).catch(() => {});
+  };
+
   return {
     conversations: agentConversations,
     active,
@@ -366,5 +375,6 @@ export function useChat(userId: string | null = null) {
     deleteConversation,
     deleteMessages,
     moveToProject,
+    renameConversation,
   };
 }

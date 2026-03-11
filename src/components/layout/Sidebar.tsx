@@ -36,6 +36,7 @@ import {
   FolderPlus,
   Hash,
   Settings,
+  Pencil,
 } from "lucide-react";
 
 interface Props {
@@ -44,6 +45,7 @@ interface Props {
   onSelect: (id: string) => void;
   onNew: () => void;
   onDelete: (id: string) => void;
+  onRename?: (id: string, newTitle: string) => void;
   onMoveToProject?: (conversationId: string, projectId: string | null) => void;
   onClose: () => void;
   user: AuthUser;
@@ -87,6 +89,7 @@ export function Sidebar({
   onSelect,
   onNew,
   onDelete,
+  onRename,
   onMoveToProject,
   onClose,
   user,
@@ -98,6 +101,10 @@ export function Sidebar({
   const [showNewProject, setShowNewProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const [moveDialogId, setMoveDialogId] = useState<string | null>(null);
+  // Inline rename
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
+  const editInputRef = useRef<HTMLInputElement>(null);
 
   // Swipe-to-delete
   const swipingRef = useRef<{ id: string; startX: number; currentX: number } | null>(null);
@@ -319,6 +326,7 @@ export function Sidebar({
                         onTouchMove={(e) => handleTouchMove(convo.id, e)}
                         onTouchEnd={() => handleTouchEnd(convo.id)}
                         onClick={() => {
+                          if (editingId === convo.id) return;
                           if (swipedId === convo.id) {
                             const el = itemRefs.current.get(convo.id);
                             if (el) {
@@ -330,31 +338,83 @@ export function Sidebar({
                           }
                           onSelect(convo.id);
                         }}
-                        className={`relative flex items-center gap-[6px] h-9 px-[10px] rounded-[10px] cursor-pointer transition-colors bg-bg-sidebar ${
-                          isActive
-                            ? "bg-bg-surface"
-                            : "hover:bg-bg-surface/60"
+                        className={`relative flex items-center gap-[6px] h-9 px-[10px] rounded-[10px] cursor-pointer transition-colors ${
+                          isActive ? "bg-bg-surface" : "bg-bg-sidebar hover:bg-bg-surface/60"
                         }`}
                       >
-                        <MessageSquare className={`shrink-0 h-4 w-4 ${isActive ? "text-text" : "text-text-muted"}`} />
-                        <div className="flex-1 min-w-0">
-                          <p className={`text-[14px] leading-5 truncate ${isActive ? "text-text" : "text-text"}`}>
+                        <MessageSquare className={`shrink-0 h-3.5 w-3.5 ${isActive ? "text-kira" : "text-text-muted"}`} />
+
+                        {/* Title — editable inline */}
+                        {editingId === convo.id ? (
+                          <input
+                            ref={editInputRef}
+                            value={editingTitle}
+                            onChange={(e) => setEditingTitle(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                onRename?.(convo.id, editingTitle);
+                                setEditingId(null);
+                              }
+                              if (e.key === "Escape") {
+                                setEditingId(null);
+                              }
+                            }}
+                            onBlur={() => {
+                              onRename?.(convo.id, editingTitle);
+                              setEditingId(null);
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex-1 min-w-0 bg-transparent text-[12px] text-text outline-none border-b border-kira/50 pb-0.5 truncate"
+                            style={{ caretColor: "#C5E34A" }}
+                            autoFocus
+                          />
+                        ) : (
+                          <span className="flex-1 min-w-0 text-[12px] text-text truncate leading-5">
                             {title}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1.5 shrink-0 opacity-0 group-hover:opacity-100">
-                          {onMoveToProject && (
+                          </span>
+                        )}
+
+                        {/* Actions — visible on hover */}
+                        {editingId !== convo.id && (
+                          <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {onRename && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingId(convo.id);
+                                  setEditingTitle(title);
+                                  setTimeout(() => editInputRef.current?.select(), 10);
+                                }}
+                                className="w-5 h-5 flex items-center justify-center rounded hover:bg-white/10 text-text-muted hover:text-kira transition-colors"
+                                title="Renombrar"
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </button>
+                            )}
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                <button className="w-6 h-6 flex items-center justify-center rounded text-text-muted hover:text-text opacity-0 group-hover:opacity-100">
-                                  <MoreHorizontal className="h-3.5 w-3.5" />
+                                <button className="w-5 h-5 flex items-center justify-center rounded hover:bg-white/10 text-text-muted hover:text-text transition-colors">
+                                  <MoreHorizontal className="h-3 w-3" />
                                 </button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-44">
-                                <DropdownMenuItem onClick={() => setMoveDialogId(convo.id)}>
-                                  <FolderOpen className="h-3.5 w-3.5 mr-2" />
-                                  Mover a proyecto
-                                </DropdownMenuItem>
+                                {onRename && (
+                                  <DropdownMenuItem onClick={() => {
+                                    setEditingId(convo.id);
+                                    setEditingTitle(title);
+                                    setTimeout(() => editInputRef.current?.select(), 10);
+                                  }}>
+                                    <Pencil className="h-3.5 w-3.5 mr-2" />
+                                    Renombrar
+                                  </DropdownMenuItem>
+                                )}
+                                {onMoveToProject && (
+                                  <DropdownMenuItem onClick={() => setMoveDialogId(convo.id)}>
+                                    <FolderOpen className="h-3.5 w-3.5 mr-2" />
+                                    Mover a proyecto
+                                  </DropdownMenuItem>
+                                )}
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                   className="text-destructive"
@@ -365,8 +425,8 @@ export function Sidebar({
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );

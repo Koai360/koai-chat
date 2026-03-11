@@ -68,6 +68,12 @@ export function AppShell({ user, onLogout }: Props) {
     return () => clearTimeout(t);
   }, []);
 
+  // Sync body background with agent so safe-area zones match
+  useEffect(() => {
+    document.body.style.backgroundColor = agent === "kronos" ? "#000000" : "#1A0A33";
+    return () => { document.body.style.backgroundColor = ""; };
+  }, [agent]);
+
   // Push subscription
   useEffect(() => {
     const timer = setTimeout(() => requestPushPermission(), 2000);
@@ -148,7 +154,7 @@ export function AppShell({ user, onLogout }: Props) {
 
         {/* Mobile sidebar drawer */}
         <Drawer open={sidebarOpen && !sidebarPinned} onOpenChange={setSidebarOpen} direction="left">
-          <DrawerContent className="h-full w-[min(280px,85vw)] rounded-none border-none bg-bg-sidebar" aria-describedby={undefined}>
+          <DrawerContent className="h-full w-[min(280px,85vw)] rounded-none border-none bg-bg-sidebar" style={{ backgroundColor: "#150827" }} aria-describedby={undefined}>
             <span className="sr-only">Menú de navegación</span>
             {sidebarContent}
           </DrawerContent>

@@ -172,7 +172,10 @@ export function AppShell({ user, onLogout }: Props) {
             onLogout={onLogout}
           />
 
-          <main className="flex-1 overflow-hidden bg-bg">
+          <main
+            className="flex-1 overflow-hidden bg-bg"
+            style={{ paddingTop: "calc(56px + env(safe-area-inset-top, 0px))" }}
+          >
             {showGallery ? (
               <ImageGallery
                 onClose={() => setShowGallery(false)}

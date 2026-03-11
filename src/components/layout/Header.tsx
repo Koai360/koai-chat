@@ -54,8 +54,8 @@ export function Header({
           <div
             className="flex items-center gap-1 p-1 rounded-full transition-all duration-300"
             style={{
-              backgroundColor: `${colors.accent}33`,
-              border: `1px solid ${colors.accent}55`,
+              backgroundColor: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.12)",
             }}
           >
             <button
@@ -64,7 +64,7 @@ export function Header({
               className="px-4 py-1.5 rounded-full text-[14px] font-medium transition-all duration-200 disabled:opacity-50"
               style={{
                 backgroundColor: agent === "kira" ? "#C5E34A" : "transparent",
-                color: agent === "kira" ? "#000000" : "rgba(255,255,255,0.45)",
+                color: agent === "kira" ? "#000000" : "rgba(255,255,255,0.55)",
               }}
             >
               Kira
@@ -75,7 +75,7 @@ export function Header({
               className="px-4 py-1.5 rounded-full text-[14px] font-medium transition-all duration-200 disabled:opacity-50"
               style={{
                 backgroundColor: agent === "kronos" ? "#00E5FF" : "transparent",
-                color: agent === "kronos" ? "#000000" : "rgba(255,255,255,0.45)",
+                color: agent === "kronos" ? "#000000" : "rgba(255,255,255,0.55)",
               }}
             >
               Kronos

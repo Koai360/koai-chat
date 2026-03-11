@@ -211,7 +211,10 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
   const bgDeep = agent === "kronos" ? "#000000" : "#1A0A33";
 
   return (
-    <div className="safe-bottom max-w-[48rem] mx-auto w-full px-4 pb-2 md:pb-4 pt-2">
+    <div
+      className="max-w-[48rem] mx-auto w-full px-4 pt-2"
+      style={{ paddingBottom: "max(8px, env(safe-area-inset-bottom))" }}
+    >
       {/* Error toast */}
       <AnimatePresence>
         {error && (

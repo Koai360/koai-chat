@@ -199,6 +199,7 @@ export async function streamKiraMessage(
               fullText += parsed.text;
               callbacks.onToken(fullText);
             } else if (currentEvent === "image" && parsed.image) {
+              // image puede ser URL pública o base64 (fallback)
               image = parsed.image;
               callbacks.onImage?.(parsed.image);
             } else if (currentEvent === "agent" && parsed.agent) {
@@ -558,6 +559,44 @@ export async function createMemory(data: { type: string; title: string; content:
 
 export async function deleteMemory(id: string): Promise<void> {
   await fetch(`${API_URL}/api/kronos/memory/${id}`, {
+    method: "DELETE",
+    headers: getHeaders(),
+  });
+}
+
+
+// ─── User Memories ───────────────────────────────────────────────────────────
+
+export interface UserMemory {
+  id: string;
+  type: "preference" | "context" | "fact" | "instruction";
+  content: string;
+  source: string;
+  agent: string;
+  relevance_score: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function fetchUserMemories(type?: string): Promise<UserMemory[]> {
+  const params = type && type !== "all" ? `?type=${type}` : "";
+  const res = await fetch(`${API_URL}/api/chat/user-memories${params}`, { headers: getHeaders() });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+export async function createUserMemory(data: { type: string; content: string }): Promise<UserMemory> {
+  const res = await fetch(`${API_URL}/api/chat/user-memories`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+export async function deleteUserMemory(id: string): Promise<void> {
+  await fetch(`${API_URL}/api/chat/user-memories/${id}`, {
     method: "DELETE",
     headers: getHeaders(),
   });

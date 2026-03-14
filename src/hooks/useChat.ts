@@ -242,13 +242,15 @@ export function useChat(userId: string | null = null) {
           assistantImage = assistantImage || (res.image ?? undefined);
           setStreamingText("");
         } else {
+          const MAX_HISTORY_MESSAGES = 40; // últimos 20 pares user/assistant
           const history =
             conversations
               .find((c) => c.id === convoId)
               ?.messages.map((m) => ({
                 role: m.role === "user" ? ("user" as const) : ("assistant" as const),
                 content: m.content,
-              })) || [];
+              }))
+              .slice(-MAX_HISTORY_MESSAGES) || [];
 
           assistantContent = await streamKronosMessage(
             displayText,

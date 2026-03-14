@@ -66,8 +66,11 @@ function CodeBlock({ children, className }: { children: string; className?: stri
 }
 
 function ImageBlock({ image, isUser, onImageClick }: { image: string; isUser: boolean; onImageClick?: (src: string) => void }) {
-  const mime = image.startsWith("iVBOR") ? "image/png" : image.startsWith("R0lGOD") ? "image/gif" : image.startsWith("UklGR") ? "image/webp" : "image/jpeg";
-  const src = `data:${mime};base64,${image}`;
+  // Soportar tanto URLs públicas como base64
+  const isUrl = image.startsWith("http://") || image.startsWith("https://");
+  const src = isUrl
+    ? image
+    : `data:${image.startsWith("iVBOR") ? "image/png" : image.startsWith("R0lGOD") ? "image/gif" : image.startsWith("UklGR") ? "image/webp" : "image/jpeg"};base64,${image}`;
   return (
     <img
       src={src}

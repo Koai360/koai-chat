@@ -1,9 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { API_URL } from "@/config";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 interface Props {
   onLogin: (username: string, password: string) => Promise<void>;
@@ -115,115 +113,176 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
     }
   };
 
+  const handleGoogleButtonClick = () => {
+    const googleBtn = googleBtnRef.current?.querySelector('div[role="button"]') as HTMLElement;
+    if (googleBtn) {
+      googleBtn.click();
+    }
+  };
+
   return (
-    <div className="h-full flex flex-col items-center justify-center bg-bg px-6 safe-top safe-bottom relative overflow-hidden">
-      {/* Subtle background */}
-      <div className="login-bg" />
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="w-full max-w-sm relative z-10"
-      >
-        {/* Logo */}
-        <div className="flex flex-col items-center mb-10">
-          <div className="relative mb-5">
-            <div className="absolute inset-0 rounded-[22px] bg-brand/20 blur-xl" />
-            <img
-              src="/icons/kira-logo.svg"
-              alt="KOAI"
-              className="relative w-24 h-24 rounded-[22px] shadow-xl"
-            />
-          </div>
-          <h1 className="text-2xl font-bold text-text tracking-tight font-display">KOAI Chat</h1>
-          <p className="text-sm text-text-muted mt-1">Kira & Kronos — KOAI Studios</p>
+    <div className="h-full flex flex-col bg-white relative overflow-hidden">
+      {/* Header image — dark mountains/particles with KOAI logo */}
+      <div className="relative w-full shrink-0" style={{ height: "calc(308px + env(safe-area-inset-top, 0px))" }}>
+        <img
+          src="/images/login-header.png"
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div
+          className="relative z-10 flex items-center justify-center"
+          style={{ paddingTop: "calc(9px + env(safe-area-inset-top, 0px))" }}
+        >
+          <img
+            src="/images/koai-logo.png"
+            alt="KOAI Studios"
+            className="h-14 object-contain"
+          />
         </div>
+      </div>
 
-        {/* Google Sign-In */}
-        {!showFallback && (
-          <div className="flex flex-col items-center gap-4">
-            <div ref={googleBtnRef} className={googleReady ? "" : "opacity-0 h-0"} />
-            {!googleReady && (
-              <div className="flex items-center gap-2 text-sm text-text-muted">
+      {/* Main content — centered */}
+      <div className="flex-1 flex flex-col items-center justify-center px-[52px]">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          className="w-full max-w-[335px] flex flex-col items-center gap-[36px]"
+        >
+          {/* Bot icon + text */}
+          <div className="flex flex-col items-center gap-2 w-full">
+            <img
+              src="/images/kira-bot.svg"
+              alt="Kira AI"
+              className="w-[90px] h-[90px]"
+            />
+            <div className="text-center w-full">
+              <h1
+                className="text-[24px] font-semibold text-[#0D121C] leading-normal"
+                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              >
+                Lets Get Started
+              </h1>
+              <p
+                className="text-[16px] text-[#4B5565] leading-[1.6] tracking-[-0.32px] mt-1"
+                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              >
+                Experience smarter conversations
+                <br />
+                with Kira AI
+              </p>
+            </div>
+          </div>
+
+          {/* Google Sign-In */}
+          <div className="w-full flex flex-col items-center gap-4">
+            {/* Hidden real Google button */}
+            <div ref={googleBtnRef} className="absolute opacity-0 pointer-events-none" />
+
+            {/* Custom styled button matching Figma */}
+            <button
+              onClick={handleGoogleButtonClick}
+              disabled={loading}
+              className="w-full h-[64px] rounded-[16px] flex items-center justify-center gap-[10px] transition-all active:scale-[0.98] disabled:opacity-60"
+              style={{ backgroundColor: "#582C77" }}
+            >
+              {loading ? (
+                <Loader2 className="w-6 h-6 animate-spin text-[#C0D930]" />
+              ) : (
+                <>
+                  <img src="/images/google-icon.svg" alt="" className="w-5 h-5" />
+                  <span
+                    className="text-[28px] tracking-[0.38px] leading-[34px]"
+                    style={{ fontFamily: "-apple-system, 'SF Pro', sans-serif", color: "#C0D930" }}
+                  >
+                    Sign Up with Google
+                  </span>
+                </>
+              )}
+            </button>
+
+            {/* Loading / fallback link */}
+            {!googleReady && !showFallback && (
+              <div className="flex items-center gap-2 text-sm text-[#4B5565]">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Cargando...
               </div>
             )}
-            <p className="text-[11px] text-text-muted text-center">Solo cuentas @koai360.com</p>
-            {!googleReady && (
-              <button
-                type="button"
-                onClick={() => setShowFallback(true)}
-                className="text-xs text-kira hover:underline mt-2"
-              >
-                Usar login manual
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Fallback login */}
-        {showFallback && (
-          <motion.form
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            onSubmit={handleFallbackSubmit}
-            className="space-y-3"
-          >
-            <Input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Usuario"
-              autoComplete="username"
-              autoCapitalize="none"
-              autoCorrect="off"
-              disabled={loading}
-              className="h-12 bg-bg-surface border-border-subtle"
-            />
-            <Input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Contraseña"
-              autoComplete="current-password"
-              disabled={loading}
-              className="h-12 bg-bg-surface border-border-subtle"
-            />
-            <Button
-              type="submit"
-              disabled={loading || !username.trim() || !password.trim()}
-              className="w-full h-12 bg-gradient-to-r from-brand to-brand/80 hover:from-brand/90 hover:to-brand/70 text-white font-semibold shadow-lg shadow-brand/25"
+            <button
+              type="button"
+              onClick={() => setShowFallback(true)}
+              className="text-xs text-[#582C77] hover:underline"
             >
-              {loading ? "Entrando..." : "Iniciar sesión"}
-            </Button>
-          </motion.form>
-        )}
-
-        {/* Error */}
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-destructive/10 mt-4"
-          >
-            <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
-            <p className="text-sm text-destructive">{error}</p>
-          </motion.div>
-        )}
-
-        {loading && !showFallback && (
-          <div className="flex items-center justify-center gap-2 text-sm text-text-muted mt-4">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Verificando...
+              Usar login manual
+            </button>
           </div>
-        )}
 
-        <p className="text-center text-[11px] text-text-muted/60 mt-10">
-          KOAI Studios — Powered by AI
-        </p>
-      </motion.div>
+          {/* Fallback login form */}
+          {showFallback && (
+            <motion.form
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              onSubmit={handleFallbackSubmit}
+              className="w-full space-y-3"
+            >
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Usuario"
+                autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                disabled={loading}
+                className="w-full h-12 px-4 rounded-[12px] border border-[#E5E7EB] bg-[#F9FAFB] text-[#0D121C] text-[16px] outline-none focus:border-[#582C77] transition-colors"
+                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Contraseña"
+                autoComplete="current-password"
+                disabled={loading}
+                className="w-full h-12 px-4 rounded-[12px] border border-[#E5E7EB] bg-[#F9FAFB] text-[#0D121C] text-[16px] outline-none focus:border-[#582C77] transition-colors"
+                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              />
+              <button
+                type="submit"
+                disabled={loading || !username.trim() || !password.trim()}
+                className="w-full h-[56px] rounded-[16px] text-[18px] font-semibold text-[#C0D930] transition-all active:scale-[0.98] disabled:opacity-60"
+                style={{ backgroundColor: "#582C77", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              >
+                {loading ? "Entrando..." : "Iniciar sesión"}
+              </button>
+            </motion.form>
+          )}
+
+          {/* Error */}
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="w-full px-4 py-3 rounded-[12px] bg-red-50 border border-red-200"
+            >
+              <p className="text-sm text-red-600 text-center">{error}</p>
+            </motion.div>
+          )}
+        </motion.div>
+      </div>
+
+      {/* Bottom — "Lets Get Started" + home indicator */}
+      <div
+        className="shrink-0 flex flex-col items-center pb-2"
+        style={{ paddingBottom: "max(8px, env(safe-area-inset-bottom))" }}
+      >
+        <h2
+          className="text-[24px] font-semibold text-[#0D121C] text-center"
+          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        >
+          Lets Get Started
+        </h2>
+      </div>
     </div>
   );
 }

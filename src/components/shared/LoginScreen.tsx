@@ -125,31 +125,31 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
       {/* Hidden real Google SSO button */}
       <div ref={googleBtnRef} className="absolute opacity-0 pointer-events-none" />
 
-      {/* ===== HEADER BG — top 0, full width, 308px tall ===== */}
+      {/* ===== HEADER BG — top 0, 308px (Figma includes safe area) ===== */}
       <img
         src="/images/login-header-bg.svg"
         alt=""
         className="absolute top-0 left-0 w-full"
-        style={{ height: "calc(308px + env(safe-area-inset-top, 0px))" }}
+        style={{ height: "32.2%" }}
       />
 
-      {/* ===== KOAI LOGO — top 68px, centered ===== */}
+      {/* ===== KOAI LOGO — top 68/956 = 7.1% ===== */}
       <img
         src="/images/koai-logo-lg.png"
         alt="KOAI Studios"
         className="absolute left-1/2 -translate-x-1/2"
         style={{
-          width: "178px",
-          height: "100px",
+          width: "40.5%",
+          maxWidth: "178px",
           objectFit: "contain",
-          top: "calc(68px + env(safe-area-inset-top, 0px))",
+          top: "7.1%",
         }}
       />
 
-      {/* ===== CENTER CONTENT — vertically centered, offset +22px ===== */}
+      {/* ===== CENTER CONTENT — top 352/956 = 36.8% ===== */}
       <div
-        className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-[36px] w-[335px]"
-        style={{ top: "calc(50% + 22px)" }}
+        className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center w-[335px] max-w-[calc(100%-40px)]"
+        style={{ top: "36.8%" }}
       >
         {/* Bot icon + text */}
         <div className="flex flex-col items-center gap-[8px] w-full">
@@ -248,10 +248,10 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
         )}
       </div>
 
-      {/* ===== BOTTOM — "Lets Get Started" at 49px from bottom ===== */}
+      {/* ===== BOTTOM — top 892/956 = 93.3% ===== */}
       <div
         className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center gap-[8px]"
-        style={{ bottom: "calc(15px + env(safe-area-inset-bottom, 0px))" }}
+        style={{ top: "93.3%" }}
       >
         <p
           className="text-[24px] font-semibold text-[#0D121C] text-center whitespace-nowrap"

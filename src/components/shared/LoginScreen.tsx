@@ -121,11 +121,11 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
   };
 
   return (
-    <div className="h-full flex flex-col bg-white relative overflow-hidden">
+    <div className="fixed inset-0 flex flex-col bg-white relative overflow-hidden z-50">
       {/* Header image — dark mountains/particles with KOAI logo */}
       <div className="relative w-full shrink-0" style={{ height: "calc(308px + env(safe-area-inset-top, 0px))" }}>
         <img
-          src="/images/login-header.png"
+          src="/images/login-header.svg"
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
         />

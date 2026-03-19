@@ -119,8 +119,8 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
 
   return (
     <div
-      className="fixed inset-0 flex flex-col overflow-auto z-50"
-      style={{ backgroundColor: "rgba(238, 229, 221, 0.4)" }}
+      className="fixed inset-0 flex flex-col overflow-hidden z-50"
+      style={{ backgroundColor: "#EDE5DD" }}
     >
       {/* ===== HEADER — Dark mountains with KOAI logo ===== */}
       <div

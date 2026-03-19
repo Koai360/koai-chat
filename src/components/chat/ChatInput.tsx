@@ -36,6 +36,44 @@ interface Props {
 }
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const MAX_BASE64_SIZE = 2 * 1024 * 1024; // 2MB max base64 para enviar al backend
+
+function compressImage(dataUrl: string, maxBytes: number): Promise<{ base64: string; preview: string }> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      let { width, height } = img;
+      // Escalar si es muy grande
+      const maxDim = 1536;
+      if (width > maxDim || height > maxDim) {
+        const ratio = Math.min(maxDim / width, maxDim / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Intentar JPEG con calidad decreciente hasta que quepa
+      let quality = 0.85;
+      let result = canvas.toDataURL("image/jpeg", quality);
+      while (result.length * 0.75 > maxBytes && quality > 0.3) {
+        quality -= 0.1;
+        result = canvas.toDataURL("image/jpeg", quality);
+      }
+      const b64 = result.split(",")[1];
+      resolve({ base64: b64, preview: result });
+    };
+    img.onerror = () => {
+      // Fallback: devolver original
+      const b64 = dataUrl.split(",")[1];
+      resolve({ base64: b64, preview: dataUrl });
+    };
+    img.src = dataUrl;
+  });
+}
 
 const ENGINE_OPTIONS = [
   { value: "gemini", label: "Rápida", icon: "zap", desc: "Gemini · gratis" },
@@ -132,12 +170,21 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Ask A
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > MAX_IMAGE_SIZE) { setError("Imagen muy grande (máx 5MB)"); return; }
+    if (file.size > MAX_IMAGE_SIZE) { setError("Imagen muy grande (max 5MB)"); return; }
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       const dataUrl = reader.result as string;
-      setImagePreview(dataUrl);
-      setImageBase64(dataUrl.split(",")[1]);
+      const raw64 = dataUrl.split(",")[1];
+      if (!raw64 || raw64.length < 100) { setError("Imagen corrupta, intenta otra"); return; }
+      // Comprimir si excede 2MB
+      if (raw64.length > MAX_BASE64_SIZE) {
+        const { base64, preview } = await compressImage(dataUrl, MAX_BASE64_SIZE);
+        setImagePreview(preview);
+        setImageBase64(base64);
+      } else {
+        setImagePreview(dataUrl);
+        setImageBase64(raw64);
+      }
     };
     reader.readAsDataURL(file);
     e.target.value = "";
@@ -193,12 +240,22 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Ask A
         setRecordingTime(0);
         setError("Error al grabar");
       };
-      setTimeout(() => { if (recorder.state === "recording") recorder.stop(); }, 60000);
+      const MAX_RECORDING_SECONDS = 120;
+      setTimeout(() => { if (recorder.state === "recording") recorder.stop(); }, MAX_RECORDING_SECONDS * 1000);
       recorder.start();
       mediaRecorderRef.current = recorder;
       setRecording(true);
       setRecordingTime(0);
-      timerRef.current = setInterval(() => setRecordingTime((p) => p + 1), 1000);
+      timerRef.current = setInterval(() => {
+        setRecordingTime((p) => {
+          const next = p + 1;
+          const remaining = MAX_RECORDING_SECONDS - next;
+          if (remaining === 10) setError(`${remaining}s restantes...`);
+          if (remaining === 5 && navigator.vibrate) navigator.vibrate([100, 50, 100]);
+          if (remaining === 0) setError(null);
+          return next;
+        });
+      }, 1000);
       if (navigator.vibrate) navigator.vibrate(15);
     } catch { setError("No se pudo acceder al micrófono"); }
   };
@@ -249,7 +306,10 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Ask A
             className="flex items-center gap-2 px-3 py-2"
           >
             <span className="w-2.5 h-2.5 rounded-full bg-danger animate-pulse" />
-            <span className="text-xs font-medium text-danger">Grabando {formatTime(recordingTime)}</span>
+            <span className="text-xs font-medium text-danger">
+              Grabando {formatTime(recordingTime)}
+              {recordingTime >= 110 && <span className="ml-1 opacity-70">({120 - recordingTime}s)</span>}
+            </span>
             <div className="flex-1" />
             <Button variant="destructive" size="sm" className="h-6 text-[10px]" onClick={toggleRecording}>
               Detener
@@ -368,15 +428,23 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Ask A
             onClick={() => {
               const input = document.createElement("input");
               input.type = "file"; input.accept = "image/*"; input.capture = "environment";
-              input.onchange = (e) => {
-                const file = (e.target as HTMLInputElement).files?.[0];
+              input.onchange = (ev) => {
+                const file = (ev.target as HTMLInputElement).files?.[0];
                 if (!file) return;
-                if (file.size > MAX_IMAGE_SIZE) { setError("Imagen muy grande (máx 5MB)"); return; }
+                if (file.size > MAX_IMAGE_SIZE) { setError("Imagen muy grande (max 5MB)"); return; }
                 const reader = new FileReader();
-                reader.onload = () => {
+                reader.onload = async () => {
                   const dataUrl = reader.result as string;
-                  setImagePreview(dataUrl);
-                  setImageBase64(dataUrl.split(",")[1]);
+                  const raw64 = dataUrl.split(",")[1];
+                  if (!raw64 || raw64.length < 100) { setError("Imagen corrupta, intenta otra"); return; }
+                  if (raw64.length > MAX_BASE64_SIZE) {
+                    const { base64, preview } = await compressImage(dataUrl, MAX_BASE64_SIZE);
+                    setImagePreview(preview);
+                    setImageBase64(base64);
+                  } else {
+                    setImagePreview(dataUrl);
+                    setImageBase64(raw64);
+                  }
                 };
                 reader.readAsDataURL(file);
               };

@@ -226,23 +226,47 @@ export function useChat(userId: string | null = null) {
         let assistantContent = "";
         let assistantImage: string | undefined;
 
+        const MAX_STREAM_RETRIES = 1;
+
         if (agent === "kira") {
-          const res = await streamKiraMessage(
-            displayText,
-            convoId || undefined,
-            imageBase64,
-            imageMode,
-            imageEngine,
-            {
-              onToken: (accumulated) => setStreamingText(accumulated),
-              onImage: (img) => { assistantImage = img; },
-            },
-          );
-          assistantContent = res.fullText || "Sin respuesta";
-          assistantImage = assistantImage || (res.image ?? undefined);
+          for (let attempt = 0; attempt <= MAX_STREAM_RETRIES; attempt++) {
+            try {
+              const res = await streamKiraMessage(
+                displayText,
+                convoId || undefined,
+                imageBase64,
+                imageMode,
+                imageEngine,
+                {
+                  onToken: (accumulated) => setStreamingText(accumulated),
+                  onImage: (img) => { assistantImage = img; },
+                },
+              );
+              assistantContent = res.fullText || "";
+              assistantImage = assistantImage || (res.image ?? undefined);
+              if (assistantContent) break;
+              // Respuesta vacia — reintentar una vez
+              if (attempt < MAX_STREAM_RETRIES) {
+                setStreamingText("");
+                console.warn("[useChat] Empty response from Kira, retrying...");
+                await new Promise((r) => setTimeout(r, 1000));
+              }
+            } catch (streamErr) {
+              if (attempt < MAX_STREAM_RETRIES) {
+                setStreamingText("");
+                console.warn("[useChat] Stream error, retrying...", streamErr);
+                await new Promise((r) => setTimeout(r, 1500));
+              } else {
+                throw streamErr;
+              }
+            }
+          }
+          if (!assistantContent) {
+            assistantContent = "No pude generar una respuesta. Intenta enviar tu mensaje de nuevo.";
+          }
           setStreamingText("");
         } else {
-          const MAX_HISTORY_MESSAGES = 40; // últimos 20 pares user/assistant
+          const MAX_HISTORY_MESSAGES = 40;
           const history =
             conversations
               .find((c) => c.id === convoId)
@@ -259,7 +283,9 @@ export function useChat(userId: string | null = null) {
             (partial) => setStreamingText(partial),
             imageBase64,
           );
-          assistantContent = assistantContent || "Sin respuesta";
+          if (!assistantContent) {
+            assistantContent = "No pude generar una respuesta. Intenta enviar tu mensaje de nuevo.";
+          }
           setStreamingText("");
         }
 

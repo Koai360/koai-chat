@@ -114,7 +114,12 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
 
   const handleGoogleButtonClick = () => {
     const googleBtn = googleBtnRef.current?.querySelector('div[role="button"]') as HTMLElement;
-    if (googleBtn) googleBtn.click();
+    if (googleBtn) {
+      googleBtn.click();
+    } else {
+      setError("Google no disponible. Usa login manual.");
+      setShowFallback(true);
+    }
   };
 
   return (

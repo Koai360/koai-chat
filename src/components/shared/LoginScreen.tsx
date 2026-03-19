@@ -119,168 +119,146 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
 
   return (
     <div
-      className="fixed inset-0 flex flex-col overflow-hidden z-50"
+      className="fixed inset-0 overflow-hidden z-50"
       style={{ backgroundColor: "#EDE5DD" }}
     >
-      {/* ===== HEADER — Dark mountains with KOAI logo ===== */}
-      <div
-        className="relative w-full shrink-0 overflow-hidden"
+      {/* Hidden real Google SSO button */}
+      <div ref={googleBtnRef} className="absolute opacity-0 pointer-events-none" />
+
+      {/* ===== HEADER BG — top 0, full width, 308px tall ===== */}
+      <img
+        src="/images/login-header-bg.svg"
+        alt=""
+        className="absolute top-0 left-0 w-full"
         style={{ height: "calc(308px + env(safe-area-inset-top, 0px))" }}
-      >
-        {/* Background image — full width, covers safe area */}
-        <img
-          src="/images/login-header-bg.svg"
-          alt=""
-          className="absolute inset-0 w-full h-full"
-          style={{ objectFit: "cover", objectPosition: "center bottom" }}
-        />
-        {/* KOAI Studios logo — centered, 178x100 at top:68px from Figma */}
-        <img
-          src="/images/koai-logo-lg.png"
-          alt="KOAI Studios"
-          className="absolute left-1/2 -translate-x-1/2"
-          style={{
-            width: "178px",
-            height: "100px",
-            objectFit: "contain",
-            top: "calc(68px + env(safe-area-inset-top, 0px))",
-          }}
-        />
-      </div>
+      />
 
-      {/* ===== CENTER CONTENT — Bot icon + Text + Button ===== */}
-      <div className="flex-1 flex flex-col items-center justify-center px-[52px]">
-        <div className="w-full max-w-[335px] flex flex-col items-center gap-[36px]">
-          {/* Bot icon 90x90 + Text block */}
-          <div className="flex flex-col items-center gap-[8px] w-full">
-            <img
-              src="/images/kira-bot-icon.svg"
-              alt="Kira AI"
-              className="w-[90px] h-[90px]"
-            />
-            <div className="flex flex-col items-center justify-center h-[98px] w-full text-center">
-              <p
-                className="text-[24px] font-semibold text-[#0D121C] leading-normal"
-                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-              >
-                Lets Get Started
-              </p>
-              <p
-                className="text-[16px] font-normal text-[#4B5565] leading-[1.6] tracking-[-0.32px]"
-                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-              >
-                Experience smarter conversations
-                <br />
-                with Kira AI
-              </p>
-            </div>
-          </div>
+      {/* ===== KOAI LOGO — top 68px, centered ===== */}
+      <img
+        src="/images/koai-logo-lg.png"
+        alt="KOAI Studios"
+        className="absolute left-1/2 -translate-x-1/2"
+        style={{
+          width: "178px",
+          height: "100px",
+          objectFit: "contain",
+          top: "calc(68px + env(safe-area-inset-top, 0px))",
+        }}
+      />
 
-          {/* Google Sign-In button — #582C77 bg, rounded-20/16, h-64 */}
-          <div className="w-full">
-            {/* Hidden real Google SSO button */}
-            <div ref={googleBtnRef} className="absolute opacity-0 pointer-events-none" />
-
-            {/* Visible styled button matching Figma exactly */}
-            <button
-              onClick={handleGoogleButtonClick}
-              disabled={loading}
-              className="w-full h-[64px] rounded-[16px] flex items-center justify-center gap-[10px] p-[16px] transition-all active:scale-[0.98] disabled:opacity-60"
-              style={{ backgroundColor: "#582C77", borderRadius: "20px" }}
-            >
-              {loading ? (
-                <Loader2 className="w-6 h-6 animate-spin text-[#C0D930]" />
-              ) : (
-                <>
-                  <img src="/images/google-g-icon.svg" alt="" className="w-5 h-5 shrink-0" />
-                  <span
-                    className="text-[28px] tracking-[0.38px] leading-[34px] whitespace-nowrap"
-                    style={{ fontFamily: "-apple-system, 'SF Pro', system-ui, sans-serif", color: "#C0D930" }}
-                  >
-                    Sign Up with Google
-                  </span>
-                </>
-              )}
-            </button>
-
-            {/* Manual login link */}
-            <div className="flex flex-col items-center gap-2 mt-4">
-              {!googleReady && !showFallback && (
-                <div className="flex items-center gap-2 text-[14px] text-[#4B5565]">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Cargando...
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={() => setShowFallback(true)}
-                className="text-[13px] text-[#582C77] hover:underline"
-                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-              >
-                Usar login manual
-              </button>
-            </div>
-          </div>
-
-          {/* Fallback login form */}
-          {showFallback && (
-            <form onSubmit={handleFallbackSubmit} className="w-full space-y-3">
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Usuario"
-                autoComplete="username"
-                autoCapitalize="none"
-                autoCorrect="off"
-                disabled={loading}
-                className="w-full h-[52px] px-4 rounded-[14px] border border-[#D5CEC8] text-[#0D121C] text-[16px] outline-none focus:border-[#582C77] transition-colors"
-                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", backgroundColor: "rgba(255,255,255,0.6)" }}
-              />
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Contraseña"
-                autoComplete="current-password"
-                disabled={loading}
-                className="w-full h-[52px] px-4 rounded-[14px] border border-[#D5CEC8] text-[#0D121C] text-[16px] outline-none focus:border-[#582C77] transition-colors"
-                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", backgroundColor: "rgba(255,255,255,0.6)" }}
-              />
-              <button
-                type="submit"
-                disabled={loading || !username.trim() || !password.trim()}
-                className="w-full h-[56px] rounded-[16px] text-[18px] font-semibold transition-all active:scale-[0.98] disabled:opacity-60"
-                style={{ backgroundColor: "#582C77", color: "#C0D930", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-              >
-                {loading ? "Entrando..." : "Iniciar sesión"}
-              </button>
-            </form>
-          )}
-
-          {/* Error */}
-          {error && (
-            <div className="w-full px-4 py-3 rounded-[14px] bg-red-50 border border-red-200">
-              <p className="text-[14px] text-red-600 text-center" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                {error}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ===== BOTTOM — "Lets Get Started" + Home Indicator ===== */}
+      {/* ===== CENTER CONTENT — vertically centered, offset +22px ===== */}
       <div
-        className="shrink-0 flex flex-col items-center gap-[8px] pb-[8px]"
-        style={{ paddingBottom: "env(safe-area-inset-bottom, 8px)" }}
+        className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-[36px] w-[335px]"
+        style={{ top: "calc(50% + 22px)" }}
+      >
+        {/* Bot icon + text */}
+        <div className="flex flex-col items-center gap-[8px] w-full">
+          <img src="/images/kira-bot-icon.svg" alt="Kira AI" className="w-[90px] h-[90px]" />
+          <div className="text-center w-full">
+            <p
+              className="text-[24px] font-semibold text-[#0D121C] leading-normal"
+              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+            >
+              Lets Get Started
+            </p>
+            <p
+              className="text-[16px] font-normal text-[#4B5565] leading-[1.6] tracking-[-0.32px]"
+              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+            >
+              Experience smarter conversations
+              <br />
+              with Kira AI
+            </p>
+          </div>
+        </div>
+
+        {/* Google button */}
+        <button
+          onClick={handleGoogleButtonClick}
+          disabled={loading}
+          className="w-full h-[64px] flex items-center justify-center gap-[10px] p-[16px] transition-all active:scale-[0.98] disabled:opacity-60"
+          style={{ backgroundColor: "#582C77", borderRadius: "20px" }}
+        >
+          {loading ? (
+            <Loader2 className="w-6 h-6 animate-spin text-[#C0D930]" />
+          ) : (
+            <>
+              <img src="/images/google-g-icon.svg" alt="" className="w-5 h-5 shrink-0" />
+              <span
+                className="text-[28px] tracking-[0.38px] leading-[34px] whitespace-nowrap"
+                style={{ fontFamily: "-apple-system, 'SF Pro', system-ui, sans-serif", color: "#C0D930" }}
+              >
+                Sign Up with Google
+              </span>
+            </>
+          )}
+        </button>
+
+        {/* Manual login link */}
+        <button
+          type="button"
+          onClick={() => setShowFallback(true)}
+          className="text-[13px] text-[#582C77] hover:underline"
+          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        >
+          Usar login manual
+        </button>
+
+        {/* Fallback form */}
+        {showFallback && (
+          <form onSubmit={handleFallbackSubmit} className="w-full space-y-3">
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Usuario"
+              autoComplete="username"
+              autoCapitalize="none"
+              autoCorrect="off"
+              disabled={loading}
+              className="w-full h-[52px] px-4 rounded-[14px] border border-[#D5CEC8] text-[#0D121C] text-[16px] outline-none focus:border-[#582C77] transition-colors"
+              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", backgroundColor: "rgba(255,255,255,0.6)" }}
+            />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Contraseña"
+              autoComplete="current-password"
+              disabled={loading}
+              className="w-full h-[52px] px-4 rounded-[14px] border border-[#D5CEC8] text-[#0D121C] text-[16px] outline-none focus:border-[#582C77] transition-colors"
+              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", backgroundColor: "rgba(255,255,255,0.6)" }}
+            />
+            <button
+              type="submit"
+              disabled={loading || !username.trim() || !password.trim()}
+              className="w-full h-[56px] rounded-[16px] text-[18px] font-semibold transition-all active:scale-[0.98] disabled:opacity-60"
+              style={{ backgroundColor: "#582C77", color: "#C0D930", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+            >
+              {loading ? "Entrando..." : "Iniciar sesión"}
+            </button>
+          </form>
+        )}
+
+        {/* Error */}
+        {error && (
+          <div className="w-full px-4 py-3 rounded-[14px] bg-red-50 border border-red-200">
+            <p className="text-[14px] text-red-600 text-center">{error}</p>
+          </div>
+        )}
+      </div>
+
+      {/* ===== BOTTOM — "Lets Get Started" at 49px from bottom ===== */}
+      <div
+        className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center gap-[8px]"
+        style={{ bottom: "calc(15px + env(safe-area-inset-bottom, 0px))" }}
       >
         <p
-          className="text-[24px] font-semibold text-[#0D121C] text-center"
+          className="text-[24px] font-semibold text-[#0D121C] text-center whitespace-nowrap"
           style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
         >
           Lets Get Started
         </p>
-        {/* Home indicator visual (iOS renders its own, this matches Figma) */}
         <div className="w-[134px] h-[5px] rounded-[100px] bg-[#0D121C]" />
       </div>
     </div>

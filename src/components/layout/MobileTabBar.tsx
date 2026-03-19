@@ -16,8 +16,8 @@ const TABS: { page: Page; icon: typeof House; label: string }[] = [
 
 export function MobileTabBar({ currentPage, onNavigate }: Props) {
   return (
-    <nav className="md:hidden shrink-0 bg-bg-sidebar border-t border-border">
-      <div className="flex items-center justify-around h-[56px]">
+    <nav className="md:hidden shrink-0 bg-bg-sidebar border-t border-border pb-[env(safe-area-inset-bottom,0px)]">
+      <div className="flex items-center justify-around h-[50px]">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = currentPage === tab.page;

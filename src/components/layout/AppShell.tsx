@@ -230,13 +230,13 @@ export function AppShell({ user, onLogout }: Props) {
           <main className="flex-1 overflow-hidden">
             {renderPage()}
           </main>
-        </div>
 
-        {/* Mobile Tab Bar */}
-        <MobileTabBar
-          currentPage={currentPage}
-          onNavigate={navigate}
-        />
+          {/* Mobile Tab Bar — in flow, not fixed */}
+          <MobileTabBar
+            currentPage={currentPage}
+            onNavigate={navigate}
+          />
+        </div>
 
         {/* Right panels as Sheet */}
         <Sheet open={activePanel !== null} onOpenChange={(open) => !open && setActivePanel(null)}>

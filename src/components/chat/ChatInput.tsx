@@ -265,7 +265,7 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Ask A
 
   return (
     <div
-      className="max-w-[48rem] mx-auto w-full px-4 pt-2 pb-2"
+      className="max-w-[48rem] mx-auto w-full px-4 pt-2 pb-1 md:pb-2"
     >
       {/* Error toast */}
       <AnimatePresence>
@@ -495,8 +495,8 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Ask A
         )}
       </div>
 
-      {/* Disclaimer */}
-      <p className="text-[11px] text-text-muted text-center mt-2">
+      {/* Disclaimer — hidden on mobile to save space */}
+      <p className="hidden md:block text-[11px] text-text-muted text-center mt-2">
         Kira can make mistakes. Consider checking important information.
       </p>
     </div>

@@ -3,12 +3,20 @@ import { AnimatePresence } from "framer-motion";
 import type { AuthUser } from "@/hooks/useAuth";
 import { useChat } from "@/hooks/useChat";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useNavigation } from "@/hooks/useNavigation";
+import { useTheme } from "@/hooks/useTheme";
 import { transcribeAudio } from "@/lib/api";
 import { requestPushPermission } from "@/lib/push";
-import { Header } from "./Header";
-import { Sidebar } from "./Sidebar";
+import { IconRail } from "./IconRail";
+import { FullSidebar } from "./FullSidebar";
+import { ContentTopBar } from "./ContentTopBar";
+import { MobileTabBar } from "./MobileTabBar";
 import { ChatView } from "@/components/chat/ChatView";
-import { ImageGallery } from "@/components/gallery/ImageGallery";
+import { HomePage } from "@/components/pages/HomePage";
+import { ChatHistoryPage } from "@/components/pages/ChatHistoryPage";
+import { ExplorePage } from "@/components/pages/ExplorePage";
+import { MediaGalleryPage } from "@/components/pages/MediaGalleryPage";
+import { SettingsPage } from "@/components/pages/SettingsPage";
 import { ImageViewer } from "@/components/gallery/ImageViewer";
 import { NotificationsPanel } from "@/components/panels/NotificationsPanel";
 import { BriefsPanel } from "@/components/panels/BriefsPanel";
@@ -47,17 +55,12 @@ export function AppShell({ user, onLogout }: Props) {
     renameConversation,
   } = useChat(user.id);
 
-  const { notifications, unreadCount, markRead, markAllRead, removeOne, removeAll } = useNotifications();
+  const { notifications, unreadCount: _unreadCount, markRead, markAllRead, removeOne, removeAll } = useNotifications();
+  const { currentPage, navigate } = useNavigation();
+  const { theme, toggleTheme } = useTheme();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarPinned, setSidebarPinned] = useState(() => {
-    if (typeof window !== "undefined" && window.innerWidth >= 768) {
-      return localStorage.getItem("koai-sidebar-pinned") === "true";
-    }
-    return false;
-  });
   const [activePanel, setActivePanel] = useState<PanelType>(null);
-  const [showGallery, setShowGallery] = useState(false);
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [swUpdate, setSwUpdate] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
@@ -67,12 +70,6 @@ export function AppShell({ user, onLogout }: Props) {
     const t = setTimeout(() => setShowSplash(false), 2200);
     return () => clearTimeout(t);
   }, []);
-
-  // Sync body background with agent so safe-area zones match
-  useEffect(() => {
-    document.body.style.backgroundColor = agent === "kronos" ? "#000000" : "#1A0A33";
-    return () => { document.body.style.backgroundColor = ""; };
-  }, [agent]);
 
   // Push subscription
   useEffect(() => {
@@ -92,31 +89,28 @@ export function AppShell({ user, onLogout }: Props) {
     window.location.reload();
   };
 
-  const toggleSidebar = useCallback(() => {
-    const desktop = window.innerWidth >= 768;
-    if (desktop) {
-      setSidebarPinned((prev) => {
-        const next = !prev;
-        localStorage.setItem("koai-sidebar-pinned", String(next));
-        return next;
-      });
-    } else {
-      setSidebarOpen(true);
-    }
-  }, []);
-
+  // Navigate to chat when a conversation is selected
   const handleSelectConvo = useCallback((id: string) => {
     setActiveId(id);
-    if (!sidebarPinned) setSidebarOpen(false);
-  }, [setActiveId, sidebarPinned]);
+    navigate("chat");
+  }, [setActiveId, navigate]);
 
+  // Create new conversation and go to chat
   const handleNewConvo = useCallback(() => {
     newConversation();
-    if (!sidebarPinned) setSidebarOpen(false);
-  }, [newConversation, sidebarPinned]);
+    navigate("chat");
+  }, [newConversation, navigate]);
+
+  // Handle send from HomePage — create convo, send, navigate
+  const handleHomeSend = useCallback((text: string) => {
+    newConversation();
+    navigate("chat");
+    // Small delay to let the conversation be created
+    setTimeout(() => sendMessage(text), 100);
+  }, [newConversation, navigate, sendMessage]);
 
   const sidebarContent = (
-    <Sidebar
+    <FullSidebar
       conversations={conversations}
       activeId={activeId}
       onSelect={handleSelectConvo}
@@ -124,37 +118,97 @@ export function AppShell({ user, onLogout }: Props) {
       onDelete={deleteConversation}
       onRename={renameConversation}
       onMoveToProject={moveToProject}
-      onClose={() => {
-        setSidebarOpen(false);
-        if (sidebarPinned) {
-          setSidebarPinned(false);
-          localStorage.setItem("koai-sidebar-pinned", "false");
-        }
-      }}
+      onClose={() => setSidebarOpen(false)}
       user={user}
       onLogout={onLogout}
+      currentPage={currentPage}
+      onNavigate={navigate}
     />
   );
+
+  const renderPage = () => {
+    switch (currentPage) {
+      case "home":
+        return (
+          <HomePage
+            userName={user.name}
+            onSend={handleHomeSend}
+            onNavigate={navigate}
+          />
+        );
+      case "chat":
+        return (
+          <ChatView
+            conversation={active}
+            agent={agent}
+            loading={loading}
+            loadingHint={loadingHint}
+            streamingText={streamingText}
+            onSend={sendMessage}
+            onTranscribe={transcribeAudio}
+            onDelete={deleteConversation}
+            onDeleteMessages={deleteMessages}
+            userName={user.name}
+            onImageClick={setModalImage}
+          />
+        );
+      case "chatHistory":
+        return (
+          <ChatHistoryPage
+            conversations={conversations}
+            onSelect={handleSelectConvo}
+            onDelete={deleteConversation}
+          />
+        );
+      case "explore":
+        return (
+          <ExplorePage
+            onNavigate={navigate}
+            onStartChat={handleHomeSend}
+          />
+        );
+      case "media":
+        return (
+          <MediaGalleryPage
+            onImageClick={setModalImage}
+          />
+        );
+      case "settings":
+        return (
+          <SettingsPage
+            user={user}
+            onLogout={onLogout}
+            theme={theme}
+            onToggleTheme={toggleTheme}
+          />
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <TooltipProvider delayDuration={0}>
       <AnimatePresence>
         {showSplash && <SplashScreen />}
       </AnimatePresence>
-      <div
-        className="h-full flex text-text transition-colors duration-300"
-        style={{ backgroundColor: agent === "kronos" ? "#000000" : "#1A0A33" }}
-      >
-        {/* Desktop pinned sidebar */}
-        {sidebarPinned && (
-          <div className="hidden md:flex w-[260px] flex-shrink-0 border-r border-border-subtle h-full">
-            {sidebarContent}
-          </div>
-        )}
+
+      <div className="h-full flex bg-bg text-text">
+        {/* Desktop Icon Rail */}
+        <IconRail
+          currentPage={currentPage}
+          onNavigate={navigate}
+          user={user}
+          onLogout={onLogout}
+          agent={agent}
+        />
 
         {/* Mobile sidebar drawer */}
-        <Drawer open={sidebarOpen && !sidebarPinned} onOpenChange={setSidebarOpen} direction="left">
-          <DrawerContent className="h-full w-[min(280px,85vw)] rounded-none border-none bg-bg-sidebar" style={{ backgroundColor: "#150827" }} aria-describedby={undefined}>
+        <Drawer open={sidebarOpen} onOpenChange={setSidebarOpen} direction="left">
+          <DrawerContent
+            className="h-full w-[min(280px,85vw)] rounded-none border-none bg-bg-sidebar"
+            aria-describedby={undefined}
+          >
             <span className="sr-only">Menú de navegación</span>
             {sidebarContent}
           </DrawerContent>
@@ -162,52 +216,31 @@ export function AppShell({ user, onLogout }: Props) {
 
         {/* Main content */}
         <div className="flex-1 flex flex-col h-full min-w-0">
-          <Header
+          <ContentTopBar
             agent={agent}
             onAgentChange={setAgent}
             agentDisabled={loading}
-            sidebarPinned={sidebarPinned}
-            onToggleSidebar={toggleSidebar}
-            onNewConversation={() => newConversation()}
-            unreadCount={unreadCount}
-            onOpenNotifications={() => setActivePanel("notifications")}
-            onOpenBriefs={() => setActivePanel("briefs")}
-            onOpenMemory={() => setActivePanel("memory")}
-            onOpenSystemStatus={() => setActivePanel("systemStatus")}
-            onOpenGallery={() => setShowGallery(true)}
-            onLogout={onLogout}
+            onNewConversation={handleNewConvo}
+            user={user}
+            theme={theme}
+            onToggleTheme={toggleTheme}
+            onOpenSidebar={() => setSidebarOpen(true)}
           />
 
-          <main
-            className="flex-1 overflow-hidden bg-bg"
-            style={{ paddingTop: "calc(56px + env(safe-area-inset-top, 0px))" }}
-          >
-            {showGallery ? (
-              <ImageGallery
-                onClose={() => setShowGallery(false)}
-                onImageClick={setModalImage}
-              />
-            ) : (
-              <ChatView
-                conversation={active}
-                agent={agent}
-                loading={loading}
-                loadingHint={loadingHint}
-                streamingText={streamingText}
-                onSend={sendMessage}
-                onTranscribe={transcribeAudio}
-                onDelete={deleteConversation}
-                onDeleteMessages={deleteMessages}
-                userName={user.name}
-                onImageClick={setModalImage}
-              />
-            )}
+          <main className="flex-1 overflow-hidden">
+            {renderPage()}
           </main>
         </div>
 
+        {/* Mobile Tab Bar */}
+        <MobileTabBar
+          currentPage={currentPage}
+          onNavigate={navigate}
+        />
+
         {/* Right panels as Sheet */}
         <Sheet open={activePanel !== null} onOpenChange={(open) => !open && setActivePanel(null)}>
-          <SheetContent side="right" className="w-[min(380px,92vw)] p-0 bg-bg-sidebar border-border-subtle">
+          <SheetContent side="right" className="w-[min(380px,92vw)] p-0 bg-bg-sidebar border-border">
             {activePanel === "notifications" && (
               <NotificationsPanel
                 notifications={notifications}

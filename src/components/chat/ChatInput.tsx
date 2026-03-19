@@ -14,7 +14,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus,
-  Send,
+  ArrowUp,
   Mic,
   Camera,
   Paperclip,
@@ -44,7 +44,7 @@ const ENGINE_OPTIONS = [
   { value: "studioflux-raw", label: "Studio RAW", icon: "unlock", desc: "Sin filtro" },
 ] as const;
 
-export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escribe un mensaje...", autoFocus, agent }: Props) {
+export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Ask AI a question or make a request", autoFocus, agent = "kira" }: Props) {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
@@ -206,10 +206,6 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
   const hasContent = text.trim().length > 0 || !!imageBase64;
   const isDisabled = disabled || transcribing;
 
-
-  const lime = agent === "kronos" ? "#00E5FF" : "#C5E34A";
-  const bgDeep = agent === "kronos" ? "#000000" : "#1A0A33";
-
   return (
     <div
       className="max-w-[48rem] mx-auto w-full px-4 pt-2"
@@ -222,7 +218,7 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
-            className="mx-1 mb-1 px-3 py-1.5 bg-destructive/10 border border-destructive/20 rounded-xl text-xs text-destructive text-center"
+            className="mx-1 mb-1 px-3 py-1.5 bg-danger-soft border border-danger/20 rounded-xl text-xs text-danger text-center"
           >
             {error}
           </motion.div>
@@ -233,10 +229,10 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
       {imagePreview && (
         <div className="px-2 pt-2 pb-1">
           <div className="relative inline-block">
-            <img src={imagePreview} alt="Preview" className="h-20 w-auto rounded-xl object-cover border border-border-subtle" />
+            <img src={imagePreview} alt="Preview" className="h-20 w-auto rounded-xl object-cover border border-border" />
             <button
               onClick={clearImage}
-              className="absolute -top-2 -right-2 w-5 h-5 bg-bg-elevated text-text rounded-full flex items-center justify-center border border-border-subtle active:scale-90"
+              className="absolute -top-2 -right-2 w-5 h-5 bg-bg-elevated text-text rounded-full flex items-center justify-center border border-border active:scale-90"
             >
               <X className="h-3 w-3" />
             </button>
@@ -253,8 +249,8 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
             exit={{ opacity: 0, height: 0 }}
             className="flex items-center gap-2 px-3 py-2"
           >
-            <span className="w-2.5 h-2.5 rounded-full bg-destructive animate-pulse" />
-            <span className="text-xs font-medium text-destructive">Grabando {formatTime(recordingTime)}</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-danger animate-pulse" />
+            <span className="text-xs font-medium text-danger">Grabando {formatTime(recordingTime)}</span>
             <div className="flex-1" />
             <Button variant="destructive" size="sm" className="h-6 text-[10px]" onClick={toggleRecording}>
               Detener
@@ -263,7 +259,7 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
         )}
       </AnimatePresence>
 
-      {/* Image mode bar */}
+      {/* Image mode chip */}
       <AnimatePresence>
         {imageMode && !recording && (
           <motion.div
@@ -272,10 +268,10 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
             exit={{ opacity: 0, height: 0 }}
             className="flex items-center gap-2 px-3 py-2"
           >
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-kira/15 text-kira">
+            <span className="inline-flex items-center gap-1.5 bg-bg-surface border border-border rounded-full px-3 py-1 text-xs font-medium text-text">
               <Palette className="h-3 w-3" />
-              Crear imagen
-              <button onClick={() => setImageMode(false)} className="ml-0.5 hover:text-white">
+              Create Image
+              <button onClick={() => setImageMode(false)} className="ml-0.5 hover:text-text-muted">
                 <X className="h-3 w-3" />
               </button>
             </span>
@@ -314,7 +310,7 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
             <button
               disabled={isDisabled}
               className={`shrink-0 w-[38px] h-[44px] flex items-center justify-center active:scale-90 disabled:opacity-40 transition-all duration-200 ${
-                plusOpen ? "text-kira rotate-45" : "text-text-muted"
+                plusOpen ? "text-text rotate-45" : "text-text-muted"
               }`}
             >
               <Plus className="h-5 w-5" />
@@ -337,8 +333,8 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
               onClick={() => { setImageMode(true); setPlusOpen(false); editorRef.current?.focus(); }}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-text hover:bg-bg-surface transition-colors"
             >
-              <div className="w-8 h-8 rounded-full bg-kira/10 flex items-center justify-center">
-                <Palette className="h-4 w-4 text-kira" />
+              <div className="w-8 h-8 rounded-full bg-bg-surface flex items-center justify-center">
+                <Palette className="h-4 w-4 text-text-muted" />
               </div>
               <div className="text-left">
                 <div className="font-medium text-xs">Crear imagen</div>
@@ -350,12 +346,11 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
 
         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
 
-        {/* Input pill — Figma design */}
+        {/* Input pill */}
         <div
-          className="flex-1 flex items-end rounded-[24px] min-h-[44px] overflow-hidden backdrop-blur-xl shadow-lg transition-all duration-300"
+          className="flex-1 flex items-end rounded-full min-h-[44px] overflow-hidden bg-bg-elevated border border-border transition-all duration-300"
           style={{
-            backgroundColor: "#271648",
-            border: "1px solid rgba(91,45,140,0.40)",
+            boxShadow: "0px 1px 3px 0.5px rgba(0,0,0,0.12), 0px 0.5px 1px 0px rgba(0,0,0,0.08)",
           }}
         >
           <div
@@ -395,43 +390,48 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Escri
           </button>
         </div>
 
-        {/* Send or Mic button */}
-        {hasContent ? (
-          <motion.button
-            initial={{ scale: 0.8 }}
-            animate={{ scale: 1 }}
-            onClick={handleSubmit}
-            disabled={isDisabled}
-            className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center active:scale-90 disabled:opacity-50 transition-all mb-0.5"
-            style={{
-              backgroundColor: lime,
-              boxShadow: `0 0 20px ${lime}4d`,
-            }}
-          >
-            <Send className="h-4 w-4" style={{ color: bgDeep }} />
-          </motion.button>
-        ) : (
+        {/* Mic button */}
+        {!hasContent && (
           <button
             onClick={toggleRecording}
             disabled={isDisabled}
             className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 mb-0.5 disabled:opacity-50 ${
-              recording ? "bg-destructive text-white animate-pulse" : ""
+              recording ? "bg-danger text-white animate-pulse" : "text-text-muted hover:text-text"
             }`}
-            style={!recording && !transcribing ? {
-              backgroundColor: lime,
-              boxShadow: `0 0 20px ${lime}4d`,
-            } : undefined}
           >
             {transcribing ? (
               <Loader2 className="h-4 w-4 animate-spin text-text-muted" />
             ) : recording ? (
               <Square className="h-3.5 w-3.5 fill-current" />
             ) : (
-              <Mic className="h-4 w-4" style={{ color: bgDeep }} />
+              <Mic className="h-4 w-4" />
             )}
           </button>
         )}
+
+        {/* Send button */}
+        {hasContent && (
+          <motion.button
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
+            onClick={handleSubmit}
+            disabled={isDisabled}
+            className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center active:scale-90 disabled:opacity-50 transition-all mb-1"
+            style={{
+              backgroundColor: agent === "kronos" ? "#00E5FF" : "#C5E34A",
+              color: "#0a0a0c",
+              boxShadow: `0 0 12px 2px ${agent === "kronos" ? "rgba(0,229,255,0.3)" : "rgba(197,227,74,0.3)"}`,
+            }}
+          >
+            <ArrowUp className="h-4 w-4" />
+          </motion.button>
+        )}
       </div>
+
+      {/* Disclaimer */}
+      <p className="text-[11px] text-text-muted text-center mt-2">
+        Kira can make mistakes. Consider checking important information.
+      </p>
     </div>
   );
 }

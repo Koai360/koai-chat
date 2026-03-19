@@ -18,8 +18,8 @@ interface Props {
 }
 
 const AGENT_COLORS = {
-  kira:   { lime: "#C5E34A", accent: "#5B2D8C", bg: "#1A0A33" },
-  kronos: { lime: "#00E5FF", accent: "#0A2A3F", bg: "#000000" },
+  kira:   { lime: "var(--color-kira)",   bg: "var(--color-bg)" },
+  kronos: { lime: "var(--color-kronos)", bg: "var(--color-bg)" },
 };
 
 export function Header({
@@ -35,8 +35,8 @@ export function Header({
     <nav
       className="fixed top-0 left-0 right-0 z-40 backdrop-blur-xl transition-colors duration-300"
       style={{
-        backgroundColor: `${colors.bg}cc`,
-        borderBottom: `1px solid ${colors.lime}18`,
+        backgroundColor: `color-mix(in srgb, ${colors.bg} 80%, transparent)`,
+        borderBottom: `1px solid var(--color-border)`,
         paddingTop: "env(safe-area-inset-top)",
       }}
     >
@@ -63,7 +63,7 @@ export function Header({
               disabled={agentDisabled}
               className="px-4 py-1.5 rounded-full text-[14px] font-medium transition-all duration-200 disabled:opacity-50"
               style={{
-                backgroundColor: agent === "kira" ? "#C5E34A" : "transparent",
+                backgroundColor: agent === "kira" ? "var(--color-kira)" : "transparent",
                 color: agent === "kira" ? "#000000" : "rgba(255,255,255,0.55)",
               }}
             >
@@ -74,7 +74,7 @@ export function Header({
               disabled={agentDisabled}
               className="px-4 py-1.5 rounded-full text-[14px] font-medium transition-all duration-200 disabled:opacity-50"
               style={{
-                backgroundColor: agent === "kronos" ? "#00E5FF" : "transparent",
+                backgroundColor: agent === "kronos" ? "var(--color-kronos)" : "transparent",
                 color: agent === "kronos" ? "#000000" : "rgba(255,255,255,0.55)",
               }}
             >

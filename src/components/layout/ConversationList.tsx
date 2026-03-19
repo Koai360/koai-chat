@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import type { Conversation } from "@/hooks/useChat";
-import type { AuthUser } from "@/hooks/useAuth";
 import {
   fetchProjects,
   createProject,
@@ -23,10 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
-
 import {
-  Plus,
   Search,
   MessageSquare,
   Trash2,
@@ -35,7 +31,6 @@ import {
   FolderOpen,
   FolderPlus,
   Hash,
-  Settings,
   Pencil,
 } from "lucide-react";
 
@@ -47,16 +42,13 @@ interface Props {
   onDelete: (id: string) => void;
   onRename?: (id: string, newTitle: string) => void;
   onMoveToProject?: (conversationId: string, projectId: string | null) => void;
-  onClose: () => void;
-  user: AuthUser;
-  onLogout: () => void;
 }
 
 function haptic(ms = 8) {
   if (navigator.vibrate) navigator.vibrate(ms);
 }
 
-function groupByTime(conversations: Conversation[]) {
+export function groupByTime(conversations: Conversation[]) {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const yesterday = new Date(today.getTime() - 86400000);
@@ -83,17 +75,14 @@ function groupByTime(conversations: Conversation[]) {
   return groups.filter((g) => g.items.length > 0);
 }
 
-export function Sidebar({
+export function ConversationList({
   conversations,
   activeId,
   onSelect,
-  onNew,
+  onNew: _onNew,
   onDelete,
   onRename,
   onMoveToProject,
-  onClose,
-  user,
-  onLogout,
 }: Props) {
   const [search, setSearch] = useState("");
   const [projects, setProjects] = useState<ServerProject[]>([]);
@@ -137,7 +126,7 @@ export function Sidebar({
       setProjects((prev) => [...prev, p]);
       setNewProjectName("");
       setShowNewProject(false);
-    } catch {}
+    } catch { /* ignore */ }
   };
 
   const handleTouchStart = useCallback((id: string, e: React.TouchEvent) => {
@@ -196,42 +185,13 @@ export function Sidebar({
   }, [onDelete]);
 
   return (
-    <div
-      className="flex flex-col h-full w-full"
-      style={{ backgroundColor: "var(--color-bg-sidebar)" }}
-    >
-      {/* Header — Figma style with brand + close */}
-      <div
-        className="pt-14 px-3 pb-3 shrink-0"
-        style={{ borderBottom: "1px solid var(--color-border)" }}
-      >
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h2 className="text-[16px] font-medium text-text">Kira</h2>
-            <p className="text-[10px] text-text-muted">by KOAI Studios</p>
-          </div>
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-text-muted hover:text-text" onClick={onNew}>
-              <Plus className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-text-muted hover:text-text" onClick={onClose}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-
-        {/* Search bar — Figma style */}
-        <div
-          className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg"
-          style={{
-            backgroundColor: "var(--color-bg-surface)",
-            border: "1px solid var(--color-border)",
-          }}
-        >
+    <div className="flex flex-col h-full w-full">
+      {/* Search bar */}
+      <div className="px-3 pt-3 pb-2 shrink-0">
+        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-bg-surface border border-border">
           <Search className="w-3.5 h-3.5 flex-shrink-0 text-text-muted" />
           <input
             type="text"
-            id="sidebar-search"
             placeholder="Search chats..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -244,7 +204,6 @@ export function Sidebar({
           )}
         </div>
       </div>
-
 
       {/* Projects row */}
       {projects.length > 0 && (
@@ -342,7 +301,7 @@ export function Sidebar({
                           isActive ? "bg-bg-surface" : "bg-bg-sidebar hover:bg-bg-surface/60"
                         }`}
                       >
-                        <MessageSquare className={`shrink-0 h-3.5 w-3.5 ${isActive ? "text-kira" : "text-text-muted"}`} />
+                        <MessageSquare className={`shrink-0 h-3.5 w-3.5 ${isActive ? "text-text" : "text-text-muted"}`} />
 
                         {/* Title — editable inline */}
                         {editingId === convo.id ? (
@@ -365,8 +324,7 @@ export function Sidebar({
                               setEditingId(null);
                             }}
                             onClick={(e) => e.stopPropagation()}
-                            className="flex-1 min-w-0 bg-transparent text-[12px] text-text outline-none border-b border-kira/50 pb-0.5 truncate"
-                            style={{ caretColor: "var(--color-kira)" }}
+                            className="flex-1 min-w-0 bg-transparent text-[12px] text-text outline-none border-b border-text-muted/50 pb-0.5 truncate"
                             autoFocus
                           />
                         ) : (
@@ -375,7 +333,7 @@ export function Sidebar({
                           </span>
                         )}
 
-                        {/* Actions — always visible on mobile (no hover on touch) */}
+                        {/* Actions */}
                         {editingId !== convo.id && (
                           <div className={`flex items-center gap-0.5 shrink-0 transition-opacity ${isActive ? "opacity-100" : "opacity-40"}`}>
                             {onRename && (
@@ -386,7 +344,7 @@ export function Sidebar({
                                   setEditingTitle(title);
                                   setTimeout(() => editInputRef.current?.select(), 10);
                                 }}
-                                className="w-5 h-5 flex items-center justify-center rounded hover:bg-white/10 text-text-muted hover:text-kira transition-colors"
+                                className="w-5 h-5 flex items-center justify-center rounded hover:bg-bg-elevated text-text-muted hover:text-text transition-colors"
                                 title="Renombrar"
                               >
                                 <Pencil className="h-3 w-3" />
@@ -394,7 +352,7 @@ export function Sidebar({
                             )}
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                <button className="w-5 h-5 flex items-center justify-center rounded hover:bg-white/10 text-text-muted hover:text-text transition-colors">
+                                <button className="w-5 h-5 flex items-center justify-center rounded hover:bg-bg-elevated text-text-muted hover:text-text transition-colors">
                                   <MoreHorizontal className="h-3 w-3" />
                                 </button>
                               </DropdownMenuTrigger>
@@ -417,7 +375,7 @@ export function Sidebar({
                                 )}
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
-                                  className="text-destructive"
+                                  variant="destructive"
                                   onClick={() => onDelete(convo.id)}
                                 >
                                   <Trash2 className="h-3.5 w-3.5 mr-2" />
@@ -436,39 +394,6 @@ export function Sidebar({
           )}
         </div>
       </ScrollArea>
-
-      {/* User footer — Figma style */}
-      <div
-        className="px-3 pt-3 shrink-0"
-        style={{
-          borderTop: "1px solid var(--color-border)",
-          paddingBottom: "max(12px, env(safe-area-inset-bottom))",
-        }}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div
-              className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 overflow-hidden"
-              style={{ background: "linear-gradient(135deg, var(--color-kira), var(--color-kira-soft))" }}
-            >
-              {user.picture ? (
-                <img src={user.picture} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-[11px] font-medium" style={{ color: "var(--color-bg)" }}>
-                  {user.name?.[0]?.toUpperCase() || "U"}
-                </span>
-              )}
-            </div>
-            <span className="text-[12px] text-text truncate max-w-[140px]">{user.name || user.email}</span>
-          </div>
-          <button
-            onClick={onLogout}
-            className="w-7 h-7 flex items-center justify-center rounded-md transition-colors text-text-muted hover:text-text"
-          >
-            <Settings className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
 
       {/* Move to project dialog */}
       <Dialog open={moveDialogId !== null} onOpenChange={(open) => !open && setMoveDialogId(null)}>

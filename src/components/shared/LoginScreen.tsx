@@ -117,11 +117,8 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
 
   return (
     <div className="h-full flex flex-col items-center justify-center bg-bg px-6 safe-top safe-bottom relative overflow-hidden">
-      {/* Aurora background effect */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-1/2 -left-1/2 w-full h-full rounded-full bg-brand/10 blur-3xl animate-aurora-float" />
-        <div className="absolute -bottom-1/2 -right-1/2 w-full h-full rounded-full bg-kira/5 blur-3xl animate-aurora-float [animation-delay:3s]" />
-      </div>
+      {/* Subtle background */}
+      <div className="login-bg" />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -139,7 +136,7 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
               className="relative w-24 h-24 rounded-[22px] shadow-xl"
             />
           </div>
-          <h1 className="text-2xl font-bold text-text tracking-tight">KOAI Chat</h1>
+          <h1 className="text-2xl font-bold text-text tracking-tight font-display">KOAI Chat</h1>
           <p className="text-sm text-text-muted mt-1">Kira & Kronos — KOAI Studios</p>
         </div>
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { MessageBubble, StreamingBubble } from "./MessageBubble";
 import { ChatInput } from "./ChatInput";
-import { ChatHeader, SelectModeHeader } from "./ChatHeader";
+import { SelectModeHeader } from "./ChatHeader";
 import { EmptyState } from "./EmptyState";
 import { TypingIndicator } from "./TypingIndicator";
 import { DateSeparator, formatDateLabel, shouldShowDate } from "./DateSeparator";
@@ -19,14 +19,19 @@ interface Props {
   onDeleteMessages?: (conversationId: string, messageIds: string[]) => void;
   userName?: string;
   onImageClick?: (imageSrc: string) => void;
+  selectMode?: boolean;
+  onSelectMode?: (active: boolean) => void;
 }
 
-export function ChatView({ conversation, agent, loading, loadingHint, streamingText, onSend, onTranscribe, onDelete, onDeleteMessages, userName, onImageClick }: Props) {
+export function ChatView({ conversation, agent, loading, loadingHint, streamingText, onSend, onTranscribe, onDelete: _onDelete, onDeleteMessages, userName, onImageClick, selectMode: externalSelectMode, onSelectMode }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
-  const [selectMode, setSelectMode] = useState(false);
+  const [internalSelectMode, setInternalSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const selectMode = externalSelectMode ?? internalSelectMode;
+  const setSelectMode = onSelectMode ?? setInternalSelectMode;
 
   const handleScroll = useCallback(() => {
     const el = scrollContainerRef.current;
@@ -68,29 +73,21 @@ export function ChatView({ conversation, agent, loading, loadingHint, streamingT
   };
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      {conversation && conversation.messages.length > 0 && (
-        selectMode ? (
-          <SelectModeHeader
-            count={selectedIds.size}
-            onCancel={() => { setSelectMode(false); setSelectedIds(new Set()); }}
-            onDeleteSelected={handleDeleteSelected}
-          />
-        ) : (
-          <ChatHeader
-            title={conversation.title}
-            onSelectMode={() => setSelectMode(true)}
-            onDelete={() => onDelete?.(conversation.id)}
-          />
-        )
+    <div className="flex flex-col h-full bg-bg">
+      {/* Select mode header (shown inline when selecting) */}
+      {selectMode && conversation && conversation.messages.length > 0 && (
+        <SelectModeHeader
+          count={selectedIds.size}
+          onCancel={() => { setSelectMode(false); setSelectedIds(new Set()); }}
+          onDeleteSelected={handleDeleteSelected}
+        />
       )}
 
       {/* Messages */}
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-3 py-2 bg-bg"
+        className="flex-1 overflow-y-auto px-3 py-2"
       >
         <div className={`max-w-[48rem] mx-auto w-full ${!conversation || conversation.messages.length === 0 ? "h-full" : ""}`}>
           {!conversation || conversation.messages.length === 0 ? (
@@ -111,8 +108,8 @@ export function ChatView({ conversation, agent, loading, loadingHint, streamingT
                   <div className="flex items-start gap-2">
                     <div className={`shrink-0 mt-3 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
                       selectedIds.has(msg.id)
-                        ? "bg-destructive border-destructive"
-                        : "border-border-subtle"
+                        ? "bg-danger border-danger"
+                        : "border-border"
                     }`}>
                       {selectedIds.has(msg.id) && (
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round">
@@ -160,7 +157,7 @@ export function ChatView({ conversation, agent, loading, loadingHint, streamingT
         onSend={onSend}
         onTranscribe={onTranscribe}
         disabled={loading}
-        placeholder={agent === "kira" ? "Pregunta a Kira..." : "Pregunta a Kronos..."}
+        placeholder={agent === "kira" ? "Ask Kira a question..." : "Ask Kronos a question..."}
         autoFocus={!!conversation}
         agent={agent}
       />

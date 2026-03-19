@@ -9,7 +9,7 @@ export default function App() {
 
   // Sync body/html background with auth state
   useEffect(() => {
-    const bg = auth.isAuthenticated ? "" : "#ffffff";
+    const bg = auth.isAuthenticated ? "" : "rgba(238, 229, 221, 0.4)";
     document.body.style.backgroundColor = bg;
     document.documentElement.style.backgroundColor = bg;
     return () => {

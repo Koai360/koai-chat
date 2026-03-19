@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { API_URL } from "@/config";
-import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 
 interface Props {
@@ -115,56 +114,59 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
 
   const handleGoogleButtonClick = () => {
     const googleBtn = googleBtnRef.current?.querySelector('div[role="button"]') as HTMLElement;
-    if (googleBtn) {
-      googleBtn.click();
-    }
+    if (googleBtn) googleBtn.click();
   };
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-white relative overflow-hidden z-50">
-      {/* Header image — dark mountains/particles with KOAI logo */}
-      <div className="relative w-full shrink-0" style={{ height: "calc(308px + env(safe-area-inset-top, 0px))" }}>
+    <div
+      className="fixed inset-0 flex flex-col overflow-auto z-50"
+      style={{ backgroundColor: "rgba(238, 229, 221, 0.4)" }}
+    >
+      {/* ===== HEADER — Dark mountains with KOAI logo ===== */}
+      <div
+        className="relative w-full shrink-0 overflow-hidden"
+        style={{ height: "calc(308px + env(safe-area-inset-top, 0px))" }}
+      >
+        {/* Background image — full width, covers safe area */}
         <img
-          src="/images/login-header.svg"
+          src="/images/login-header-bg.svg"
           alt=""
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full"
+          style={{ objectFit: "cover", objectPosition: "center bottom" }}
         />
-        <div
-          className="relative z-10 flex items-center justify-center"
-          style={{ paddingTop: "calc(9px + env(safe-area-inset-top, 0px))" }}
-        >
-          <img
-            src="/images/koai-logo.png"
-            alt="KOAI Studios"
-            className="h-14 object-contain"
-          />
-        </div>
+        {/* KOAI Studios logo — centered, 178x100 at top:68px from Figma */}
+        <img
+          src="/images/koai-logo-lg.png"
+          alt="KOAI Studios"
+          className="absolute left-1/2 -translate-x-1/2"
+          style={{
+            width: "178px",
+            height: "100px",
+            objectFit: "contain",
+            top: "calc(68px + env(safe-area-inset-top, 0px))",
+          }}
+        />
       </div>
 
-      {/* Main content — centered */}
+      {/* ===== CENTER CONTENT — Bot icon + Text + Button ===== */}
       <div className="flex-1 flex flex-col items-center justify-center px-[52px]">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          className="w-full max-w-[335px] flex flex-col items-center gap-[36px]"
-        >
-          {/* Bot icon + text */}
-          <div className="flex flex-col items-center gap-2 w-full">
+        <div className="w-full max-w-[335px] flex flex-col items-center gap-[36px]">
+          {/* Bot icon 90x90 + Text block */}
+          <div className="flex flex-col items-center gap-[8px] w-full">
             <img
-              src="/images/kira-bot.svg"
+              src="/images/kira-bot-icon.svg"
               alt="Kira AI"
               className="w-[90px] h-[90px]"
             />
-            <div className="text-center w-full">
-              <h1
+            <div className="flex flex-col items-center justify-center h-[98px] w-full text-center">
+              <p
                 className="text-[24px] font-semibold text-[#0D121C] leading-normal"
                 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
               >
                 Lets Get Started
-              </h1>
+              </p>
               <p
-                className="text-[16px] text-[#4B5565] leading-[1.6] tracking-[-0.32px] mt-1"
+                className="text-[16px] font-normal text-[#4B5565] leading-[1.6] tracking-[-0.32px]"
                 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
               >
                 Experience smarter conversations
@@ -174,26 +176,26 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
             </div>
           </div>
 
-          {/* Google Sign-In */}
-          <div className="w-full flex flex-col items-center gap-4">
-            {/* Hidden real Google button */}
+          {/* Google Sign-In button — #582C77 bg, rounded-20/16, h-64 */}
+          <div className="w-full">
+            {/* Hidden real Google SSO button */}
             <div ref={googleBtnRef} className="absolute opacity-0 pointer-events-none" />
 
-            {/* Custom styled button matching Figma */}
+            {/* Visible styled button matching Figma exactly */}
             <button
               onClick={handleGoogleButtonClick}
               disabled={loading}
-              className="w-full h-[64px] rounded-[16px] flex items-center justify-center gap-[10px] transition-all active:scale-[0.98] disabled:opacity-60"
-              style={{ backgroundColor: "#582C77" }}
+              className="w-full h-[64px] rounded-[16px] flex items-center justify-center gap-[10px] p-[16px] transition-all active:scale-[0.98] disabled:opacity-60"
+              style={{ backgroundColor: "#582C77", borderRadius: "20px" }}
             >
               {loading ? (
                 <Loader2 className="w-6 h-6 animate-spin text-[#C0D930]" />
               ) : (
                 <>
-                  <img src="/images/google-icon.svg" alt="" className="w-5 h-5" />
+                  <img src="/images/google-g-icon.svg" alt="" className="w-5 h-5 shrink-0" />
                   <span
-                    className="text-[28px] tracking-[0.38px] leading-[34px]"
-                    style={{ fontFamily: "-apple-system, 'SF Pro', sans-serif", color: "#C0D930" }}
+                    className="text-[28px] tracking-[0.38px] leading-[34px] whitespace-nowrap"
+                    style={{ fontFamily: "-apple-system, 'SF Pro', system-ui, sans-serif", color: "#C0D930" }}
                   >
                     Sign Up with Google
                   </span>
@@ -201,30 +203,28 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
               )}
             </button>
 
-            {/* Loading / fallback link */}
-            {!googleReady && !showFallback && (
-              <div className="flex items-center gap-2 text-sm text-[#4B5565]">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Cargando...
-              </div>
-            )}
-            <button
-              type="button"
-              onClick={() => setShowFallback(true)}
-              className="text-xs text-[#582C77] hover:underline"
-            >
-              Usar login manual
-            </button>
+            {/* Manual login link */}
+            <div className="flex flex-col items-center gap-2 mt-4">
+              {!googleReady && !showFallback && (
+                <div className="flex items-center gap-2 text-[14px] text-[#4B5565]">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Cargando...
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowFallback(true)}
+                className="text-[13px] text-[#582C77] hover:underline"
+                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              >
+                Usar login manual
+              </button>
+            </div>
           </div>
 
           {/* Fallback login form */}
           {showFallback && (
-            <motion.form
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              onSubmit={handleFallbackSubmit}
-              className="w-full space-y-3"
-            >
+            <form onSubmit={handleFallbackSubmit} className="w-full space-y-3">
               <input
                 type="text"
                 value={username}
@@ -234,8 +234,8 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
                 autoCapitalize="none"
                 autoCorrect="off"
                 disabled={loading}
-                className="w-full h-12 px-4 rounded-[12px] border border-[#E5E7EB] bg-[#F9FAFB] text-[#0D121C] text-[16px] outline-none focus:border-[#582C77] transition-colors"
-                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                className="w-full h-[52px] px-4 rounded-[14px] border border-[#D5CEC8] text-[#0D121C] text-[16px] outline-none focus:border-[#582C77] transition-colors"
+                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", backgroundColor: "rgba(255,255,255,0.6)" }}
               />
               <input
                 type="password"
@@ -244,44 +244,44 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
                 placeholder="Contraseña"
                 autoComplete="current-password"
                 disabled={loading}
-                className="w-full h-12 px-4 rounded-[12px] border border-[#E5E7EB] bg-[#F9FAFB] text-[#0D121C] text-[16px] outline-none focus:border-[#582C77] transition-colors"
-                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                className="w-full h-[52px] px-4 rounded-[14px] border border-[#D5CEC8] text-[#0D121C] text-[16px] outline-none focus:border-[#582C77] transition-colors"
+                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", backgroundColor: "rgba(255,255,255,0.6)" }}
               />
               <button
                 type="submit"
                 disabled={loading || !username.trim() || !password.trim()}
-                className="w-full h-[56px] rounded-[16px] text-[18px] font-semibold text-[#C0D930] transition-all active:scale-[0.98] disabled:opacity-60"
-                style={{ backgroundColor: "#582C77", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                className="w-full h-[56px] rounded-[16px] text-[18px] font-semibold transition-all active:scale-[0.98] disabled:opacity-60"
+                style={{ backgroundColor: "#582C77", color: "#C0D930", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
               >
                 {loading ? "Entrando..." : "Iniciar sesión"}
               </button>
-            </motion.form>
+            </form>
           )}
 
           {/* Error */}
           {error && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="w-full px-4 py-3 rounded-[12px] bg-red-50 border border-red-200"
-            >
-              <p className="text-sm text-red-600 text-center">{error}</p>
-            </motion.div>
+            <div className="w-full px-4 py-3 rounded-[14px] bg-red-50 border border-red-200">
+              <p className="text-[14px] text-red-600 text-center" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                {error}
+              </p>
+            </div>
           )}
-        </motion.div>
+        </div>
       </div>
 
-      {/* Bottom — "Lets Get Started" + home indicator */}
+      {/* ===== BOTTOM — "Lets Get Started" + Home Indicator ===== */}
       <div
-        className="shrink-0 flex flex-col items-center pb-2"
-        style={{ paddingBottom: "max(8px, env(safe-area-inset-bottom))" }}
+        className="shrink-0 flex flex-col items-center gap-[8px] pb-[8px]"
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 8px)" }}
       >
-        <h2
+        <p
           className="text-[24px] font-semibold text-[#0D121C] text-center"
           style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
         >
           Lets Get Started
-        </h2>
+        </p>
+        {/* Home indicator visual (iOS renders its own, this matches Figma) */}
+        <div className="w-[134px] h-[5px] rounded-[100px] bg-[#0D121C]" />
       </div>
     </div>
   );

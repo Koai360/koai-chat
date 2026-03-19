@@ -193,7 +193,7 @@ export function AppShell({ user, onLogout }: Props) {
         {showSplash && <SplashScreen />}
       </AnimatePresence>
 
-      <div className="h-full flex bg-bg text-text">
+      <div className="fixed inset-0 flex bg-bg text-text">
         {/* Desktop Icon Rail */}
         <IconRail
           currentPage={currentPage}

@@ -227,7 +227,7 @@ export function AppShell({ user, onLogout }: Props) {
             onOpenSidebar={() => setSidebarOpen(true)}
           />
 
-          <main className="flex-1 overflow-hidden pb-[60px] md:pb-0">
+          <main className="flex-1 overflow-hidden mobile-tab-spacing">
             {renderPage()}
           </main>
         </div>

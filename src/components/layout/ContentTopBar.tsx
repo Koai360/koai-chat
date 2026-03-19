@@ -37,7 +37,10 @@ export function ContentTopBar({
   onOpenSidebar,
 }: Props) {
   return (
-    <div className="flex items-center h-14 px-4 shrink-0 safe-top">
+    <div
+      className="flex items-center px-4 shrink-0"
+      style={{ height: "calc(56px + env(safe-area-inset-top, 0px))", paddingTop: "env(safe-area-inset-top, 0px)" }}
+    >
       {/* Left — mobile menu button */}
       <Button
         variant="ghost"

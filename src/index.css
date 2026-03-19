@@ -392,6 +392,16 @@ button, a, [role="button"] {
   background: var(--accent-color, var(--color-text));
 }
 
+/* ===== MOBILE TAB BAR SPACING ===== */
+.mobile-tab-spacing {
+  padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+}
+@media (min-width: 768px) {
+  .mobile-tab-spacing {
+    padding-bottom: 0;
+  }
+}
+
 /* ===== DISPLAY FONT UTILITY ===== */
 .font-display {
   font-family: var(--font-display);

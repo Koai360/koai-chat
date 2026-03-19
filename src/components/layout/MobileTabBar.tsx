@@ -16,7 +16,7 @@ const TABS: { page: Page; icon: typeof House; label: string }[] = [
 
 export function MobileTabBar({ currentPage, onNavigate }: Props) {
   return (
-    <nav className="md:hidden shrink-0 bg-bg-sidebar border-t border-border pb-[env(safe-area-inset-bottom)]">
+    <nav className="md:hidden shrink-0 bg-bg-sidebar border-t border-border">
       <div className="flex items-center justify-around h-[56px]">
         {TABS.map((tab) => {
           const Icon = tab.icon;

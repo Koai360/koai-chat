@@ -251,7 +251,7 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
       {/* ===== BOTTOM — pegado abajo, sobre el home indicator del iPhone ===== */}
       <div
         className="absolute left-0 right-0 flex flex-col items-center"
-        style={{ bottom: "env(safe-area-inset-bottom, 0px)" }}
+        style={{ bottom: "8px" }}
       >
         <p
           className="text-[24px] font-semibold text-[#0D121C] text-center whitespace-nowrap"

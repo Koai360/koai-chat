@@ -248,10 +248,10 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
         )}
       </div>
 
-      {/* ===== BOTTOM — top 892/956 = 93.3% ===== */}
+      {/* ===== BOTTOM — pegado abajo, sobre el home indicator del iPhone ===== */}
       <div
-        className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center gap-[8px]"
-        style={{ top: "93.3%" }}
+        className="absolute bottom-0 left-0 right-0 flex flex-col items-center"
+        style={{ paddingBottom: "calc(8px + env(safe-area-inset-bottom, 34px))" }}
       >
         <p
           className="text-[24px] font-semibold text-[#0D121C] text-center whitespace-nowrap"
@@ -259,7 +259,6 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
         >
           Lets Get Started
         </p>
-        <div className="w-[134px] h-[5px] rounded-[100px] bg-[#0D121C]" />
       </div>
     </div>
   );

@@ -148,7 +148,7 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
 
       {/* ===== CENTER CONTENT — top 352/956 = 36.8% ===== */}
       <div
-        className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center w-[335px] max-w-[calc(100%-40px)]"
+        className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center gap-[36px] w-[335px] max-w-[calc(100%-40px)]"
         style={{ top: "36.8%" }}
       >
         {/* Bot icon + text */}

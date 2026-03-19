@@ -208,8 +208,7 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Ask A
 
   return (
     <div
-      className="max-w-[48rem] mx-auto w-full px-4 pt-2"
-      style={{ paddingBottom: "max(8px, env(safe-area-inset-bottom))" }}
+      className="max-w-[48rem] mx-auto w-full px-4 pt-2 pb-2"
     >
       {/* Error toast */}
       <AnimatePresence>

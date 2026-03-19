@@ -56,7 +56,7 @@ export function FullSidebar({
   return (
     <div className="flex flex-col h-full w-full bg-bg-sidebar">
       {/* Header */}
-      <div className="px-3 pt-3 pb-3 shrink-0 border-b border-border">
+      <div className="px-3 pb-3 shrink-0 border-b border-border" style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 bg-[var(--foreground)] rounded-full flex items-center justify-center">

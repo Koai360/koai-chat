@@ -48,7 +48,7 @@ export function SettingsPage({ user, onLogout, theme, onToggleTheme }: Props) {
   const [activeSection, setActiveSection] = useState<Section>("account");
 
   return (
-    <div className="flex h-full">
+    <div className="flex flex-col md:flex-row h-full">
       {/* Desktop: Side nav */}
       <nav className="hidden md:flex flex-col w-[200px] shrink-0 border-r border-border p-3 gap-0.5">
         {NAV_ITEMS.map((item) => {
@@ -71,7 +71,7 @@ export function SettingsPage({ user, onLogout, theme, onToggleTheme }: Props) {
       </nav>
 
       {/* Mobile: Top tabs (horizontal scroll) */}
-      <div className="md:hidden flex overflow-x-auto no-scrollbar border-b border-border px-2 py-1.5 gap-1 shrink-0 absolute top-0 left-0 right-0 bg-bg z-10">
+      <div className="md:hidden flex overflow-x-auto no-scrollbar border-b border-border px-2 py-1.5 gap-1 shrink-0 bg-bg z-10">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           return (
@@ -93,7 +93,7 @@ export function SettingsPage({ user, onLogout, theme, onToggleTheme }: Props) {
 
       {/* Content */}
       <ScrollArea className="flex-1 h-full">
-        <div className="p-6 pt-12 md:pt-6 max-w-xl">
+        <div className="p-6 max-w-xl">
           {activeSection === "account" && (
             <AccountSection user={user} onLogout={onLogout} />
           )}

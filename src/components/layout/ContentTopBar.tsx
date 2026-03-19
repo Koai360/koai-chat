@@ -38,7 +38,7 @@ export function ContentTopBar({
 }: Props) {
   return (
     <div
-      className="flex items-center px-4 shrink-0"
+      className="flex items-center px-4 shrink-0 bg-bg"
       style={{ height: "calc(56px + env(safe-area-inset-top, 0px))", paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
       {/* Left — mobile menu button */}

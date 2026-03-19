@@ -43,7 +43,7 @@ export function HomePage({ userName, onSend, onNavigate }: Props) {
   };
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center px-6 pb-24">
+    <div className="flex flex-1 flex-col items-center justify-center px-6 pb-4 overflow-y-auto">
       <div className="flex flex-col items-center gap-6 max-w-lg w-full">
         {/* AI Star */}
         <AIStarIcon size="lg" />

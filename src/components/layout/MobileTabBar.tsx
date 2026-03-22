@@ -33,7 +33,7 @@ export function MobileTabBar({ currentPage, onNavigate }: Props) {
       <nav
         className="md:hidden fixed left-0 right-0 z-50"
         style={{
-          bottom: "calc(-44px - 2 * env(safe-area-inset-bottom, 0px))",
+          bottom: "calc(-4 * env(safe-area-inset-bottom, 0px))",
           backgroundColor: "var(--color-bg)",
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
         }}

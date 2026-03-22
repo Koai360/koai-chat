@@ -20,6 +20,13 @@ export function useTheme() {
     root.classList.add(theme);
     root.style.colorScheme = theme;
     localStorage.setItem(STORAGE_KEY, theme);
+
+    // Update theme-color meta for iOS PWA safe areas
+    const themeColor = theme === "dark" ? "#0a0a0c" : "#ffffff";
+    const meta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null;
+    if (meta) {
+      meta.setAttribute("content", themeColor);
+    }
   }, [theme]);
 
   const setTheme = useCallback((t: Theme) => setThemeState(t), []);

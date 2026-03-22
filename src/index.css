@@ -159,15 +159,14 @@ html {
   height: 100%;
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  background-color: var(--color-bg);
 }
 
 body {
   height: 100%;
   margin: 0;
   padding: 0;
-  overflow: hidden;
-  background-color: #0a0a0c;
+  background-color: var(--color-bg);
 }
 
 #root {

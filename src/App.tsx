@@ -8,13 +8,17 @@ export default function App() {
   const auth = useAuth();
 
   // Sync body/html background with auth state
+  // Sync body/html background with auth state
+  // When authenticated, CSS variable var(--color-bg) handles it automatically
+  // When NOT authenticated, override for login screen bg
   useEffect(() => {
-    const theme = document.documentElement.classList.contains("dark") ? "dark" : "light";
-    const bg = auth.isAuthenticated
-      ? (theme === "dark" ? "#0a0a0c" : "#ffffff")
-      : "#EDE5DD";
-    document.body.style.backgroundColor = bg;
-    document.documentElement.style.backgroundColor = bg;
+    if (!auth.isAuthenticated) {
+      document.body.style.backgroundColor = "#EDE5DD";
+      document.documentElement.style.backgroundColor = "#EDE5DD";
+    } else {
+      document.body.style.backgroundColor = "";
+      document.documentElement.style.backgroundColor = "";
+    }
     return () => {
       document.body.style.backgroundColor = "";
       document.documentElement.style.backgroundColor = "";

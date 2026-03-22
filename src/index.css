@@ -156,17 +156,20 @@ html.light {
 }
 
 html, body, #root {
-  height: 100dvh;
   height: 100%;
   margin: 0;
   overscroll-behavior: none;
   background-color: #0a0a0c;
 }
 
-@supports (height: 100dvh) {
-  html, body, #root {
-    height: 100dvh;
-  }
+html {
+  /* On iOS standalone PWA, 100% covers the full screen including safe areas */
+  height: -webkit-fill-available;
+}
+
+body {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
 }
 
 body {

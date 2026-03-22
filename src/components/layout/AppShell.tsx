@@ -170,7 +170,7 @@ export function AppShell({ user, onLogout }: Props) {
         {showSplash && <SplashScreen />}
       </AnimatePresence>
 
-      <div className="fixed inset-0 flex bg-bg text-text">
+      <div className="fixed top-0 left-0 right-0 flex bg-bg text-text" style={{ height: "100%", bottom: 0 }}>
         {/* Grain overlay — premium texture (pointer-events-none, behind interactive content) */}
         <div className="grain pointer-events-none fixed inset-0 z-[5]" />
 

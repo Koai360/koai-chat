@@ -194,6 +194,7 @@ button, a, [role="button"] {
   .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
 }
 
+
 /* ===== ANIMATIONS ===== */
 @keyframes slide-in-left {
   from { transform: translateX(-100%); }

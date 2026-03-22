@@ -18,10 +18,10 @@ export function MobileTabBar({ currentPage, onNavigate }: Props) {
 
   return (
     <nav
-      className="md:hidden fixed left-0 right-0 z-[60]"
+      className="md:hidden shrink-0"
       style={{
-        bottom: 0,
         backgroundColor: "var(--color-bg)",
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}
     >
       <div className="flex items-center justify-around h-[50px]">

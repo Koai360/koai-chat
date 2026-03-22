@@ -155,21 +155,22 @@ html.light {
   color-scheme: light;
 }
 
-html, body, #root {
+html, body {
   height: 100%;
   margin: 0;
-  overscroll-behavior: none;
-  background-color: #ffffff;
-}
-
-html {
-  /* On iOS standalone PWA, 100% covers the full screen including safe areas */
-  height: -webkit-fill-available;
+  padding: 0;
+  overflow: hidden;
+  background-color: #0a0a0c;
 }
 
 body {
-  min-height: 100vh;
-  min-height: -webkit-fill-available;
+  /* safe-area-inset-top handled by ContentTopBar, bottom by MobileTabBar */
+}
+
+#root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 body {

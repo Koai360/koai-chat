@@ -170,14 +170,11 @@ export function AppShell({ user, onLogout }: Props) {
         {showSplash && <SplashScreen />}
       </AnimatePresence>
 
-      <div
-        className="fixed top-0 left-0 right-0 flex bg-bg text-text"
-        style={{ bottom: "calc(-1 * env(safe-area-inset-bottom, 0px))" }}
-      >
-        {/* Grain overlay — premium texture (pointer-events-none, behind interactive content) */}
+      <div className="flex flex-col bg-bg text-text overflow-hidden" style={{ height: "100dvh" }}>
+        {/* Grain overlay */}
         <div className="grain pointer-events-none fixed inset-0 z-[5]" />
 
-        {/* Ambient orbs — depth layer */}
+        {/* Ambient orbs */}
         <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
           <div
             className="ambient-orb w-72 h-72 opacity-[0.05]"
@@ -208,32 +205,41 @@ export function AppShell({ user, onLogout }: Props) {
           />
         </div>
 
-        {/* Desktop Icon Rail */}
-        <IconRail
-          currentPage={currentPage}
-          onNavigate={navigate}
-          user={user}
-          onLogout={onLogout}
-          agent={agent}
-        />
-
-        {/* Main content */}
-        <div className="flex-1 flex flex-col h-full min-w-0 relative z-10">
-          <ContentTopBar
-            agent={agent}
-            onAgentChange={setAgent}
-            agentDisabled={loading}
-            onNewConversation={handleNewConvo}
-            user={user}
-            theme={theme}
-            onToggleTheme={toggleTheme}
+        {/* Row: IconRail (desktop) + Content column */}
+        <div className="flex flex-1 min-h-0">
+          {/* Desktop Icon Rail */}
+          <IconRail
+            currentPage={currentPage}
             onNavigate={navigate}
+            user={user}
+            onLogout={onLogout}
+            agent={agent}
           />
 
-          <main className="flex-1 overflow-hidden mobile-tab-spacing">
-            {renderPage()}
-          </main>
+          {/* Content column */}
+          <div className="flex-1 flex flex-col min-w-0 min-h-0 relative z-10">
+            <ContentTopBar
+              agent={agent}
+              onAgentChange={setAgent}
+              agentDisabled={loading}
+              onNewConversation={handleNewConvo}
+              user={user}
+              theme={theme}
+              onToggleTheme={toggleTheme}
+              onNavigate={navigate}
+            />
+
+            <main className="flex-1 overflow-y-auto min-h-0" style={{ WebkitOverflowScrolling: "touch" }}>
+              {renderPage()}
+            </main>
+          </div>
         </div>
+
+        {/* Bottom nav — flex-shrink-0, NEVER shrinks */}
+        <MobileTabBar
+          currentPage={currentPage}
+          onNavigate={navigate}
+        />
 
         {/* Right panels as Sheet */}
         <Sheet open={activePanel !== null} onOpenChange={(open) => !open && setActivePanel(null)}>
@@ -271,12 +277,6 @@ export function AppShell({ user, onLogout }: Props) {
         {/* Push toast */}
         <PushToast />
       </div>
-
-      {/* Mobile Tab Bar — OUTSIDE the fixed inset-0 container */}
-      <MobileTabBar
-        currentPage={currentPage}
-        onNavigate={navigate}
-      />
     </TooltipProvider>
   );
 }

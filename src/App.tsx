@@ -8,7 +8,6 @@ export default function App() {
   const auth = useAuth();
 
   // Sync body/html background with auth state
-  // Sync body/html background with auth state
   // When authenticated, useTheme handles body bg dynamically
   // When NOT authenticated, override for login screen
   useEffect(() => {

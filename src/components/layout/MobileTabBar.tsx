@@ -19,7 +19,7 @@ export function MobileTabBar({ currentPage, onNavigate }: Props) {
   return (
     <>
       {/* Spacer in flow to prevent content from being hidden behind fixed nav */}
-      <div className="md:hidden shrink-0 h-[52px]" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }} />
+      <div className="md:hidden shrink-0 h-[44px]" style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }} />
 
       {/* Fixed nav pinned to physical bottom of screen */}
       <nav
@@ -30,7 +30,7 @@ export function MobileTabBar({ currentPage, onNavigate }: Props) {
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
         }}
       >
-        <div className="flex items-center justify-around h-[52px]">
+        <div className="flex items-center justify-around h-[44px]">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activePage === tab.page;

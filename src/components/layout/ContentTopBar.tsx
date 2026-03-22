@@ -39,7 +39,7 @@ export function ContentTopBar({
 }: Props) {
   return (
     <div
-      className="flex items-center px-4 shrink-0 liquid-glass border-b border-white/[0.04]"
+      className="flex items-center px-4 shrink-0 bg-bg"
       style={{ height: "calc(56px + env(safe-area-inset-top, 0px))", paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
       {/* Center-left — model selector pill */}

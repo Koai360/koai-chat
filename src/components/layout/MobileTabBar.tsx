@@ -18,14 +18,22 @@ export function MobileTabBar({ currentPage, onNavigate }: Props) {
 
   return (
     <>
-      {/* Spacer in flow to prevent content from being hidden behind fixed nav */}
-      <div className="md:hidden shrink-0 h-[44px]" style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }} />
+      {/* Spacer — matches the total height of the fixed nav (icons + safe area) */}
+      <div className="md:hidden shrink-0 h-[calc(44px+env(safe-area-inset-bottom,0px))]" />
 
-      {/* Fixed nav pinned to physical bottom of screen */}
+      {/*
+        Fixed nav at the PHYSICAL bottom of the screen.
+        On iPhone with viewport-fit=cover:
+        - bottom: 0 = safe area edge (NOT physical edge)
+        - We use negative bottom to push PAST the safe area to the physical edge
+        - bottom: calc(-1 * env(safe-area-inset-bottom)) compensates exactly
+        - paddingBottom adds back the safe area as internal spacing (bg fills it)
+        - Icons sit just above the home indicator, bg extends behind it
+      */}
       <nav
         className="md:hidden fixed left-0 right-0 z-50"
         style={{
-          bottom: 0,
+          bottom: "calc(-1 * env(safe-area-inset-bottom, 0px))",
           backgroundColor: "var(--color-bg)",
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
         }}

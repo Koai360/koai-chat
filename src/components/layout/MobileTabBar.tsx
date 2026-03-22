@@ -20,7 +20,7 @@ export function MobileTabBar({ currentPage, onNavigate }: Props) {
     <nav
       className="md:hidden fixed left-0 right-0 z-[60]"
       style={{
-        bottom: "-34px",
+        bottom: 0,
         backgroundColor: "var(--color-bg)",
       }}
     >

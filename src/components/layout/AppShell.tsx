@@ -170,7 +170,7 @@ export function AppShell({ user, onLogout }: Props) {
         {showSplash && <SplashScreen />}
       </AnimatePresence>
 
-      <div className="flex flex-col bg-bg text-text overflow-hidden" style={{ minHeight: "100dvh", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+      <div className="flex flex-col bg-bg text-text overflow-hidden h-full pb-safe">
         {/* Grain overlay */}
         <div className="grain pointer-events-none fixed inset-0 z-[5]" />
 

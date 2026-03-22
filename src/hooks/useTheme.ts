@@ -21,11 +21,17 @@ export function useTheme() {
     root.style.colorScheme = theme;
     localStorage.setItem(STORAGE_KEY, theme);
 
-    // Update theme-color meta for iOS PWA safe areas
-    const themeColor = theme === "dark" ? "#0a0a0c" : "#ffffff";
+    // Tailwind v4 @theme compiles var(--color-bg) to a static value at build time,
+    // so we must set body/html bg dynamically via JS to match the active theme.
+    // This is critical for iOS PWA where the body bg shows behind safe areas.
+    const bgColor = theme === "dark" ? "#0a0a0c" : "#ffffff";
+    document.body.style.backgroundColor = bgColor;
+    document.documentElement.style.backgroundColor = bgColor;
+
+    // Update theme-color meta for iOS PWA status bar and safe areas
     const meta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null;
     if (meta) {
-      meta.setAttribute("content", themeColor);
+      meta.setAttribute("content", bgColor);
     }
   }, [theme]);
 

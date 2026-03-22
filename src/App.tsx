@@ -9,20 +9,14 @@ export default function App() {
 
   // Sync body/html background with auth state
   // Sync body/html background with auth state
-  // When authenticated, CSS variable var(--color-bg) handles it automatically
-  // When NOT authenticated, override for login screen bg
+  // When authenticated, useTheme handles body bg dynamically
+  // When NOT authenticated, override for login screen
   useEffect(() => {
     if (!auth.isAuthenticated) {
       document.body.style.backgroundColor = "#EDE5DD";
       document.documentElement.style.backgroundColor = "#EDE5DD";
-    } else {
-      document.body.style.backgroundColor = "";
-      document.documentElement.style.backgroundColor = "";
     }
-    return () => {
-      document.body.style.backgroundColor = "";
-      document.documentElement.style.backgroundColor = "";
-    };
+    // No cleanup needed — useTheme takes over when AppShell mounts
   }, [auth.isAuthenticated]);
 
   if (auth.isLoading) {

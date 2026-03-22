@@ -20,8 +20,11 @@ import App from "./App.tsx";
 // Initialize theme before render to prevent flash
 const stored = localStorage.getItem("koai-theme");
 const theme = stored === "light" ? "light" : "dark";
+const bgColor = theme === "dark" ? "#0a0a0c" : "#ffffff";
 document.documentElement.classList.add(theme);
 document.documentElement.style.colorScheme = theme;
+document.documentElement.style.backgroundColor = bgColor;
+document.body.style.backgroundColor = bgColor;
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

@@ -17,7 +17,7 @@ export function MobileTabBar({ currentPage, onNavigate }: Props) {
   const activePage = currentPage === "chat" ? "chatHistory" : currentPage;
 
   return (
-    <nav className="md:hidden shrink-0 safe-bottom" style={{ backgroundColor: "var(--color-bg)" }}>
+    <nav className="md:hidden shrink-0" style={{ backgroundColor: "var(--color-bg)" }}>
       <div className="flex items-center justify-around h-[52px]">
         {TABS.map((tab) => {
           const Icon = tab.icon;
@@ -49,6 +49,8 @@ export function MobileTabBar({ currentPage, onNavigate }: Props) {
           );
         })}
       </div>
+      {/* Safe area spacer — goes BELOW icons so they stay at the bottom */}
+      <div className="safe-bottom" />
     </nav>
   );
 }

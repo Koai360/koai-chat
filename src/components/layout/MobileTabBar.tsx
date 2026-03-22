@@ -17,7 +17,13 @@ export function MobileTabBar({ currentPage, onNavigate }: Props) {
   const activePage = currentPage === "chat" ? "chatHistory" : currentPage;
 
   return (
-    <nav className="md:hidden shrink-0" style={{ backgroundColor: "var(--color-bg)" }}>
+    <nav
+      className="md:hidden fixed left-0 right-0 z-[60]"
+      style={{
+        bottom: 0,
+        backgroundColor: "var(--color-bg)",
+      }}
+    >
       <div className="flex items-center justify-around h-[50px]">
         {TABS.map((tab) => {
           const Icon = tab.icon;

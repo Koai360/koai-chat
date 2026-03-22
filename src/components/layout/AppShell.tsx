@@ -227,15 +227,9 @@ export function AppShell({ user, onLogout }: Props) {
             onNavigate={navigate}
           />
 
-          <main className="flex-1 overflow-hidden">
+          <main className="flex-1 overflow-hidden mobile-tab-spacing">
             {renderPage()}
           </main>
-
-          {/* Mobile Tab Bar — in flow, not fixed */}
-          <MobileTabBar
-            currentPage={currentPage}
-            onNavigate={navigate}
-          />
         </div>
 
         {/* Right panels as Sheet */}
@@ -274,6 +268,12 @@ export function AppShell({ user, onLogout }: Props) {
         {/* Push toast */}
         <PushToast />
       </div>
+
+      {/* Mobile Tab Bar — OUTSIDE the fixed inset-0 container */}
+      <MobileTabBar
+        currentPage={currentPage}
+        onNavigate={navigate}
+      />
     </TooltipProvider>
   );
 }

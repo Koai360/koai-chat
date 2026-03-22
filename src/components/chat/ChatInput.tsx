@@ -82,7 +82,7 @@ const ENGINE_OPTIONS = [
   { value: "studioflux-raw", label: "Studio RAW", icon: "unlock", desc: "Sin filtro" },
 ] as const;
 
-export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Ask AI a question or make a request", autoFocus, agent = "kira" }: Props) {
+export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Pregunta algo a Kira...", autoFocus, agent = "kira" }: Props) {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
@@ -330,7 +330,7 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Ask A
           >
             <span className="inline-flex items-center gap-1.5 bg-bg-surface border border-border rounded-full px-3 py-1 text-xs font-medium text-text">
               <Palette className="h-3 w-3" />
-              Create Image
+              Crear imagen
               <button onClick={() => setImageMode(false)} className="ml-0.5 hover:text-text-muted">
                 <X className="h-3 w-3" />
               </button>
@@ -369,6 +369,7 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Ask A
           <PopoverTrigger asChild>
             <button
               disabled={isDisabled}
+              aria-label="Adjuntar archivo"
               className={`shrink-0 w-[38px] h-[44px] flex items-center justify-center active:scale-90 disabled:opacity-40 transition-all duration-200 ${
                 plusOpen ? "text-text rotate-45" : "text-text-muted"
               }`}
@@ -414,6 +415,7 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Ask A
             ref={editorRef}
             contentEditable={!isDisabled}
             role="textbox"
+            aria-label="Escribe tu mensaje"
             data-placeholder={transcribing ? "Transcribiendo..." : imageMode ? "Describe la imagen..." : placeholder}
             onInput={syncEditorToState}
             onKeyDown={handleKeyDown}
@@ -449,6 +451,7 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Ask A
               input.click();
             }}
             disabled={isDisabled}
+            aria-label="Tomar foto"
             className="shrink-0 w-10 h-[44px] flex items-center justify-center text-text-muted active:scale-90 disabled:opacity-40"
           >
             <Camera className="h-5 w-5" />
@@ -460,6 +463,7 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Ask A
           <button
             onClick={toggleRecording}
             disabled={isDisabled}
+            aria-label={recording ? "Detener grabación" : "Entrada de voz"}
             className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 mb-0.5 disabled:opacity-50 ${
               recording ? "bg-danger text-white animate-pulse" : "text-text-muted hover:text-text"
             }`}
@@ -481,6 +485,7 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Ask A
             animate={{ scale: 1 }}
             onClick={handleSubmit}
             disabled={isDisabled}
+            aria-label="Enviar mensaje"
             className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center active:scale-90 disabled:opacity-50 transition-all mb-1"
             style={{
               backgroundColor: agent === "kronos" ? "#00E5FF" : "#D4E94B",
@@ -495,7 +500,7 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Ask A
 
       {/* Disclaimer — hidden on mobile to save space */}
       <p className="hidden md:block text-[11px] text-text-muted text-center mt-2">
-        Kira can make mistakes. Consider checking important information.
+        Kira puede cometer errores. Verifica la información importante.
       </p>
     </div>
   );

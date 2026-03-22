@@ -34,14 +34,14 @@ type Section =
   | "security";
 
 const NAV_ITEMS: { id: Section; label: string; icon: typeof UserCircle }[] = [
-  { id: "account", label: "Account", icon: UserCircle },
-  { id: "preferences", label: "Preferences", icon: SlidersHorizontal },
-  { id: "personalization", label: "Personalization", icon: Paintbrush },
-  { id: "notifications", label: "Notifications", icon: Bell },
-  { id: "integrations", label: "Integrations", icon: Link },
-  { id: "subscription", label: "Manage Subscription", icon: CreditCard },
-  { id: "data", label: "Data control", icon: Database },
-  { id: "security", label: "Security", icon: Shield },
+  { id: "account", label: "Cuenta", icon: UserCircle },
+  { id: "preferences", label: "Preferencias", icon: SlidersHorizontal },
+  { id: "personalization", label: "Personalización", icon: Paintbrush },
+  { id: "notifications", label: "Notificaciones", icon: Bell },
+  { id: "integrations", label: "Integraciones", icon: Link },
+  { id: "subscription", label: "Suscripción", icon: CreditCard },
+  { id: "data", label: "Control de datos", icon: Database },
+  { id: "security", label: "Seguridad", icon: Shield },
 ];
 
 export function SettingsPage({ user, onLogout, theme, onToggleTheme }: Props) {
@@ -132,24 +132,24 @@ function AccountSection({ user, onLogout }: { user: AuthUser; onLogout: () => vo
         <div>
           <p className="text-sm font-medium text-text">{user.name}</p>
           <button className="text-xs text-text-muted hover:text-text mt-0.5 transition-colors">
-            Change avatar
+            Cambiar avatar
           </button>
         </div>
       </div>
 
       {/* Fields */}
       <div className="space-y-3">
-        <SettingsField label="Full Name" value={user.name} />
-        <SettingsField label="Username" value={user.name.toLowerCase().replace(/\s+/g, ".")} />
-        <SettingsField label="Email" value={user.email || "Not set"} icon={Mail} />
+        <SettingsField label="Nombre completo" value={user.name} />
+        <SettingsField label="Usuario" value={user.name.toLowerCase().replace(/\s+/g, ".")} />
+        <SettingsField label="Correo electrónico" value={user.email || "No configurado"} icon={Mail} />
       </div>
 
       {/* System */}
       <div className="border-t border-border pt-4 space-y-2">
-        <p className="text-xs text-text-subtle uppercase font-medium tracking-wider mb-3">System</p>
+        <p className="text-xs text-text-subtle uppercase font-medium tracking-wider mb-3">Sistema</p>
 
         <button className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-bg-surface transition-colors text-sm text-text-muted hover:text-text">
-          Contact us
+          Contáctanos
           <ChevronRight className="size-4" />
         </button>
 
@@ -158,12 +158,12 @@ function AccountSection({ user, onLogout }: { user: AuthUser; onLogout: () => vo
           className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-bg-surface transition-colors text-sm text-text-muted hover:text-text"
         >
           <LogOut className="size-4" />
-          Sign out
+          Cerrar sesión
         </button>
 
         <button className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-danger-soft transition-colors text-sm text-danger">
           <Trash2 className="size-4" />
-          Delete Account
+          Eliminar cuenta
         </button>
       </div>
     </div>
@@ -189,7 +189,7 @@ function SettingsField({
         </div>
       </div>
       <button className="text-xs text-text-muted hover:text-text transition-colors shrink-0 ml-3">
-        Change
+        Cambiar
       </button>
     </div>
   );
@@ -206,11 +206,11 @@ function PreferencesSection({
 }) {
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-medium text-text font-display">Preferences</h2>
+      <h2 className="text-xl font-medium text-text font-display">Preferencias</h2>
 
       <div className="space-y-4">
         <div>
-          <p className="text-sm font-medium text-text mb-3">Theme</p>
+          <p className="text-sm font-medium text-text mb-3">Tema</p>
           <div className="flex gap-3">
             {(["dark", "light"] as const).map((t) => (
               <button
@@ -224,7 +224,7 @@ function PreferencesSection({
                     : "border-border text-text-muted hover:text-text hover:border-text-muted/20"
                 }`}
               >
-                {t === "dark" ? "Dark" : "Light"}
+                {t === "dark" ? "Oscuro" : "Claro"}
               </button>
             ))}
           </div>
@@ -240,7 +240,7 @@ function ComingSoon({ label }: { label: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-text-muted">
       <p className="text-lg font-medium text-text mb-1 font-display">{label}</p>
-      <p className="text-sm">Coming soon</p>
+      <p className="text-sm">Próximamente</p>
     </div>
   );
 }

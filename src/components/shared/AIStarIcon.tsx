@@ -1,3 +1,5 @@
+import { useId } from "react";
+
 interface Props {
   size?: "sm" | "md" | "lg";
   className?: string;
@@ -8,6 +10,7 @@ const SIZES = { sm: 24, md: 40, lg: 56 } as const;
 export function AIStarIcon({ size = "md", className = "" }: Props) {
   const px = SIZES[size];
   const isLg = size === "lg";
+  const gradId = useId();
 
   const star = (
     <svg
@@ -19,17 +22,15 @@ export function AIStarIcon({ size = "md", className = "" }: Props) {
       className={className}
     >
       <defs>
-        <linearGradient id="ai-star-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#7B2D8E" />
           <stop offset="100%" stopColor="#D4E94B" />
         </linearGradient>
       </defs>
-      {/* 4-pointed star / sparkle shape */}
       <path
         d="M28 4 C30 20, 36 26, 52 28 C36 30, 30 36, 28 52 C26 36, 20 30, 4 28 C20 26, 26 20, 28 4Z"
-        fill="url(#ai-star-grad)"
+        fill={`url(#${gradId})`}
       />
-      {/* Decorative sparkle dots */}
       <circle cx="16" cy="14" r="1.5" fill="white" opacity="0.7" />
       <circle cx="42" cy="16" r="1" fill="white" opacity="0.5" />
       <circle cx="40" cy="42" r="1.2" fill="white" opacity="0.6" />

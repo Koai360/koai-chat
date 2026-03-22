@@ -224,6 +224,7 @@ export function AppShell({ user, onLogout }: Props) {
             user={user}
             theme={theme}
             onToggleTheme={toggleTheme}
+            onNavigate={navigate}
           />
 
           <main className="flex-1 overflow-hidden">

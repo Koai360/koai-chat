@@ -11,20 +11,20 @@ interface Props {
 
 const SUGGESTIONS = [
   {
-    title: "Resumir Texto",
-    description: "Convierte artículos largos en resúmenes claros.",
-    prompt: "Resúmeme el siguiente texto:",
+    title: "Resumir",
+    description: "Condensa textos largos en puntos clave.",
+    prompt: "Resúmeme los puntos clave de este tema:",
     icon: Sparkles,
   },
   {
-    title: "Escritura Creativa",
-    description: "Genera historias, posts o ideas frescas de contenido.",
-    prompt: "Ayúdame a escribir un post creativo sobre",
+    title: "Escribir",
+    description: "Genera contenido creativo y copy.",
+    prompt: "Ayúdame a escribir contenido creativo sobre",
     icon: Pen,
   },
   {
-    title: "Responder Preguntas",
-    description: "Pregunta lo que sea y obtén la mejor respuesta.",
+    title: "Preguntar",
+    description: "Respuestas rápidas a cualquier pregunta.",
     prompt: "Tengo una pregunta:",
     icon: HelpCircle,
   },
@@ -52,7 +52,7 @@ export function HomePage({ userName, onSend, onNavigate }: Props) {
         {/* AI Star with glow */}
         <div
           className="animate-fadeUpBlur"
-          style={{ filter: "drop-shadow(0 0 30px rgba(197, 227, 74, 0.2))" }}
+          style={{ filter: "drop-shadow(0 0 30px rgba(212, 233, 75, 0.2))" }}
         >
           <AIStarIcon size="lg" />
         </div>
@@ -63,12 +63,12 @@ export function HomePage({ userName, onSend, onNavigate }: Props) {
             <span className="font-light">{greeting},</span>{" "}
             <span className="font-bold gradient-text-kira">{firstName}</span>
           </h1>
-          <p className="text-base text-white/55 tracking-[0.01em] animate-fadeUpBlur stagger-3">
+          <p className="text-base text-text-muted tracking-[0.01em] animate-fadeUpBlur stagger-3">
             ¿En qué puedo ayudarte hoy?
           </p>
         </div>
 
-        {/* Suggestion Cards — liquid glass */}
+        {/* Suggestion Cards */}
         <div className="grid gap-3 w-full mt-4">
           {SUGGESTIONS.map((s, i) => {
             const Icon = s.icon;
@@ -76,6 +76,7 @@ export function HomePage({ userName, onSend, onNavigate }: Props) {
               <button
                 key={s.title}
                 onClick={() => handleSuggestion(s.prompt)}
+                aria-label={s.title}
                 className={`liquid-glass-strong rounded-2xl p-4 cursor-pointer hover:scale-[1.02] transition-all duration-300 text-left animate-fadeUpBlur stagger-${i + 4} border border-[rgba(212,233,75,0.12)] hover:border-[rgba(212,233,75,0.25)]`}
               >
                 <div className="flex items-start gap-3">
@@ -86,8 +87,8 @@ export function HomePage({ userName, onSend, onNavigate }: Props) {
                     <Icon className="w-4 h-4" style={{ color: "#D4E94B" }} />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-white/95 font-display">{s.title}</p>
-                    <p className="text-sm text-white/60 mt-0.5">{s.description}</p>
+                    <p className="text-sm font-medium text-text font-display">{s.title}</p>
+                    <p className="text-sm text-text-muted mt-0.5">{s.description}</p>
                   </div>
                 </div>
               </button>

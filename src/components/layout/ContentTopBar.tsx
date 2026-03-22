@@ -1,6 +1,7 @@
 import { Sun, Moon, Plus, ChevronDown } from "lucide-react";
 import type { Agent } from "@/hooks/useChat";
 import type { AuthUser } from "@/hooks/useAuth";
+import type { Page } from "@/hooks/useNavigation";
 import { AIStarIcon } from "@/components/shared/AIStarIcon";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +19,7 @@ interface Props {
   user: AuthUser;
   theme: "dark" | "light";
   onToggleTheme: () => void;
+  onNavigate?: (page: Page) => void;
 }
 
 const AGENT_LABELS: Record<Agent, string> = {
@@ -33,6 +35,7 @@ export function ContentTopBar({
   user,
   theme,
   onToggleTheme,
+  onNavigate,
 }: Props) {
   return (
     <div
@@ -97,11 +100,14 @@ export function ContentTopBar({
           }}
         >
           <Plus className="w-4 h-4" />
-          <span className="hidden md:inline font-display">New Chat</span>
+          <span className="hidden md:inline font-display">Nuevo Chat</span>
         </button>
 
         {/* User avatar */}
-        <div className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center bg-bg-elevated shrink-0">
+        <button
+          onClick={() => onNavigate?.("settings")}
+          aria-label="Ajustes de perfil"
+          className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center bg-bg-elevated shrink-0 transition-opacity hover:opacity-80">
           {user.picture ? (
             <img src={user.picture} alt="" className="w-full h-full object-cover" />
           ) : (
@@ -109,7 +115,7 @@ export function ContentTopBar({
               {user.name?.[0]?.toUpperCase() || "U"}
             </span>
           )}
-        </div>
+        </button>
       </div>
     </div>
   );

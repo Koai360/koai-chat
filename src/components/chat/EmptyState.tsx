@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { FileText, PenTool, Zap } from "lucide-react";
+import { Sparkles, Pen, HelpCircle } from "lucide-react";
 import { AIStarIcon } from "@/components/shared/AIStarIcon";
 import type { Agent } from "@/hooks/useChat";
 
@@ -12,22 +12,22 @@ interface Props {
 
 const SUGGESTIONS = [
   {
-    icon: FileText,
+    icon: Sparkles,
     title: "Resumir",
-    description: "Condensa textos largos en puntos clave",
-    prompt: "Resúmeme los puntos clave de este tema",
+    description: "Condensa textos largos en puntos clave.",
+    prompt: "Resúmeme los puntos clave de este tema:",
   },
   {
-    icon: PenTool,
+    icon: Pen,
     title: "Escribir",
-    description: "Genera contenido creativo y copy",
-    prompt: "Ayúdame a escribir contenido creativo",
+    description: "Genera contenido creativo y copy.",
+    prompt: "Ayúdame a escribir contenido creativo sobre",
   },
   {
-    icon: Zap,
+    icon: HelpCircle,
     title: "Preguntar",
-    description: "Respuestas rápidas a cualquier pregunta",
-    prompt: "Respóndeme sobre cualquier tema",
+    description: "Respuestas rápidas a cualquier pregunta.",
+    prompt: "Tengo una pregunta:",
   },
 ];
 
@@ -50,15 +50,16 @@ export function EmptyState({ agent, userName, onSend, loading }: Props) {
       className="flex-1 flex flex-col items-center justify-center px-6 pb-20 md:pb-32"
     >
       {/* AI Star with glow */}
-      <motion.div
-        initial={{ scale: 0.8, opacity: 0, filter: "blur(10px)" }}
-        animate={{ scale: 1, opacity: 1, filter: "blur(0px)" }}
-        transition={{ duration: 0.6 }}
-        className="mb-6"
-        style={{ filter: "drop-shadow(0 0 30px rgba(197, 227, 74, 0.2))" }}
-      >
-        <AIStarIcon size="lg" />
-      </motion.div>
+      <div style={{ filter: "drop-shadow(0 0 30px rgba(212, 233, 75, 0.2))" }}>
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0, filter: "blur(10px)" }}
+          animate={{ scale: 1, opacity: 1, filter: "blur(0px)" }}
+          transition={{ duration: 0.6 }}
+          className="mb-6"
+        >
+          <AIStarIcon size="lg" />
+        </motion.div>
+      </div>
 
       {/* Greeting */}
       <motion.div
@@ -83,7 +84,7 @@ export function EmptyState({ agent, userName, onSend, loading }: Props) {
         </h2>
       </motion.div>
 
-      {/* Suggestion Cards — liquid glass */}
+      {/* Suggestion Cards */}
       <motion.div
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -99,12 +100,13 @@ export function EmptyState({ agent, userName, onSend, loading }: Props) {
             whileTap={{ scale: 0.97 }}
             onClick={() => !loading && onSend(suggestion.prompt)}
             disabled={loading}
-            className="flex-1 min-w-[180px] liquid-glass-strong rounded-2xl p-4 text-left transition-all duration-300 hover:scale-[1.02] disabled:opacity-50"
+            aria-label={suggestion.title}
+            className="flex-1 min-w-[180px] liquid-glass-strong rounded-2xl p-4 text-left transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 border border-[rgba(212,233,75,0.12)] hover:border-[rgba(212,233,75,0.25)]"
           >
             <div
               className="w-8 h-8 rounded-xl flex items-center justify-center mb-3"
               style={{
-                background: agent === "kronos" ? "rgba(0,229,255,0.12)" : "rgba(197,227,74,0.12)",
+                background: agent === "kronos" ? "rgba(0,229,255,0.12)" : "rgba(212,233,75,0.15)",
               }}
             >
               <suggestion.icon

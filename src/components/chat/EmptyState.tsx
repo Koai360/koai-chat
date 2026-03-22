@@ -109,7 +109,7 @@ export function EmptyState({ agent, userName, onSend, loading }: Props) {
             >
               <suggestion.icon
                 className="h-4 w-4"
-                style={{ color: agent === "kronos" ? "#00E5FF" : "#C5E34A" }}
+                style={{ color: agent === "kronos" ? "#00E5FF" : "#D4E94B" }}
               />
             </div>
             <div className="text-sm font-medium text-text font-display">{suggestion.title}</div>

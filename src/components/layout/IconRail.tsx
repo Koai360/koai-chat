@@ -39,7 +39,7 @@ const NAV_ITEMS: { page: Page; icon: typeof House; label: string }[] = [
 ];
 
 export function IconRail({ currentPage, onNavigate, user, onLogout, agent = "kira" }: Props) {
-  const accentColor = agent === "kronos" ? "#00E5FF" : "#C5E34A";
+  const accentColor = agent === "kronos" ? "#00E5FF" : "#D4E94B";
 
   return (
     <TooltipProvider delayDuration={300}>

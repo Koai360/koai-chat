@@ -44,10 +44,13 @@ export function ContentTopBar({
         <DropdownMenuTrigger asChild disabled={agentDisabled}>
           <button
             className="flex items-center gap-2 px-3 py-1.5 rounded-full border transition-colors"
-            style={{ borderColor: agent === 'kronos' ? 'rgba(0,229,255,0.3)' : 'rgba(197,227,74,0.3)', background: agent === 'kronos' ? 'rgba(0,229,255,0.08)' : 'rgba(197,227,74,0.08)' }}
+            style={{
+              borderColor: agent === 'kronos' ? 'rgba(0,229,255,0.4)' : 'rgba(123, 45, 142, 0.4)',
+              background: agent === 'kronos' ? 'rgba(0,229,255,0.08)' : 'rgba(123, 45, 142, 0.25)',
+            }}
           >
             <AIStarIcon size="sm" className="w-4 h-4" />
-            <span className="text-sm font-medium text-text font-display">
+            <span className="text-sm font-medium text-white/90 font-display">
               {AGENT_LABELS[agent]}
             </span>
             <ChevronDown className="w-3.5 h-3.5 text-text-muted" />

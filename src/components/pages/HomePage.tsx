@@ -59,11 +59,11 @@ export function HomePage({ userName, onSend, onNavigate }: Props) {
 
         {/* Greeting */}
         <div className="text-center space-y-2 mt-2">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-medium tracking-tight text-text font-display animate-fadeUpBlur stagger-2">
-            {greeting},{" "}
-            <span className="gradient-text-kira">{firstName}</span>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl tracking-tight text-text font-display animate-fadeUpBlur stagger-2">
+            <span className="font-light">{greeting},</span>{" "}
+            <span className="font-bold gradient-text-kira">{firstName}</span>
           </h1>
-          <p className="text-base text-text-muted animate-fadeUpBlur stagger-3">
+          <p className="text-base text-white/55 tracking-[0.01em] animate-fadeUpBlur stagger-3">
             ¿En qué puedo ayudarte hoy?
           </p>
         </div>
@@ -76,15 +76,18 @@ export function HomePage({ userName, onSend, onNavigate }: Props) {
               <button
                 key={s.title}
                 onClick={() => handleSuggestion(s.prompt)}
-                className={`liquid-glass-strong rounded-2xl p-4 cursor-pointer hover:scale-[1.02] transition-all duration-300 text-left animate-fadeUpBlur stagger-${i + 4}`}
+                className={`liquid-glass-strong rounded-2xl p-4 cursor-pointer hover:scale-[1.02] transition-all duration-300 text-left animate-fadeUpBlur stagger-${i + 4} border border-[rgba(212,233,75,0.12)] hover:border-[rgba(212,233,75,0.25)]`}
               >
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-kira-soft flex items-center justify-center shrink-0 mt-0.5">
-                    <Icon className="w-4 h-4 text-kira" />
+                  <div
+                    className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+                    style={{ background: "rgba(212, 233, 75, 0.15)" }}
+                  >
+                    <Icon className="w-4 h-4" style={{ color: "#D4E94B" }} />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-text font-display">{s.title}</p>
-                    <p className="text-sm text-text-muted mt-0.5">{s.description}</p>
+                    <p className="text-sm font-medium text-white/95 font-display">{s.title}</p>
+                    <p className="text-sm text-white/60 mt-0.5">{s.description}</p>
                   </div>
                 </div>
               </button>

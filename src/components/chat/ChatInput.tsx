@@ -483,7 +483,7 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Ask A
             disabled={isDisabled}
             className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center active:scale-90 disabled:opacity-50 transition-all mb-1"
             style={{
-              backgroundColor: agent === "kronos" ? "#00E5FF" : "#C5E34A",
+              backgroundColor: agent === "kronos" ? "#00E5FF" : "#D4E94B",
               color: "#0a0a0c",
               boxShadow: `0 0 12px 2px ${agent === "kronos" ? "rgba(0,229,255,0.3)" : "rgba(197,227,74,0.3)"}`,
             }}

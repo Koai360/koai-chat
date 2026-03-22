@@ -20,9 +20,8 @@ export function AIStarIcon({ size = "md", className = "" }: Props) {
     >
       <defs>
         <linearGradient id="ai-star-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#ff6b35" />
-          <stop offset="50%" stopColor="#9b59b6" />
-          <stop offset="100%" stopColor="#e91e8a" />
+          <stop offset="0%" stopColor="#7B2D8E" />
+          <stop offset="100%" stopColor="#D4E94B" />
         </linearGradient>
       </defs>
       {/* 4-pointed star / sparkle shape */}
@@ -40,11 +39,13 @@ export function AIStarIcon({ size = "md", className = "" }: Props) {
   if (isLg) {
     return (
       <div
-        className="flex items-center justify-center rounded-full bg-white"
+        className="flex items-center justify-center rounded-full"
         style={{
           width: px + 16,
           height: px + 16,
-          boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
+          background: "linear-gradient(135deg, #1A1A2E, rgba(123, 45, 142, 0.2))",
+          border: "1px solid rgba(123, 45, 142, 0.3)",
+          boxShadow: "0 4px 24px rgba(123, 45, 142, 0.15)",
         }}
       >
         {star}

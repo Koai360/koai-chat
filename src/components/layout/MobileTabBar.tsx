@@ -18,7 +18,14 @@ export function MobileTabBar({ currentPage, onNavigate }: Props) {
   const activePage = currentPage === "chat" ? "chatHistory" : currentPage;
 
   return (
-    <nav className="md:hidden shrink-0 liquid-glass !overflow-visible pb-[env(safe-area-inset-bottom,0px)]">
+    <nav
+      className="md:hidden shrink-0 liquid-glass !overflow-visible"
+      style={{
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        backgroundColor: "#0a0a0c",
+        borderTop: "1px solid rgba(255, 255, 255, 0.06)",
+      }}
+    >
       <div className="flex items-center justify-around h-[52px]">
         {TABS.map((tab) => {
           const Icon = tab.icon;
@@ -31,21 +38,25 @@ export function MobileTabBar({ currentPage, onNavigate }: Props) {
             >
               <div className="relative">
                 <Icon
-                  className={`w-5 h-5 transition-colors duration-200 ${
-                    isActive ? "text-text" : "text-text-muted"
-                  }`}
+                  className="w-5 h-5 transition-colors duration-200"
+                  strokeWidth={1.5}
+                  style={{
+                    color: isActive ? "#D4E94B" : "rgba(255, 255, 255, 0.4)",
+                  }}
                 />
                 {isActive && (
                   <div
                     className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full"
-                    style={{ background: "var(--color-kira)" }}
+                    style={{ background: "#D4E94B" }}
                   />
                 )}
               </div>
               <span
-                className={`text-[10px] leading-none transition-colors duration-200 ${
-                  isActive ? "text-text font-medium" : "text-text-muted"
-                }`}
+                className="text-[10px] leading-none transition-colors duration-200"
+                style={{
+                  color: isActive ? "#D4E94B" : "rgba(255, 255, 255, 0.4)",
+                  fontWeight: isActive ? 600 : 400,
+                }}
               >
                 {tab.label}
               </span>

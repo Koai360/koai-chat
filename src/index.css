@@ -12,19 +12,24 @@
   --color-bg-surface: #1a1a1e;
   --color-bg-elevated: #222226;
 
-  /* Borders — Subtle white */
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-border-subtle: rgba(255, 255, 255, 0.05);
+  /* Borders — on-brand subtle */
+  --color-border: rgba(212, 233, 75, 0.12);
+  --color-border-subtle: rgba(212, 233, 75, 0.06);
 
-  /* Text */
+  /* Text — WCAG AA compliant against #0a0a0c */
   --color-text: #ffffff;
-  --color-text-muted: #62646a;
-  --color-text-subtle: #3a3a3f;
+  --color-text-muted: rgba(255, 255, 255, 0.6);
+  --color-text-subtle: rgba(255, 255, 255, 0.4);
+  --color-text-secondary: rgba(255, 255, 255, 0.55);
 
-  /* Accent — Kira (lime KOAI) */
-  --color-kira: #C5E34A;
-  --color-kira-soft: rgba(197, 227, 74, 0.15);
-  --color-kira-glow: rgba(197, 227, 74, 0.25);
+  /* Accent — Kira (lime KOAI brand) */
+  --color-kira: #D4E94B;
+  --color-kira-soft: rgba(212, 233, 75, 0.15);
+  --color-kira-glow: rgba(212, 233, 75, 0.25);
+
+  /* Brand — Purple KOAI */
+  --color-purple: #7B2D8E;
+  --color-purple-soft: rgba(123, 45, 142, 0.25);
 
   /* Accent — Kronos (cyan) */
   --color-kronos: #00E5FF;
@@ -70,7 +75,7 @@
   --secondary: #222226;
   --secondary-foreground: #ffffff;
   --muted: #222226;
-  --muted-foreground: #62646a;
+  --muted-foreground: rgba(255, 255, 255, 0.6);
   --accent: #222226;
   --accent-foreground: #ffffff;
   --destructive: oklch(0.65 0.22 25);
@@ -78,7 +83,7 @@
   --border: rgba(255, 255, 255, 0.08);
   --input: rgba(255, 255, 255, 0.08);
   --ring: rgba(255, 255, 255, 0.2);
-  --chart-1: #C5E34A;
+  --chart-1: #D4E94B;
   --chart-2: #00E5FF;
   --chart-3: oklch(0.65 0.22 25);
   --chart-4: oklch(0.78 0.15 80);
@@ -106,7 +111,7 @@
   --secondary: #f0f0f1;
   --secondary-foreground: #151515;
   --muted: #f0f0f1;
-  --muted-foreground: #62646a;
+  --muted-foreground: rgba(255, 255, 255, 0.6);
   --accent: #f0f0f1;
   --accent-foreground: #151515;
   --destructive: oklch(0.55 0.22 25);
@@ -502,7 +507,7 @@ button, a, [role="button"] {
 
 /* ===== GRADIENT TEXT ===== */
 .gradient-text-kira {
-  background: linear-gradient(135deg, #C5E34A 0%, #8BC34A 50%, #D4E94B 100%);
+  background: linear-gradient(135deg, #D4E94B 0%, #A8D830 50%, #D4E94B 100%);
   background-size: 200% 200%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;

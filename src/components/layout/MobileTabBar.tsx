@@ -14,13 +14,13 @@ const TABS: { page: Page; icon: typeof House; label: string }[] = [
 ];
 
 export function MobileTabBar({ currentPage, onNavigate }: Props) {
-  // "chat" (active conversation) highlights the Chat tab too
   const activePage = currentPage === "chat" ? "chatHistory" : currentPage;
 
   return (
     <nav
-      className="md:hidden shrink-0 bg-bg"
+      className="md:hidden shrink-0"
       style={{
+        backgroundColor: "#0a0a0c",
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}
     >
@@ -32,23 +32,16 @@ export function MobileTabBar({ currentPage, onNavigate }: Props) {
             <button
               key={tab.page}
               onClick={() => onNavigate(tab.page)}
+              aria-label={tab.label}
               className="flex flex-col items-center justify-center gap-1 flex-1 h-full transition-all duration-200"
             >
-              <div className="relative">
-                <Icon
-                  className="w-5 h-5 transition-colors duration-200"
-                  strokeWidth={1.5}
-                  style={{
-                    color: isActive ? "#D4E94B" : "rgba(255, 255, 255, 0.4)",
-                  }}
-                />
-                {isActive && (
-                  <div
-                    className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full"
-                    style={{ background: "#D4E94B" }}
-                  />
-                )}
-              </div>
+              <Icon
+                className="w-5 h-5 transition-colors duration-200"
+                strokeWidth={1.5}
+                style={{
+                  color: isActive ? "#D4E94B" : "rgba(255, 255, 255, 0.4)",
+                }}
+              />
               <span
                 className="text-[10px] leading-none transition-colors duration-200"
                 style={{

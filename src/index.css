@@ -160,7 +160,7 @@ html, body, #root {
   height: 100%;
   margin: 0;
   overscroll-behavior: none;
-  background-color: #111113;
+  background-color: #0a0a0c;
 }
 
 @supports (height: 100dvh) {

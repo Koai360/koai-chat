@@ -17,40 +17,51 @@ export function MobileTabBar({ currentPage, onNavigate }: Props) {
   const activePage = currentPage === "chat" ? "chatHistory" : currentPage;
 
   return (
-    <nav className="md:hidden shrink-0" style={{ backgroundColor: "var(--color-bg)" }}>
-      <div className="flex items-center justify-around h-[52px]">
-        {TABS.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activePage === tab.page;
-          return (
-            <button
-              key={tab.page}
-              onClick={() => onNavigate(tab.page)}
-              aria-label={tab.label}
-              className="flex flex-col items-center justify-center gap-1 flex-1 h-full transition-all duration-200"
-            >
-              <Icon
-                className="w-5 h-5 transition-colors duration-200"
-                strokeWidth={1.5}
-                style={{
-                  color: isActive ? "#D4E94B" : "rgba(255, 255, 255, 0.4)",
-                }}
-              />
-              <span
-                className="text-[10px] leading-none transition-colors duration-200"
-                style={{
-                  color: isActive ? "#D4E94B" : "rgba(255, 255, 255, 0.4)",
-                  fontWeight: isActive ? 600 : 400,
-                }}
+    <>
+      {/* Spacer in flow to prevent content from being hidden behind fixed nav */}
+      <div className="md:hidden shrink-0 h-[52px]" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }} />
+
+      {/* Fixed nav pinned to physical bottom of screen */}
+      <nav
+        className="md:hidden fixed left-0 right-0 z-50"
+        style={{
+          bottom: 0,
+          backgroundColor: "var(--color-bg)",
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        }}
+      >
+        <div className="flex items-center justify-around h-[52px]">
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activePage === tab.page;
+            return (
+              <button
+                key={tab.page}
+                onClick={() => onNavigate(tab.page)}
+                aria-label={tab.label}
+                className="flex flex-col items-center justify-center gap-1 flex-1 h-full transition-all duration-200"
               >
-                {tab.label}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-      {/* Safe area spacer — goes BELOW icons so they stay at the bottom */}
-      <div className="safe-bottom" />
-    </nav>
+                <Icon
+                  className="w-5 h-5 transition-colors duration-200"
+                  strokeWidth={1.5}
+                  style={{
+                    color: isActive ? "#D4E94B" : "rgba(255, 255, 255, 0.4)",
+                  }}
+                />
+                <span
+                  className="text-[10px] leading-none transition-colors duration-200"
+                  style={{
+                    color: isActive ? "#D4E94B" : "rgba(255, 255, 255, 0.4)",
+                    fontWeight: isActive ? 600 : 400,
+                  }}
+                >
+                  {tab.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+    </>
   );
 }

@@ -601,3 +601,22 @@ export async function deleteUserMemory(id: string): Promise<void> {
     headers: getHeaders(),
   });
 }
+
+// ─── Message Feedback ───
+
+export async function sendMessageFeedback(data: {
+  message_id: string;
+  conversation_id: string;
+  rating: "up" | "down";
+  message_content: string;
+  agent: string;
+}): Promise<void> {
+  const res = await fetch(`${API_URL}/api/chat/feedback`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    console.error("[Feedback] Error:", res.status);
+  }
+}

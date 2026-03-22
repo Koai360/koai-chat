@@ -1,4 +1,4 @@
-import { Sun, Moon, Plus, Menu, ChevronDown } from "lucide-react";
+import { Sun, Moon, Plus, ChevronDown } from "lucide-react";
 import type { Agent } from "@/hooks/useChat";
 import type { AuthUser } from "@/hooks/useAuth";
 import { AIStarIcon } from "@/components/shared/AIStarIcon";
@@ -18,7 +18,6 @@ interface Props {
   user: AuthUser;
   theme: "dark" | "light";
   onToggleTheme: () => void;
-  onOpenSidebar: () => void;
 }
 
 const AGENT_LABELS: Record<Agent, string> = {
@@ -34,28 +33,17 @@ export function ContentTopBar({
   user,
   theme,
   onToggleTheme,
-  onOpenSidebar,
 }: Props) {
   return (
     <div
-      className="flex items-center px-4 shrink-0 bg-bg"
+      className="flex items-center px-4 shrink-0 liquid-glass border-b border-white/[0.04]"
       style={{ height: "calc(56px + env(safe-area-inset-top, 0px))", paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
-      {/* Left — mobile menu button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="md:hidden h-9 w-9 text-text-muted hover:text-text mr-2"
-        onClick={onOpenSidebar}
-      >
-        <Menu className="w-5 h-5" />
-      </Button>
-
       {/* Center-left — model selector pill */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild disabled={agentDisabled}>
           <button
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border hover:bg-bg-surface transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full border transition-colors"
             style={{ borderColor: agent === 'kronos' ? 'rgba(0,229,255,0.3)' : 'rgba(197,227,74,0.3)', background: agent === 'kronos' ? 'rgba(0,229,255,0.08)' : 'rgba(197,227,74,0.08)' }}
           >
             <AIStarIcon size="sm" className="w-4 h-4" />

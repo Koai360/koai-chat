@@ -76,23 +76,25 @@ export function ChatHistoryPage({ conversations, onSelect, onDelete }: Props) {
   return (
     <div className="flex flex-col h-full px-4 pt-4 pb-2">
       {/* Header */}
-      <h1 className="text-2xl font-medium text-text mb-4 font-display">Chat History</h1>
+      <h1 className="text-2xl font-medium text-text mb-4 font-display animate-fadeUpBlur">
+        Historial
+      </h1>
 
       {/* Controls */}
       <div className="flex items-center gap-3 mb-4 flex-wrap">
         {/* Tab pills */}
-        <div className="flex items-center gap-1 bg-bg-elevated rounded-lg p-1">
+        <div className="flex items-center gap-1 liquid-glass rounded-full p-1">
           {(["all", "latest"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+              className={`px-3 py-1.5 text-sm rounded-full transition-all duration-200 ${
                 tab === t
-                  ? "bg-bg-surface text-text font-medium"
+                  ? "bg-white/[0.08] text-text font-medium"
                   : "text-text-muted hover:text-text"
               }`}
             >
-              {t === "all" ? "All" : "Latest"}
+              {t === "all" ? "Todos" : "Recientes"}
             </button>
           ))}
         </div>
@@ -171,7 +173,7 @@ function ConversationCard({
   return (
     <div
       onClick={() => onSelect(c.id)}
-      className="bg-bg-surface border border-border rounded-xl p-4 cursor-pointer hover:border-text-muted/30 transition-colors group relative"
+      className="bg-bg-surface border border-border rounded-2xl p-4 cursor-pointer hover:border-kira/20 hover:scale-[1.01] transition-all duration-300 group relative"
     >
       {/* Delete button */}
       <button
@@ -218,7 +220,7 @@ function ConversationRow({
   return (
     <div
       onClick={() => onSelect(c.id)}
-      className="bg-bg-surface border border-border rounded-lg px-4 py-3 cursor-pointer hover:border-text-muted/30 transition-colors flex items-center gap-4 group"
+      className="bg-bg-surface border border-border rounded-xl px-4 py-3 cursor-pointer hover:border-kira/20 transition-all duration-200 flex items-center gap-4 group"
     >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-0.5">

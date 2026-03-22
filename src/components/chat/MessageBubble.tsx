@@ -5,9 +5,11 @@ import type { Message } from "@/hooks/useChat";
 import { motion } from "framer-motion";
 import { AIStarIcon } from "@/components/shared/AIStarIcon";
 import { MessageActions } from "./MessageActions";
+import { sendMessageFeedback } from "@/lib/api";
 
 interface Props {
   message: Message;
+  conversationId?: string;
   onImageClick?: (src: string) => void;
   isLast?: boolean;
   onRegenerate?: () => void;
@@ -55,14 +57,14 @@ function ImageBlock({ image, isUser, onImageClick }: { image: string; isUser: bo
   );
 }
 
-export function MessageBubble({ message, onImageClick, isLast, onRegenerate }: Props) {
+export function MessageBubble({ message, conversationId, onImageClick, isLast, onRegenerate }: Props) {
   const isUser = message.role === "user";
 
   if (isUser) {
     return (
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0, y: 20, filter: "blur(4px)" }}
+        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
         transition={{ duration: 0.3 }}
         className="flex flex-col items-end px-4 mb-3 group/msg"
       >
@@ -83,9 +85,9 @@ export function MessageBubble({ message, onImageClick, isLast, onRegenerate }: P
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+      initial={{ opacity: 0, y: 20, filter: "blur(4px)" }}
+      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      transition={{ duration: 0.35 }}
       className="flex items-start gap-3 px-4 mb-3 group/msg"
     >
       {/* AI Star Icon */}
@@ -98,7 +100,12 @@ export function MessageBubble({ message, onImageClick, isLast, onRegenerate }: P
         <div
           className="text-[15px] leading-[1.55] prose prose-sm prose-invert max-w-none
             [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:mb-2 [&>ol]:mb-2
-            [&_pre]:rounded-b-lg text-text"
+            [&_pre]:rounded-b-lg text-text border-l-2 pl-3"
+          style={{
+            borderLeftColor: message.agent === "kronos"
+              ? "rgba(0, 229, 255, 0.25)"
+              : "rgba(197, 227, 74, 0.25)",
+          }}
         >
           <ReactMarkdown
             rehypePlugins={[rehypeHighlight]}
@@ -123,6 +130,28 @@ export function MessageBubble({ message, onImageClick, isLast, onRegenerate }: P
           isLast={isLast}
           onRegenerate={onRegenerate}
           onCopy={() => navigator.clipboard.writeText(message.content)}
+          onThumbsUp={() => {
+            if (conversationId) {
+              sendMessageFeedback({
+                message_id: message.id,
+                conversation_id: conversationId,
+                rating: "up",
+                message_content: message.content.slice(0, 500),
+                agent: message.agent,
+              });
+            }
+          }}
+          onThumbsDown={() => {
+            if (conversationId) {
+              sendMessageFeedback({
+                message_id: message.id,
+                conversation_id: conversationId,
+                rating: "down",
+                message_content: message.content.slice(0, 500),
+                agent: message.agent,
+              });
+            }
+          }}
         />
 
         <span className="text-[10px] text-text-muted opacity-0 group-hover/msg:opacity-100 transition-opacity mt-0.5">

@@ -2,7 +2,6 @@ import {
   House,
   MessageSquare,
   Compass,
-  BookOpen,
   Image,
 } from "lucide-react";
 import type { Page } from "@/hooks/useNavigation";
@@ -34,10 +33,9 @@ interface Props {
 
 const NAV_ITEMS: { page: Page; icon: typeof House; label: string }[] = [
   { page: "home", icon: House, label: "Inicio" },
-  { page: "chat", icon: MessageSquare, label: "Chat" },
+  { page: "chatHistory", icon: MessageSquare, label: "Chat" },
   { page: "explore", icon: Compass, label: "Explorar" },
-  { page: "explore", icon: BookOpen, label: "Biblioteca" },
-  { page: "media", icon: Image, label: "Media" },
+  { page: "media", icon: Image, label: "Galería" },
 ];
 
 export function IconRail({ currentPage, onNavigate, user, onLogout, agent = "kira" }: Props) {
@@ -46,7 +44,7 @@ export function IconRail({ currentPage, onNavigate, user, onLogout, agent = "kir
   return (
     <TooltipProvider delayDuration={300}>
       <div
-        className="hidden md:flex flex-col items-center w-14 h-full bg-bg-sidebar border-r border-border shrink-0"
+        className="hidden md:flex flex-col items-center w-14 h-full liquid-glass shrink-0"
         style={{ "--accent-color": accentColor } as React.CSSProperties}
       >
         {/* Logo */}

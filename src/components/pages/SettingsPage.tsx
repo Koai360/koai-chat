@@ -50,17 +50,17 @@ export function SettingsPage({ user, onLogout, theme, onToggleTheme }: Props) {
   return (
     <div className="flex flex-col md:flex-row h-full">
       {/* Desktop: Side nav */}
-      <nav className="hidden md:flex flex-col w-[200px] shrink-0 border-r border-border p-3 gap-0.5">
+      <nav className="hidden md:flex flex-col w-[200px] shrink-0 liquid-glass p-3 gap-0.5">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           return (
             <button
               key={item.id}
               onClick={() => setActiveSection(item.id)}
-              className={`flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors text-left ${
+              className={`flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-all duration-200 text-left ${
                 activeSection === item.id
-                  ? "bg-bg-surface text-text font-medium"
-                  : "text-text-muted hover:text-text hover:bg-bg-surface/50"
+                  ? "bg-white/[0.08] text-text font-medium"
+                  : "text-text-muted hover:text-text hover:bg-white/[0.03]"
               }`}
             >
               <Icon className="size-4 shrink-0" />
@@ -114,7 +114,7 @@ export function SettingsPage({ user, onLogout, theme, onToggleTheme }: Props) {
 function AccountSection({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-medium text-text font-display">Account</h2>
+      <h2 className="text-xl font-medium text-text font-display animate-fadeUpBlur">Cuenta</h2>
 
       {/* Avatar */}
       <div className="flex items-center gap-4">
@@ -180,7 +180,7 @@ function SettingsField({
   icon?: typeof Mail;
 }) {
   return (
-    <div className="flex items-center justify-between px-3 py-2.5 bg-bg-surface rounded-lg border border-border">
+    <div className="flex items-center justify-between px-3 py-2.5 liquid-glass rounded-xl">
       <div className="flex items-center gap-2.5 min-w-0">
         {Icon && <Icon className="size-4 text-text-muted shrink-0" />}
         <div className="min-w-0">

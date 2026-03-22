@@ -4,36 +4,64 @@ import { AIStarIcon } from "@/components/shared/AIStarIcon";
 export function SplashScreen() {
   return (
     <motion.div
-      className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-bg"
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden"
+      style={{
+        background: "radial-gradient(ellipse at 40% 30%, rgba(197, 227, 74, 0.06) 0%, transparent 50%), radial-gradient(ellipse at 60% 70%, rgba(123, 45, 142, 0.05) 0%, transparent 50%), var(--color-bg)",
+      }}
       initial={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
     >
-      {/* Pulsing AIStarIcon */}
+      {/* Ambient orb */}
       <motion.div
-        animate={{ scale: [1, 1.06, 1], opacity: [0.85, 1, 0.85] }}
-        transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-      >
-        <AIStarIcon size="lg" />
-      </motion.div>
+        className="absolute w-80 h-80 rounded-full pointer-events-none"
+        style={{
+          background: "radial-gradient(circle, rgba(197, 227, 74, 0.08) 0%, transparent 70%)",
+          filter: "blur(60px)",
+        }}
+        initial={{ scale: 0.5, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 1.5, ease: "easeOut" }}
+      />
 
-      {/* Brand text */}
+      {/* AIStarIcon — lens focus effect */}
+      <div style={{ filter: "drop-shadow(0 0 40px rgba(197, 227, 74, 0.25))" }}>
+        <motion.div
+          initial={{ scale: 0.7, opacity: 0, filter: "blur(12px)" }}
+          animate={{ scale: 1, opacity: 1, filter: "blur(0px)" }}
+          transition={{ delay: 0.3, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <AIStarIcon size="lg" />
+        </motion.div>
+      </div>
+
+      {/* Brand text — staggered fadeUp+blur */}
       <motion.div
         className="text-center mt-6"
-        initial={{ y: 15, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.3, duration: 0.5 }}
+        initial={{ y: 30, opacity: 0, filter: "blur(8px)" }}
+        animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
+        transition={{ delay: 0.6, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       >
-        <h1 className="text-[22px] tracking-tight mb-1 text-text font-display">Kira</h1>
-        <p className="text-[12px] text-text-muted font-display">by KOAI Studios</p>
+        <h1 className="text-[24px] tracking-tight mb-1 font-display">
+          <span className="gradient-text-kira">Kira</span>
+        </h1>
       </motion.div>
+
+      <motion.p
+        className="text-[12px] text-text-muted font-display"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.9, duration: 0.4 }}
+      >
+        by KOAI Studios
+      </motion.p>
 
       {/* Loading dots */}
       <motion.div
         className="flex items-center gap-1.5 mt-10"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.6 }}
+        transition={{ delay: 1.1 }}
       >
         {[0, 1, 2].map((i) => (
           <motion.div

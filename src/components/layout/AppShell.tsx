@@ -8,7 +8,6 @@ import { useTheme } from "@/hooks/useTheme";
 import { transcribeAudio } from "@/lib/api";
 import { requestPushPermission } from "@/lib/push";
 import { IconRail } from "./IconRail";
-import { FullSidebar } from "./FullSidebar";
 import { ContentTopBar } from "./ContentTopBar";
 import { MobileTabBar } from "./MobileTabBar";
 import { ChatView } from "@/components/chat/ChatView";
@@ -26,7 +25,6 @@ import { UpdateBanner } from "@/components/shared/UpdateBanner";
 import { PushToast } from "@/components/shared/PushToast";
 import { SplashScreen } from "@/components/shared/SplashScreen";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 type PanelType = "notifications" | "briefs" | "memory" | "systemStatus" | null;
@@ -40,7 +38,6 @@ export function AppShell({ user, onLogout }: Props) {
   const {
     conversations,
     active,
-    activeId,
     setActiveId,
     agent,
     setAgent,
@@ -51,15 +48,12 @@ export function AppShell({ user, onLogout }: Props) {
     newConversation,
     deleteConversation,
     deleteMessages,
-    moveToProject,
-    renameConversation,
   } = useChat(user.id);
 
   const { notifications, unreadCount: _unreadCount, markRead, markAllRead, removeOne, removeAll } = useNotifications();
   const { currentPage, navigate } = useNavigation();
   const { theme, toggleTheme } = useTheme();
 
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activePanel, setActivePanel] = useState<PanelType>(null);
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [swUpdate, setSwUpdate] = useState(false);
@@ -108,23 +102,6 @@ export function AppShell({ user, onLogout }: Props) {
     // Small delay to let the conversation be created
     setTimeout(() => sendMessage(text), 100);
   }, [newConversation, navigate, sendMessage]);
-
-  const sidebarContent = (
-    <FullSidebar
-      conversations={conversations}
-      activeId={activeId}
-      onSelect={handleSelectConvo}
-      onNew={handleNewConvo}
-      onDelete={deleteConversation}
-      onRename={renameConversation}
-      onMoveToProject={moveToProject}
-      onClose={() => setSidebarOpen(false)}
-      user={user}
-      onLogout={onLogout}
-      currentPage={currentPage}
-      onNavigate={navigate}
-    />
-  );
 
   const renderPage = () => {
     switch (currentPage) {
@@ -194,6 +171,40 @@ export function AppShell({ user, onLogout }: Props) {
       </AnimatePresence>
 
       <div className="fixed inset-0 flex bg-bg text-text">
+        {/* Grain overlay — premium texture (pointer-events-none, behind interactive content) */}
+        <div className="grain pointer-events-none fixed inset-0 z-[5]" />
+
+        {/* Ambient orbs — depth layer */}
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+          <div
+            className="ambient-orb w-72 h-72 opacity-[0.05]"
+            style={{
+              background: "radial-gradient(circle, var(--color-kira) 0%, transparent 70%)",
+              top: "-5%",
+              right: "-10%",
+              animation: "float 14s ease-in-out infinite",
+            }}
+          />
+          <div
+            className="ambient-orb w-96 h-96 opacity-[0.04]"
+            style={{
+              background: "radial-gradient(circle, var(--color-kronos) 0%, transparent 70%)",
+              bottom: "-15%",
+              left: "-10%",
+              animation: "float 18s ease-in-out infinite 3s",
+            }}
+          />
+          <div
+            className="ambient-orb w-64 h-64 opacity-[0.03]"
+            style={{
+              background: "radial-gradient(circle, var(--color-kira) 0%, transparent 60%)",
+              top: "40%",
+              left: "50%",
+              animation: "float 12s ease-in-out infinite 6s",
+            }}
+          />
+        </div>
+
         {/* Desktop Icon Rail */}
         <IconRail
           currentPage={currentPage}
@@ -203,19 +214,8 @@ export function AppShell({ user, onLogout }: Props) {
           agent={agent}
         />
 
-        {/* Mobile sidebar drawer */}
-        <Drawer open={sidebarOpen} onOpenChange={setSidebarOpen} direction="left">
-          <DrawerContent
-            className="h-full w-[min(280px,85vw)] rounded-none border-none bg-bg-sidebar"
-            aria-describedby={undefined}
-          >
-            <span className="sr-only">Menú de navegación</span>
-            {sidebarContent}
-          </DrawerContent>
-        </Drawer>
-
         {/* Main content */}
-        <div className="flex-1 flex flex-col h-full min-w-0">
+        <div className="flex-1 flex flex-col h-full min-w-0 relative z-10">
           <ContentTopBar
             agent={agent}
             onAgentChange={setAgent}
@@ -224,7 +224,6 @@ export function AppShell({ user, onLogout }: Props) {
             user={user}
             theme={theme}
             onToggleTheme={toggleTheme}
-            onOpenSidebar={() => setSidebarOpen(true)}
           />
 
           <main className="flex-1 overflow-hidden">

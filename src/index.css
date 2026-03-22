@@ -345,6 +345,222 @@ button, a, [role="button"] {
   background: rgba(255, 255, 255, 0.7);
 }
 
+/* ===== LIQUID GLASS — Premium 2026 ===== */
+.liquid-glass {
+  background: rgba(255, 255, 255, 0.01);
+  background-blend-mode: luminosity;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: none;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+.liquid-glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.4px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.35) 0%,
+    rgba(255, 255, 255, 0.12) 20%,
+    rgba(255, 255, 255, 0) 40%,
+    rgba(255, 255, 255, 0) 60%,
+    rgba(255, 255, 255, 0.12) 80%,
+    rgba(255, 255, 255, 0.35) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.liquid-glass-strong {
+  background: rgba(255, 255, 255, 0.03);
+  background-blend-mode: luminosity;
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: none;
+  box-shadow: 4px 4px 4px rgba(0, 0, 0, 0.05),
+              inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+.liquid-glass-strong::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.4px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.45) 0%,
+    rgba(255, 255, 255, 0.18) 20%,
+    rgba(255, 255, 255, 0) 40%,
+    rgba(255, 255, 255, 0) 60%,
+    rgba(255, 255, 255, 0.18) 80%,
+    rgba(255, 255, 255, 0.45) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Light mode variants */
+.light .liquid-glass {
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4);
+}
+.light .liquid-glass::before {
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.08) 0%,
+    rgba(0, 0, 0, 0.03) 20%,
+    rgba(0, 0, 0, 0) 40%,
+    rgba(0, 0, 0, 0) 60%,
+    rgba(0, 0, 0, 0.03) 80%,
+    rgba(0, 0, 0, 0.08) 100%
+  );
+}
+.light .liquid-glass-strong {
+  background: rgba(255, 255, 255, 0.25);
+  box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.04),
+              inset 0 1px 1px rgba(255, 255, 255, 0.5);
+}
+.light .liquid-glass-strong::before {
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.1) 0%,
+    rgba(0, 0, 0, 0.04) 20%,
+    rgba(0, 0, 0, 0) 40%,
+    rgba(0, 0, 0, 0) 60%,
+    rgba(0, 0, 0, 0.04) 80%,
+    rgba(0, 0, 0, 0.1) 100%
+  );
+}
+
+/* ===== GRAIN OVERLAY ===== */
+.grain::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0.4;
+}
+
+/* ===== PREMIUM ANIMATIONS ===== */
+@keyframes fadeUpBlur {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+.animate-fadeUpBlur {
+  opacity: 0;
+  animation: fadeUpBlur 0.6s ease-out forwards;
+}
+
+@keyframes float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(10px, -15px) scale(1.02); }
+  66% { transform: translate(-8px, 8px) scale(0.98); }
+}
+
+@keyframes pulseSubtle {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes shimmerGradient {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* Stagger delays — use WITH animate-fadeUpBlur on same element */
+.animate-fadeUpBlur.stagger-1 { animation-delay: 0.1s; }
+.animate-fadeUpBlur.stagger-2 { animation-delay: 0.2s; }
+.animate-fadeUpBlur.stagger-3 { animation-delay: 0.3s; }
+.animate-fadeUpBlur.stagger-4 { animation-delay: 0.4s; }
+.animate-fadeUpBlur.stagger-5 { animation-delay: 0.5s; }
+.animate-fadeUpBlur.stagger-6 { animation-delay: 0.6s; }
+
+/* ===== GRADIENT TEXT ===== */
+.gradient-text-kira {
+  background: linear-gradient(135deg, #C5E34A 0%, #8BC34A 50%, #D4E94B 100%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmerGradient 4s ease-in-out infinite;
+}
+.gradient-text-kronos {
+  background: linear-gradient(135deg, #00E5FF 0%, #0097A7 50%, #00BCD4 100%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmerGradient 4s ease-in-out infinite;
+}
+
+/* ===== CUSTOM CURSOR (desktop only) ===== */
+@media (hover: hover) and (pointer: fine) {
+  .custom-cursor-area {
+    cursor: none;
+  }
+  .cursor-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--color-kira);
+    border-radius: 50%;
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    mix-blend-mode: difference;
+    transition: transform 0.15s ease;
+  }
+  .cursor-ring {
+    width: 36px;
+    height: 36px;
+    border: 1px solid rgba(197, 227, 74, 0.3);
+    border-radius: 50%;
+    position: fixed;
+    pointer-events: none;
+    z-index: 9998;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .cursor-ring.hovering {
+    width: 56px;
+    height: 56px;
+    border-color: rgba(197, 227, 74, 0.6);
+    background: rgba(197, 227, 74, 0.04);
+  }
+}
+
+/* ===== AMBIENT ORB ===== */
+.ambient-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  will-change: transform;
+}
+
 /* ===== LOGIN BACKGROUND ===== */
 .login-bg {
   position: fixed;

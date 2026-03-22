@@ -124,6 +124,7 @@ export function ChatView({ conversation, agent, loading, loadingHint, streamingT
                 )}
                 <MessageBubble
                   message={msg}
+                  conversationId={conversation.id}
                   onImageClick={selectMode ? undefined : onImageClick}
                   isLast={!selectMode && msg.role === "assistant" && i === conversation.messages.length - 1}
                   onRegenerate={!selectMode && msg.role === "assistant" && i === conversation.messages.length - 1 && !loading

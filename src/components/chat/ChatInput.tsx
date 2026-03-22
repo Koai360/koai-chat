@@ -262,6 +262,7 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Ask A
 
   const hasContent = text.trim().length > 0 || !!imageBase64;
   const isDisabled = disabled || transcribing;
+  const isMultiLine = text.includes("\n") || text.length > 60;
 
   return (
     <div
@@ -407,10 +408,7 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Ask A
 
         {/* Input pill */}
         <div
-          className="flex-1 flex items-end rounded-full min-h-[44px] overflow-hidden bg-bg-elevated border border-border transition-all duration-300"
-          style={{
-            boxShadow: "0px 1px 3px 0.5px rgba(0,0,0,0.12), 0px 0.5px 1px 0px rgba(0,0,0,0.08)",
-          }}
+          className={`flex-1 flex items-end min-h-[44px] overflow-hidden liquid-glass-strong transition-all duration-300 ${isMultiLine ? "rounded-2xl" : "rounded-full"}`}
         >
           <div
             ref={editorRef}

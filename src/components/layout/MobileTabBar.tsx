@@ -18,10 +18,9 @@ export function MobileTabBar({ currentPage, onNavigate }: Props) {
 
   return (
     <nav
-      className="md:hidden shrink-0"
+      className="md:hidden shrink-0 pb-safe"
       style={{
         backgroundColor: "var(--color-bg)",
-        paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}
     >
       <div className="flex items-center justify-around h-[50px]">

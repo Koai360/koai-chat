@@ -178,61 +178,32 @@ body {
   overflow: hidden;
 }
 
-/* ===== KEYBOARD HANDLING (iOS Safari PWA + Chrome Android) =====
+/* ===== KEYBOARD HANDLING (iOS + Android) =====
  *
- * Dual strategy:
- * 1. data-keyboard="open" — set por ChatInput.tsx en focusin de cualquier
- *    input/textarea/contenteditable. Controla .hide-on-keyboard (tab bar).
- *    Funciona en TODAS las plataformas incluyendo iOS standalone PWA.
- * 2. --keyboard-h — altura real del teclado (solo útil en Chrome Android con
- *    interactive-widget=overlays-content, donde el layout viewport NO se
- *    achica). En iOS standalone suele ser 0 porque innerHeight ya se achicó,
- *    y eso es correcto: bottom:0 del layout viewport YA está arriba del
- *    teclado visible.
+ * Approach simple: ChatInput vive in-flow al final del flex column.
+ * Cuando el teclado virtual abre, iOS/Android shrinken el layout viewport,
+ * el <body> position:fixed inset-0 se achica con el viewport, y todo el
+ * contenido se reacomoda naturalmente — el ChatInput queda arriba del
+ * teclado sin cálculos manuales.
+ *
+ * data-keyboard="open" se setea en <html> via focusin/focusout en
+ * cualquier input/textarea/contenteditable (ver ChatInput.tsx) y se
+ * usa para colapsar el MobileTabBar cuando el usuario está escribiendo.
  */
-:root {
-  --keyboard-h: 0px;
-}
 
-/* Wrapper del ChatInput — position fixed anclado al bottom del viewport.
- *
- * En iOS standalone: --keyboard-h ≈ 0, pero el layout viewport ya se achicó
- * al aparecer el teclado, entonces bottom:0 queda arriba del teclado.
- *
- * En Chrome Android con overlays-content: --keyboard-h > 0 (alto real del
- * teclado) y el wrapper se levanta esa distancia para quedar arriba del
- * teclado que flota encima del viewport.
- */
-.keyboard-aware-bottom {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: var(--keyboard-h, 0px);
-  z-index: 40;
-  background: var(--color-bg);
-  transition: bottom 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: bottom;
+/* MobileTabBar colapsa completamente cuando el teclado está abierto
+ * (no solo con transform — también height 0 para liberar el espacio
+ * vertical y que el ChatInput suba al borde superior del teclado) */
+.hide-on-keyboard {
+  transition: max-height 0.18s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.15s ease;
+  max-height: 200px;
+  overflow: hidden;
+  will-change: max-height;
 }
-
-/* Espaciador en el flujo — mantiene el espacio donde estaba el input antes
- * para que el contenido del chat no quede oculto detrás del input fixed.
- * El JS lo dimensiona dinámicamente con la altura del wrapper. */
-.keyboard-aware-spacer {
-  flex-shrink: 0;
-  /* Default ~70px, JS lo ajusta */
-  height: var(--input-height, 72px);
-}
-
-/* MobileTabBar se oculta cuando keyboard visible.
- * data-keyboard="open" se setea en <html> cuando keyboard-h > 80px */
 html[data-keyboard="open"] .hide-on-keyboard {
-  transform: translateY(100%);
+  max-height: 0;
   opacity: 0;
   pointer-events: none;
-}
-.hide-on-keyboard {
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.15s ease;
-  will-change: transform, opacity;
 }
 
 .pb-safe {

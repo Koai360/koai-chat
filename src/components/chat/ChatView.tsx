@@ -153,12 +153,9 @@ export function ChatView({ conversation, agent, loading, loadingHint, streamingT
         </div>
       </div>
 
-      {/* Spacer en el flex flow — ocupa el espacio que el ChatInput fixed
-          deja vacío. Su altura se sincroniza via CSS var --input-height
-          (set por ChatInput.tsx con ResizeObserver) */}
-      <div className="keyboard-aware-spacer" aria-hidden="true" />
-
-      {/* Input — position fixed, sigue el bottom del visualViewport */}
+      {/* Input — in-flow al final del flex column. Cuando el teclado
+          abre, el layout viewport se achica y el input se pega al borde
+          superior del teclado naturalmente. */}
       <ChatInput
         onSend={onSend}
         onTranscribe={onTranscribe}

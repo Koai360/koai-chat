@@ -84,25 +84,11 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Pregu
   const [imageEngine, setImageEngine] = useState("gemini");
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const wrapperRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Sincroniza la altura real del wrapper a CSS var --input-height
-  // (consumido por .keyboard-aware-spacer en el flex flow)
-  useEffect(() => {
-    const el = wrapperRef.current;
-    if (!el) return;
-    const update = () => {
-      const h = el.offsetHeight;
-      document.documentElement.style.setProperty("--input-height", `${h}px`);
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+  // ChatInput ahora vive in-flow — no necesita tracking de altura
 
   const syncEditorToState = useCallback(() => {
     if (editorRef.current) setText(editorRef.current.innerText || "");
@@ -126,39 +112,18 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Pregu
   }, [autoFocus]);
 
   /**
-   * Keyboard handling — dual strategy:
+   * Keyboard detection via focus events.
    *
-   * 1. Focus-based (primary signal): cuando CUALQUIER input/contenteditable
-   *    recibe foco → dataset.keyboard = "open". Se usa para ocultar
-   *    MobileTabBar (.hide-on-keyboard). Esto funciona en TODAS las plataformas,
-   *    incluyendo iOS standalone PWA donde `window.innerHeight` también se
-   *    achica con el teclado (y por eso el cálculo viewport-math fallaba).
+   * ChatInput vive in-flow dentro del flex column del AppShell. Cuando el
+   * teclado virtual abre, iOS/Android shrinken el layout viewport y el
+   * contenido se reacomoda naturalmente (el input queda pegado al borde
+   * superior del teclado sin cálculos).
    *
-   * 2. Viewport-math (solo Chrome Android + overlays-content): calcula la
-   *    altura real del teclado y la guarda en --keyboard-h para que el wrapper
-   *    del ChatInput suba físicamente sobre él (`bottom: var(--keyboard-h)`).
-   *    En iOS standalone --keyboard-h queda en 0 porque innerHeight ya se
-   *    achicó, pero eso es correcto: bottom:0 del dynamic viewport YA está
-   *    arriba del teclado.
+   * Este effect solo setea data-keyboard="open" en <html> cuando cualquier
+   * text input tiene foco, para que el MobileTabBar colapse y libere
+   * espacio vertical al ChatInput.
    */
   useEffect(() => {
-    // VirtualKeyboard API (Chrome Android 108+, NO iOS Safari)
-    const vk = (navigator as Navigator & { virtualKeyboard?: { overlaysContent: boolean } })
-      .virtualKeyboard;
-    if (vk) vk.overlaysContent = true;
-
-    const vv = window.visualViewport;
-
-    const updateKeyboardHeight = () => {
-      if (!vv) return;
-      // Altura del teclado = diferencia entre layout viewport y visual viewport.
-      // En iOS standalone esto suele ser ~0 (ambos se achican juntos).
-      // En Chrome Android con overlays-content da la altura real del teclado.
-      const keyboardH = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-      document.documentElement.style.setProperty("--keyboard-h", `${keyboardH}px`);
-    };
-
-    // Focus-based detection — SIGNAL PRIMARIO para "keyboard open"
     const isTextInput = (el: EventTarget | null): boolean => {
       if (!(el instanceof HTMLElement)) return false;
       const tag = el.tagName;
@@ -188,28 +153,17 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Pregu
       }
     };
 
-    updateKeyboardHeight();
-    if (vv) {
-      vv.addEventListener("resize", updateKeyboardHeight);
-      vv.addEventListener("scroll", updateKeyboardHeight);
-    }
     document.addEventListener("focusin", onFocusIn);
     document.addEventListener("focusout", onFocusOut);
 
     return () => {
-      if (vv) {
-        vv.removeEventListener("resize", updateKeyboardHeight);
-        vv.removeEventListener("scroll", updateKeyboardHeight);
-      }
       document.removeEventListener("focusin", onFocusIn);
       document.removeEventListener("focusout", onFocusOut);
-      document.documentElement.style.setProperty("--keyboard-h", "0px");
       delete document.documentElement.dataset.keyboard;
     };
   }, []);
 
-  // Focus handler — no-op. La detección global de keyboard vive en el useEffect
-  // de arriba (focusin/focusout en document) para capturar cualquier input.
+  // Focus handler — no-op.
   const handleFocus = useCallback(() => {}, []);
 
   useEffect(() => {
@@ -342,14 +296,8 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Pregu
   const isMultiLine = text.includes("\n") || text.length > 60;
 
   return (
-    <div
-      ref={wrapperRef}
-      className="keyboard-aware-bottom px-4 pt-2 pb-1 md:pb-2"
-      style={{
-        // Limitar el ancho interior pero mantener el wrapper full-width
-        // (necesario porque el wrapper es position:fixed left:0 right:0)
-      }}
-    ><div className="max-w-[48rem] mx-auto w-full">
+    <div className="shrink-0 bg-bg px-4 pt-2 pb-1 md:pb-2">
+      <div className="max-w-[48rem] mx-auto w-full">
       {/* Error toast */}
       <AnimatePresence>
         {error && (

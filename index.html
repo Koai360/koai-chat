@@ -5,12 +5,17 @@
     <link rel="icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <!--
-      interactive-widget=overlays-content: el teclado virtual NO redimensiona
-      el viewport, queda flotando encima. El input se posiciona arriba del
-      teclado via visualViewport API en el JS, mientras el resto del layout
-      se mantiene intacto (no jump). Comportamiento estilo Claude.ai / Telegram.
+      Viewport default: el teclado virtual SÍ redimensiona el layout viewport
+      (comportamiento nativo de iOS/Android). ChatInput vive in-flow al final
+      del flex column y se acomoda naturalmente arriba del teclado. Sin hacks
+      de visualViewport math.
+
+      NOTA: interactive-widget=overlays-content (Chrome Android) NO se usa
+      porque iOS Safari no lo soporta — causaba divergencia de comportamiento
+      entre plataformas. Con el default, ambos OS shrinken el viewport
+      consistentemente.
     -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1, interactive-widget=overlays-content" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1" />
     <meta name="theme-color" content="#0a0a0c" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

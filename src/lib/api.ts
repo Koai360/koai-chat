@@ -29,10 +29,15 @@ export async function sendKiraMessage(
   if (imageMode) body.image_mode = true;
   if (imageEngine) body.image_engine = imageEngine;
 
-  // Timeout: StudioFlux cold start ~100s, warm ~45s; Flux ~10s; Gemini ~3s
-  const isStudio = imageEngine === "studioflux" || imageEngine === "studioflux-raw";
+  // Timeout por engine (sincronizado con StudioFlux v2):
+  // - flux2: 32B, ~30-90s warm, ~120s cold → 240_000ms
+  // - studioflux/studioflux-raw/zimage: Z-Image-Turbo, ~5-30s warm, ~60s cold → 180_000ms
+  // - flux/flux-pro: BFL API hosted, ~6-15s → 90_000ms
+  // - gemini: ~3s, default → 60_000ms
   const timeoutMs = imageMode
-    ? (isStudio ? 180_000 : 90_000)
+    ? imageEngine === "flux2" ? 240_000
+    : (imageEngine === "studioflux" || imageEngine === "studioflux-raw" || imageEngine === "zimage") ? 180_000
+    : 90_000
     : 60_000;
 
   const MAX_RETRIES = 1;
@@ -52,7 +57,11 @@ export async function sendKiraMessage(
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
         throw new Error(imageMode
-          ? "La generación de imagen tardó demasiado. Intenta de nuevo o usa el motor Rápido (Gemini)."
+          ? imageEngine === "flux2"
+            ? "Flux.2 Pro tardó demasiado (cold start del GPU). Reintenta — el segundo intento es ~5x más rápido. O usa Z-Image para velocidad."
+            : imageEngine === "zimage" || imageEngine === "studioflux" || imageEngine === "studioflux-raw"
+              ? "El GPU está calentándose (cold start). Reintenta en unos segundos — los siguientes serán inmediatos."
+              : "La generación tardó demasiado. Intenta de nuevo o usa el motor Rápido (Gemini)."
           : "La solicitud tardó demasiado. Intenta de nuevo.");
       }
       // Retry once on network errors (Safari "Load failed", Chrome "Failed to fetch")
@@ -130,9 +139,15 @@ export async function streamKronosMessage(
   return fullText;
 }
 
+export interface ImageMetadataPayload {
+  engine: string;
+  generation_time_ms?: number;
+  cost_estimate_usd?: number;
+}
+
 export interface KiraStreamCallbacks {
   onToken: (accumulated: string) => void;
-  onImage?: (base64: string) => void;
+  onImage?: (base64: string, metadata?: ImageMetadataPayload) => void;
   onAgent?: (agent: string) => void;
 }
 
@@ -143,7 +158,8 @@ export async function streamKiraMessage(
   imageMode?: boolean,
   imageEngine?: string,
   callbacks: KiraStreamCallbacks = { onToken: () => {} },
-): Promise<{ conversation_id: string; agent_used: string; fullText: string; image?: string }> {
+  signal?: AbortSignal,
+): Promise<{ conversation_id: string; agent_used: string; fullText: string; image?: string; imageMetadata?: ImageMetadataPayload }> {
   const body: Record<string, unknown> = {
     message,
     agent: "kira",
@@ -153,10 +169,32 @@ export async function streamKiraMessage(
   if (imageMode) body.image_mode = true;
   if (imageEngine) body.image_engine = imageEngine;
 
-  const isStudio = imageEngine === "studioflux" || imageEngine === "studioflux-raw";
-  const timeoutMs = imageMode ? (isStudio ? 180_000 : 90_000) : 120_000;
+  // Timeout por engine (sincronizado con StudioFlux v2):
+  // - flux2: 32B premium → 240_000ms
+  // - studioflux/zimage variants: Z-Image-Turbo → 180_000ms
+  // - resto: 90_000ms para imagen, 120_000ms para chat normal
+  const isStudio =
+    imageEngine === "studioflux" ||
+    imageEngine === "studioflux-raw" ||
+    imageEngine === "zimage";
+  const timeoutMs = imageMode
+    ? imageEngine === "flux2" ? 240_000
+    : isStudio ? 180_000
+    : 90_000
+    : 120_000;
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  // Si el caller pasó un signal externo, hacerlo chain con el controller interno
+  // (permite cancelación manual desde useChat sin perder el timeout interno)
+  if (signal) {
+    if (signal.aborted) {
+      controller.abort();
+    } else {
+      signal.addEventListener("abort", () => controller.abort(), { once: true });
+    }
+  }
 
   try {
     const res = await fetch(`${API_URL}/api/chat/stream`, {
@@ -175,6 +213,7 @@ export async function streamKiraMessage(
     let buffer = "";
     let fullText = "";
     let image: string | undefined;
+    let imageMetadata: ImageMetadataPayload | undefined;
     let conversationIdResult = conversationId || "";
     let agentUsed = "kira";
 
@@ -201,7 +240,8 @@ export async function streamKiraMessage(
             } else if (currentEvent === "image" && parsed.image) {
               // image puede ser URL pública o base64 (fallback)
               image = parsed.image;
-              callbacks.onImage?.(parsed.image);
+              imageMetadata = parsed.metadata as ImageMetadataPayload | undefined;
+              callbacks.onImage?.(parsed.image, imageMetadata);
             } else if (currentEvent === "agent" && parsed.agent) {
               agentUsed = parsed.agent;
               callbacks.onAgent?.(parsed.agent);
@@ -220,7 +260,7 @@ export async function streamKiraMessage(
       }
     }
 
-    return { conversation_id: conversationIdResult, agent_used: agentUsed, fullText, image };
+    return { conversation_id: conversationIdResult, agent_used: agentUsed, fullText, image, imageMetadata };
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {
       throw new Error(imageMode

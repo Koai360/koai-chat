@@ -5,12 +5,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus,
@@ -20,11 +14,10 @@ import {
   Paperclip,
   Palette,
   X,
-  ChevronDown,
   Square,
   Loader2,
-  Check,
 } from "lucide-react";
+import { EngineSelector, type EngineValue } from "./EngineSelector";
 
 interface Props {
   onSend: (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string) => void;
@@ -75,12 +68,8 @@ function compressImage(dataUrl: string, maxBytes: number): Promise<{ base64: str
   });
 }
 
-const ENGINE_OPTIONS = [
-  { value: "gemini", label: "Rápida", icon: "zap", desc: "Gemini · gratis" },
-  { value: "flux", label: "Profesional", icon: "sparkles", desc: "Flux 2 · premium" },
-  { value: "studioflux", label: "Studio", icon: "clapperboard", desc: "Flux Dev · enhanced" },
-  { value: "studioflux-raw", label: "Studio RAW", icon: "unlock", desc: "Sin filtro" },
-] as const;
+// ENGINE_OPTIONS y tipos viven en EngineSelector.tsx (single source of truth)
+// Backend dispatch correspondiente: /opt/koai-api/koai/tools/image_gen_tools.py:generate_image()
 
 export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Pregunta algo a Kira...", autoFocus, agent = "kira" }: Props) {
   const [text, setText] = useState("");
@@ -319,45 +308,36 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Pregu
         )}
       </AnimatePresence>
 
-      {/* Image mode chip */}
+      {/* Image mode panel — header chip + EngineSelector visual */}
       <AnimatePresence>
         {imageMode && !recording && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="flex items-center gap-2 px-3 py-2"
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="px-3 py-2 space-y-2 overflow-hidden"
           >
-            <span className="inline-flex items-center gap-1.5 bg-bg-surface border border-border rounded-full px-3 py-1 text-xs font-medium text-text">
-              <Palette className="h-3 w-3" />
-              Crear imagen
-              <button onClick={() => setImageMode(false)} className="ml-0.5 hover:text-text-muted">
-                <X className="h-3 w-3" />
+            {/* Header chip — close button */}
+            <div className="flex items-center justify-between">
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-text-muted">
+                <Palette className="h-3 w-3" />
+                Crear imagen
+              </span>
+              <button
+                onClick={() => setImageMode(false)}
+                aria-label="Cerrar modo imagen"
+                className="text-text-subtle hover:text-text transition-colors"
+              >
+                <X className="h-3.5 w-3.5" />
               </button>
-            </span>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-6 text-[10px] gap-1 px-2">
-                  {ENGINE_OPTIONS.find((e) => e.value === imageEngine)?.label}
-                  <ChevronDown className="h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48">
-                {ENGINE_OPTIONS.map((opt) => (
-                  <DropdownMenuItem
-                    key={opt.value}
-                    onClick={() => setImageEngine(opt.value)}
-                    className="flex items-center justify-between"
-                  >
-                    <div>
-                      <div className="text-xs font-medium">{opt.label}</div>
-                      <div className="text-[10px] text-text-muted">{opt.desc}</div>
-                    </div>
-                    {imageEngine === opt.value && <Check className="h-3.5 w-3.5 text-kira" />}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            </div>
+
+            {/* Visual engine selector */}
+            <EngineSelector
+              value={imageEngine as EngineValue}
+              onChange={(v) => setImageEngine(v)}
+            />
           </motion.div>
         )}
       </AnimatePresence>

@@ -50,6 +50,7 @@ export function AppShell({ user, onLogout }: Props) {
     newConversation,
     deleteConversation,
     deleteMessages,
+    renameConversation,
   } = useChat(user.id);
 
   const { notifications, unreadCount: _unreadCount, markRead, markAllRead, removeOne, removeAll } = useNotifications();
@@ -168,6 +169,7 @@ export function AppShell({ user, onLogout }: Props) {
             conversations={conversations}
             onSelect={handleSelectConvo}
             onDelete={deleteConversation}
+            onRename={renameConversation}
           />
         );
       case "explore":

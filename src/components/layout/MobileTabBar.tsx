@@ -18,7 +18,7 @@ export function MobileTabBar({ currentPage, onNavigate }: Props) {
 
   return (
     <nav
-      className="md:hidden shrink-0 border-t border-border hide-on-keyboard"
+      className="md:hidden shrink-0 border-t border-border"
       style={{
         backgroundColor: "var(--color-bg)",
         // Padding inferior = solo lo necesario para no solapar con el

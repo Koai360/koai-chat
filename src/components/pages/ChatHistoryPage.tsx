@@ -1,14 +1,22 @@
 import { useState, useMemo } from "react";
-import { Search, LayoutGrid, List, ImageIcon, Trash2 } from "lucide-react";
+import { Search, LayoutGrid, List, ImageIcon, Trash2, Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import type { Conversation } from "@/hooks/useChat";
 
 interface Props {
   conversations: Conversation[];
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
+  onRename: (id: string, newTitle: string) => void;
 }
 
 type Tab = "all" | "latest";
@@ -40,13 +48,33 @@ function hasImages(c: Conversation): boolean {
   return c.messages.some((m) => m.image);
 }
 
-export function ChatHistoryPage({ conversations, onSelect, onDelete }: Props) {
+export function ChatHistoryPage({ conversations, onSelect, onDelete, onRename }: Props) {
   const [tab, setTab] = useState<Tab>("all");
   const [search, setSearch] = useState("");
   // Default list en mobile para máxima densidad; grid en desktop
   const [viewMode, setViewMode] = useState<ViewMode>(() =>
     typeof window !== "undefined" && window.innerWidth < 768 ? "list" : "grid"
   );
+  // Dialog state para renombrar
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
+
+  const openEdit = (id: string, currentTitle: string) => {
+    setEditingId(id);
+    setEditingTitle(currentTitle);
+  };
+
+  const closeEdit = () => {
+    setEditingId(null);
+    setEditingTitle("");
+  };
+
+  const submitEdit = () => {
+    if (editingId && editingTitle.trim()) {
+      onRename(editingId, editingTitle.trim());
+    }
+    closeEdit();
+  };
 
   const filtered = useMemo(() => {
     let list = [...conversations];
@@ -133,6 +161,7 @@ export function ChatHistoryPage({ conversations, onSelect, onDelete }: Props) {
                 conversation={c}
                 onSelect={onSelect}
                 onDelete={onDelete}
+                onEdit={openEdit}
               />
             ))}
           </div>
@@ -144,11 +173,42 @@ export function ChatHistoryPage({ conversations, onSelect, onDelete }: Props) {
                 conversation={c}
                 onSelect={onSelect}
                 onDelete={onDelete}
+                onEdit={openEdit}
               />
             ))}
           </div>
         )}
       </ScrollArea>
+
+      {/* Dialog de rename */}
+      <Dialog open={editingId !== null} onOpenChange={(open) => !open && closeEdit()}>
+        <DialogContent className="sm:max-w-[420px] bg-bg-elevated border-border">
+          <DialogHeader>
+            <DialogTitle className="text-text">Renombrar conversación</DialogTitle>
+          </DialogHeader>
+          <Input
+            value={editingTitle}
+            onChange={(e) => setEditingTitle(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                submitEdit();
+              }
+            }}
+            placeholder="Nuevo nombre"
+            className="bg-bg-surface border-border text-text"
+            autoFocus
+          />
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="ghost" onClick={closeEdit}>
+              Cancelar
+            </Button>
+            <Button onClick={submitEdit} disabled={!editingTitle.trim()}>
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -157,26 +217,41 @@ function ConversationCard({
   conversation: c,
   onSelect,
   onDelete,
+  onEdit,
 }: {
   conversation: Conversation;
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
+  onEdit: (id: string, currentTitle: string) => void;
 }) {
   return (
     <div
       onClick={() => onSelect(c.id)}
       className="bg-bg-surface border border-border rounded-2xl p-3 cursor-pointer hover:border-kira/20 hover:scale-[1.01] transition-all duration-300 group relative"
     >
-      {/* Delete button */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete(c.id);
-        }}
-        className="absolute top-2.5 right-2.5 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-bg-elevated text-text-muted hover:text-danger"
-      >
-        <Trash2 className="size-3.5" />
-      </button>
+      {/* Action buttons — edit + delete */}
+      <div className="absolute top-2.5 right-2.5 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit(c.id, c.title);
+          }}
+          className="p-1 rounded-md hover:bg-bg-elevated text-text-muted hover:text-text"
+          aria-label="Renombrar"
+        >
+          <Pencil className="size-3.5" />
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(c.id);
+          }}
+          className="p-1 rounded-md hover:bg-bg-elevated text-text-muted hover:text-danger"
+          aria-label="Eliminar"
+        >
+          <Trash2 className="size-3.5" />
+        </button>
+      </div>
 
       {/* Date + images indicator */}
       <div className="flex items-center gap-1.5 mb-1.5">
@@ -201,15 +276,17 @@ function ConversationRow({
   conversation: c,
   onSelect,
   onDelete,
+  onEdit,
 }: {
   conversation: Conversation;
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
+  onEdit: (id: string, currentTitle: string) => void;
 }) {
   return (
     <div
       onClick={() => onSelect(c.id)}
-      className="px-3 py-2.5 cursor-pointer flex items-center gap-2.5 group border-b border-border/40 active:bg-bg-surface transition-colors"
+      className="px-3 py-2.5 cursor-pointer flex items-center gap-2 group border-b border-border/40 active:bg-bg-surface transition-colors"
     >
       {/* Main text */}
       <p className="flex-1 min-w-0 text-[14px] text-text truncate">
@@ -223,6 +300,18 @@ function ConversationRow({
       <span className="text-[10px] text-text-subtle font-mono shrink-0">
         {formatDate(c.createdAt)}
       </span>
+
+      {/* Edit — siempre visible pero sutil en mobile */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onEdit(c.id, c.title);
+        }}
+        className="p-1 rounded-md text-text-subtle/50 hover:text-text active:text-text md:text-text-muted md:opacity-0 md:group-hover:opacity-100 transition-all shrink-0"
+        aria-label="Renombrar"
+      >
+        <Pencil className="size-3.5" />
+      </button>
 
       {/* Delete — siempre visible pero sutil en mobile, aparece en hover en desktop */}
       <button

@@ -100,6 +100,8 @@ export function useChat(userId: string | null = null) {
   const [syncing, setSyncing] = useState(true);
   const initialLoadDone = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
+  // Track qué convo IDs ya pedimos al backend, para no re-fetchar en loop
+  const fetchedMessagesRef = useRef<Set<string>>(new Set());
 
   const active = conversations.find((c) => c.id === activeId) || null;
 
@@ -122,24 +124,38 @@ export function useChat(userId: string | null = null) {
       .finally(() => setSyncing(false));
   }, [userId]);
 
-  // Load messages when active conversation changes
+  // Load messages cuando una convo se activa por primera vez.
+  // CRITICAL: dependency array SOLO tiene `activeId`. Tener `conversations`
+  // en las deps causaba un loop infinito de ~1 fetch/segundo porque
+  // `setConversations` creaba nueva referencia → re-disparaba effect
+  // → re-fetchaba → sobrescribía el stream en progreso con `messages: []`
+  // (eso causaba "a veces escribo y no me responde").
   useEffect(() => {
     if (!activeId || !initialLoadDone.current) return;
+    // Evitar re-fetch de convos ya cargadas (aunque el state haya cambiado)
+    if (fetchedMessagesRef.current.has(activeId)) return;
 
-    const convo = conversations.find((c) => c.id === activeId);
-    if (!convo || convo.messages.length > 0) return;
-
+    fetchedMessagesRef.current.add(activeId);
     fetchMessages(activeId)
       .then((serverMsgs) => {
+        if (serverMsgs.length === 0) return;
         const msgs = serverMsgs.map(serverMsgToLocal);
         setConversations((prev) =>
-          prev.map((c) => (c.id === activeId ? { ...c, messages: msgs } : c))
+          prev.map((c) => {
+            if (c.id !== activeId) return c;
+            // No sobrescribir si el state local ya tiene mensajes (caso:
+            // el user envió algo y el streaming ya empezó)
+            if (c.messages.length > 0) return c;
+            return { ...c, messages: msgs };
+          })
         );
       })
       .catch((err) => {
         console.error("[useChat] Failed to fetch messages:", err);
+        // Permitir retry en próximo select
+        fetchedMessagesRef.current.delete(activeId);
       });
-  }, [activeId, conversations]);
+  }, [activeId]);
 
   // When agent changes, switch to the most recent conversation of that agent
   const setAgent = useCallback(

@@ -122,6 +122,14 @@ export function AppShell({ user, onLogout }: Props) {
     [newConversation, navigate, sendMessage]
   );
 
+  // Redirect a home si estás en "chat" sin convo activa
+  // (side effect — NO en render, evita loop infinito)
+  useEffect(() => {
+    if (currentPage === "chat" && !active) {
+      navigate("home");
+    }
+  }, [currentPage, active, navigate]);
+
   const renderPage = () => {
     switch (currentPage) {
       case "home":
@@ -133,10 +141,10 @@ export function AppShell({ user, onLogout }: Props) {
           />
         );
       case "chat":
-        // Si no hay convo activa en ruta "chat", redirigir a home
-        // (evita mostrar EmptyState de chat cuando realmente debería ser home)
+        // Si no hay convo activa en ruta "chat", renderizar null mientras
+        // el useEffect de arriba redirige a home (NO llamar navigate aquí
+        // porque setState durante el render causa loop infinito y crash)
         if (!active) {
-          navigate("home");
           return null;
         }
         return (

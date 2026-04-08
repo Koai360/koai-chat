@@ -18,13 +18,18 @@ export function MobileTabBar({ currentPage, onNavigate }: Props) {
 
   return (
     <nav
-      className="md:hidden shrink-0 pb-safe border-t border-border hide-on-keyboard"
+      className="md:hidden shrink-0 border-t border-border hide-on-keyboard"
       style={{
         backgroundColor: "var(--color-bg)",
+        // Padding inferior = solo lo necesario para no solapar con el
+        // home indicator (12px). Estilo Grok / Instagram: la tab bar
+        // queda pegada al borde inferior sin "flotar" con safe-area-inset
+        // completo (que son ~34px en iPhones con home indicator).
+        paddingBottom: "12px",
       }}
       aria-label="Navegación principal"
     >
-      <div className="flex items-center justify-around h-[56px]">
+      <div className="flex items-center justify-around h-[52px]">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activePage === tab.page;

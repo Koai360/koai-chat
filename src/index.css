@@ -180,39 +180,38 @@ body {
 
 /* ===== KEYBOARD HANDLING (iOS Safari PWA + Chrome Android) =====
  *
- * CSS vars seteados por ChatInput.tsx via visualViewport API:
- * --vv-bottom: posición Y del bottom del visualViewport en coords del layout
- * --keyboard-h: alto del teclado virtual visible (0 cuando cerrado)
- *
- * Defaults — sin teclado, vv-bottom = 100% del viewport
+ * Dual strategy:
+ * 1. data-keyboard="open" — set por ChatInput.tsx en focusin de cualquier
+ *    input/textarea/contenteditable. Controla .hide-on-keyboard (tab bar).
+ *    Funciona en TODAS las plataformas incluyendo iOS standalone PWA.
+ * 2. --keyboard-h — altura real del teclado (solo útil en Chrome Android con
+ *    interactive-widget=overlays-content, donde el layout viewport NO se
+ *    achica). En iOS standalone suele ser 0 porque innerHeight ya se achicó,
+ *    y eso es correcto: bottom:0 del layout viewport YA está arriba del
+ *    teclado visible.
  */
 :root {
-  --vv-bottom: 100%;
   --keyboard-h: 0px;
 }
 
-/* Wrapper del ChatInput — position fixed con TOP en lugar de BOTTOM.
+/* Wrapper del ChatInput — position fixed anclado al bottom del viewport.
  *
- * El truco: position fixed con top: var(--vv-bottom) coloca el TOP del wrapper
- * en el bottom del visualViewport. Luego transform: translateY(-100%) lo
- * desplaza por su propia altura hacia arriba, alineando su BOTTOM con el
- * borde superior del teclado.
+ * En iOS standalone: --keyboard-h ≈ 0, pero el layout viewport ya se achicó
+ * al aparecer el teclado, entonces bottom:0 queda arriba del teclado.
  *
- * Resultado: cuando el teclado se abre/cierra, el input siempre queda
- * pegado al borde superior del teclado (o al bottom de la pantalla cuando
- * no hay teclado). El resto del layout NO se mueve.
+ * En Chrome Android con overlays-content: --keyboard-h > 0 (alto real del
+ * teclado) y el wrapper se levanta esa distancia para quedar arriba del
+ * teclado que flota encima del viewport.
  */
 .keyboard-aware-bottom {
   position: fixed;
   left: 0;
   right: 0;
-  top: var(--vv-bottom, 100%);
-  transform: translateY(-100%);
+  bottom: var(--keyboard-h, 0px);
   z-index: 40;
   background: var(--color-bg);
-  /* iOS-friendly transition */
-  transition: top 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: top;
+  transition: bottom 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: bottom;
 }
 
 /* Espaciador en el flujo — mantiene el espacio donde estaba el input antes

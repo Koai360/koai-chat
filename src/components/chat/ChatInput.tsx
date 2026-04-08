@@ -126,71 +126,91 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Pregu
   }, [autoFocus]);
 
   /**
-   * Keyboard handling para iOS Safari PWA — el approach correcto:
+   * Keyboard handling — dual strategy:
    *
-   * iOS NO soporta interactive-widget=overlays-content. Cuando el teclado
-   * aparece, el viewport queda igual pero el visualViewport (subset visible)
-   * cambia: vv.height baja y vv.offsetTop sube. Position: fixed con bottom
-   * sigue anclado al layout viewport (no al visual), por eso queda DETRAS
-   * del teclado.
+   * 1. Focus-based (primary signal): cuando CUALQUIER input/contenteditable
+   *    recibe foco → dataset.keyboard = "open". Se usa para ocultar
+   *    MobileTabBar (.hide-on-keyboard). Esto funciona en TODAS las plataformas,
+   *    incluyendo iOS standalone PWA donde `window.innerHeight` también se
+   *    achica con el teclado (y por eso el cálculo viewport-math fallaba).
    *
-   * Solución: el wrapper del input es position: fixed, pero usamos:
-   * - top: visualViewport.height + visualViewport.offsetTop
-   * - transform: translateY(-100%) para alinear a su propio bottom
-   * - Lo actualizamos en cada visualViewport resize/scroll event
-   *
-   * Esto hace que el input siempre quede pegado al BORDE SUPERIOR del
-   * teclado, sin importar si está abierto o cerrado. El resto del layout
-   * (chat messages, MobileTabBar) NO se mueve porque el viewport no cambió.
+   * 2. Viewport-math (solo Chrome Android + overlays-content): calcula la
+   *    altura real del teclado y la guarda en --keyboard-h para que el wrapper
+   *    del ChatInput suba físicamente sobre él (`bottom: var(--keyboard-h)`).
+   *    En iOS standalone --keyboard-h queda en 0 porque innerHeight ya se
+   *    achicó, pero eso es correcto: bottom:0 del dynamic viewport YA está
+   *    arriba del teclado.
    */
   useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-
     // VirtualKeyboard API (Chrome Android 108+, NO iOS Safari)
     const vk = (navigator as Navigator & { virtualKeyboard?: { overlaysContent: boolean } })
       .virtualKeyboard;
     if (vk) vk.overlaysContent = true;
 
-    const updateKeyboard = () => {
-      // Posición vertical del bottom del visualViewport en coordenadas del layout viewport
-      const vvBottom = vv.height + vv.offsetTop;
-      // Distancia desde el bottom del layout viewport al bottom del visual
-      // (= alto del teclado virtual cuando está visible, ~0 cuando no)
-      const keyboardH = Math.max(0, window.innerHeight - vvBottom);
+    const vv = window.visualViewport;
 
-      // Set CSS vars que el wrapper usa
-      document.documentElement.style.setProperty("--vv-bottom", `${vvBottom}px`);
+    const updateKeyboardHeight = () => {
+      if (!vv) return;
+      // Altura del teclado = diferencia entre layout viewport y visual viewport.
+      // En iOS standalone esto suele ser ~0 (ambos se achican juntos).
+      // En Chrome Android con overlays-content da la altura real del teclado.
+      const keyboardH = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
       document.documentElement.style.setProperty("--keyboard-h", `${keyboardH}px`);
+    };
 
-      // Data attr para CSS rules condicionales (ej. ocultar tabbar)
-      if (keyboardH > 80) {
+    // Focus-based detection — SIGNAL PRIMARIO para "keyboard open"
+    const isTextInput = (el: EventTarget | null): boolean => {
+      if (!(el instanceof HTMLElement)) return false;
+      const tag = el.tagName;
+      if (tag === "TEXTAREA") return true;
+      if (tag === "INPUT") {
+        const type = (el as HTMLInputElement).type;
+        return !["button", "submit", "reset", "checkbox", "radio", "file", "hidden", "image", "color", "range"].includes(type);
+      }
+      if (el.isContentEditable) return true;
+      return false;
+    };
+
+    const onFocusIn = (e: FocusEvent) => {
+      if (isTextInput(e.target)) {
         document.documentElement.dataset.keyboard = "open";
-      } else {
-        delete document.documentElement.dataset.keyboard;
+      }
+    };
+    const onFocusOut = (e: FocusEvent) => {
+      if (isTextInput(e.target)) {
+        // Delay para permitir focus-to-focus transitions sin parpadeo
+        setTimeout(() => {
+          const active = document.activeElement;
+          if (!isTextInput(active)) {
+            delete document.documentElement.dataset.keyboard;
+          }
+        }, 50);
       }
     };
 
-    updateKeyboard();
-    vv.addEventListener("resize", updateKeyboard);
-    vv.addEventListener("scroll", updateKeyboard);
-    // En iOS los eventos a veces se disparan tarde — escuchar también window.scroll
-    window.addEventListener("scroll", updateKeyboard);
+    updateKeyboardHeight();
+    if (vv) {
+      vv.addEventListener("resize", updateKeyboardHeight);
+      vv.addEventListener("scroll", updateKeyboardHeight);
+    }
+    document.addEventListener("focusin", onFocusIn);
+    document.addEventListener("focusout", onFocusOut);
+
     return () => {
-      vv.removeEventListener("resize", updateKeyboard);
-      vv.removeEventListener("scroll", updateKeyboard);
-      window.removeEventListener("scroll", updateKeyboard);
-      document.documentElement.style.setProperty("--vv-bottom", "100%");
+      if (vv) {
+        vv.removeEventListener("resize", updateKeyboardHeight);
+        vv.removeEventListener("scroll", updateKeyboardHeight);
+      }
+      document.removeEventListener("focusin", onFocusIn);
+      document.removeEventListener("focusout", onFocusOut);
       document.documentElement.style.setProperty("--keyboard-h", "0px");
       delete document.documentElement.dataset.keyboard;
     };
   }, []);
 
-  // Focus handler — NO scrollIntoView (causaba jump). Con overlays-content
-  // el browser maneja el focus correctamente sin tocar nada.
-  const handleFocus = useCallback(() => {
-    // intencionalmente vacío — antes hacia scrollIntoView que causaba layout jump
-  }, []);
+  // Focus handler — no-op. La detección global de keyboard vive en el useEffect
+  // de arriba (focusin/focusout en document) para capturar cualquier input.
+  const handleFocus = useCallback(() => {}, []);
 
   useEffect(() => {
     if (error) {
@@ -479,8 +499,11 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Pregu
             onKeyDown={handleKeyDown}
             onFocus={handleFocus}
             onPaste={handlePaste}
-            // Suprimir la barra del check ✓ de iOS (toolbar nativo de
-            // contenteditable). Combinación de attrs que iOS Safari respeta:
+            // NOTA: la barra ^/v/✓ de iOS (Form Assistant / accessory view)
+            // NO se puede ocultar desde una PWA web — es parte nativa del
+            // teclado iOS y aparece para cualquier input/contenteditable.
+            // Solo Apple la puede desactivar. Los attrs de abajo desactivan
+            // autocorrect/suggestions/spellcheck pero NO la barra en sí.
             spellCheck={false}
             autoCorrect="off"
             autoCapitalize="sentences"

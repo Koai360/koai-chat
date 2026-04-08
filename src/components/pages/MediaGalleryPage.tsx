@@ -1,10 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Download, Trash2, ImageIcon, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ImageIcon, Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   fetchImages,
-  deleteImage,
   getImageThumbUrl,
   type GalleryImage,
 } from "@/lib/api";
@@ -157,69 +155,13 @@ export function MediaGalleryPage({ onImageClick }: Props) {
     return () => observer.disconnect();
   }, [hasMore, loading, loadNextBatch]);
 
-  const handleRemoveAll = async () => {
-    if (!confirm("Eliminar todas las imágenes? No se puede deshacer.")) return;
-    try {
-      await Promise.all(images.map((img) => deleteImage(img.id)));
-      setImages([]);
-      setNextCursor(null);
-      setHasMore(false);
-      cache = null;
-    } catch (err) {
-      console.error("[MediaGallery] Failed to remove all:", err);
-    }
-  };
-
-  const handleDownload = async (e: React.MouseEvent, url: string) => {
-    e.stopPropagation();
-    try {
-      const res = await fetch(url);
-      const blob = await res.blob();
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `kira-image-${Date.now()}.png`;
-      a.click();
-      URL.revokeObjectURL(a.href);
-    } catch {
-      window.open(url, "_blank");
-    }
-  };
-
-  const handleDelete = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    try {
-      await deleteImage(id);
-      setImages((prev) => {
-        const filtered = prev.filter((img) => img.id !== id);
-        if (cache) {
-          cache = { ...cache, items: filtered, ts: Date.now() };
-        }
-        return filtered;
-      });
-    } catch (err) {
-      console.error("[MediaGallery] Failed to delete:", err);
-    }
-  };
-
   return (
     <div className="flex flex-col h-full px-4 pt-4 pb-2">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      {/* Header — solo título, sin "Eliminar todo" (por diseño) */}
+      <div className="mb-4">
         <h1 className="text-2xl font-medium text-text font-display animate-fadeUpBlur">
           Galería
         </h1>
-
-        {images.length > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleRemoveAll}
-            className="text-danger hover:text-danger text-xs"
-          >
-            <Trash2 className="size-3.5 mr-1" />
-            Eliminar todo
-          </Button>
-        )}
       </div>
 
       {/* Content */}
@@ -272,27 +214,7 @@ export function MediaGalleryPage({ onImageClick }: Props) {
                     decoding="async"
                   />
 
-                  {/* Action buttons — fixed top-right, siempre visibles en mobile */}
-                  <div className="absolute top-2 right-2 flex items-center gap-1.5 z-10">
-                    <button
-                      onClick={(e) => handleDownload(e, img.image)}
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-white transition-all active:scale-90 backdrop-blur-md"
-                      style={{ background: "rgba(0,0,0,0.55)" }}
-                      aria-label="Descargar imagen"
-                    >
-                      <Download className="size-3.5" />
-                    </button>
-                    <button
-                      onClick={(e) => handleDelete(e, img.id)}
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-white transition-all active:scale-90 backdrop-blur-md"
-                      style={{ background: "rgba(220,38,38,0.75)" }}
-                      aria-label="Eliminar imagen"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </button>
-                  </div>
-
-                  {/* Prompt caption al hacer hover (desktop) o tap-hold (mobile) */}
+                  {/* Prompt caption al hacer hover (desktop) */}
                   {img.content && (
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-3 pt-8 pointer-events-none">
                       <p className="text-[11px] text-white/85 line-clamp-2">

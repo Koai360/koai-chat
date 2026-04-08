@@ -151,6 +151,8 @@ export interface KiraStreamCallbacks {
   onAgent?: (agent: string) => void;
 }
 
+export type ThinkingLevel = "low" | "medium" | "high";
+
 export async function streamKiraMessage(
   message: string,
   conversationId?: string,
@@ -159,11 +161,13 @@ export async function streamKiraMessage(
   imageEngine?: string,
   callbacks: KiraStreamCallbacks = { onToken: () => {} },
   signal?: AbortSignal,
+  thinkingLevel: ThinkingLevel = "medium",
 ): Promise<{ conversation_id: string; agent_used: string; fullText: string; image?: string; imageMetadata?: ImageMetadataPayload }> {
   const body: Record<string, unknown> = {
     message,
     agent: "kira",
     conversation_id: conversationId,
+    thinking_level: thinkingLevel,
   };
   if (imageBase64) body.image_base64 = imageBase64;
   if (imageMode) body.image_mode = true;

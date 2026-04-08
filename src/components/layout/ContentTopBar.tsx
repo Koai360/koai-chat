@@ -1,12 +1,15 @@
 import { Plus } from "lucide-react";
-import type { Agent } from "@/hooks/useChat";
+import type { Agent, ThinkingLevel } from "@/hooks/useChat";
 import type { AuthUser } from "@/hooks/useAuth";
 import type { Page } from "@/hooks/useNavigation";
+import { ThinkingLevelSelector } from "@/components/chat/ThinkingLevelSelector";
 
 interface Props {
   agent: Agent;
   onAgentChange: (agent: Agent) => void;
   agentDisabled: boolean;
+  thinkingLevel: ThinkingLevel;
+  onThinkingLevelChange: (level: ThinkingLevel) => void;
   onNewConversation: () => void;
   user: AuthUser;
   // Mantenemos las props por compatibilidad pero ya no se usan visualmente
@@ -27,6 +30,8 @@ export function ContentTopBar({
   agent,
   onAgentChange,
   agentDisabled,
+  thinkingLevel,
+  onThinkingLevelChange,
   onNewConversation,
   user,
   onNavigate,
@@ -74,6 +79,17 @@ export function ContentTopBar({
           );
         })}
       </div>
+
+      {/* Thinking level selector — only applies to Kira */}
+      {agent === "kira" && (
+        <div className="ml-2">
+          <ThinkingLevelSelector
+            value={thinkingLevel}
+            onChange={onThinkingLevelChange}
+            disabled={agentDisabled}
+          />
+        </div>
+      )}
 
       {/* Spacer */}
       <div className="flex-1" />

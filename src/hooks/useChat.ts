@@ -12,9 +12,21 @@ import {
   assignConversationProject,
   type ServerConversation,
   type ServerMessage,
+  type ThinkingLevel,
 } from "../lib/api";
 
 export type Agent = "kira" | "kronos";
+export type { ThinkingLevel };
+
+const THINKING_LEVEL_KEY = "koai.chat.thinkingLevel";
+
+function loadThinkingLevel(): ThinkingLevel {
+  try {
+    const v = localStorage.getItem(THINKING_LEVEL_KEY);
+    if (v === "low" || v === "medium" || v === "high") return v;
+  } catch { /* ignore */ }
+  return "medium";
+}
 
 export interface ImageMetadata {
   /** Engine identifier — matches keys in ENGINE_DISPLAY at ImageMetadataBadge.tsx */
@@ -74,7 +86,15 @@ export function useChat(userId: string | null = null) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [agent, setAgentState] = useState<Agent>("kira");
+  const [thinkingLevel, setThinkingLevelState] = useState<ThinkingLevel>(loadThinkingLevel);
   const [loading, setLoading] = useState(false);
+
+  const setThinkingLevel = useCallback((level: ThinkingLevel) => {
+    setThinkingLevelState(level);
+    try {
+      localStorage.setItem(THINKING_LEVEL_KEY, level);
+    } catch { /* ignore */ }
+  }, []);
   const [loadingHint, setLoadingHint] = useState<string | null>(null);
   const [streamingText, setStreamingText] = useState("");
   const [syncing, setSyncing] = useState(true);
@@ -288,6 +308,7 @@ export function useChat(userId: string | null = null) {
                   },
                 },
                 abortRef.current.signal,
+                thinkingLevel,
               );
               assistantContent = res.fullText || "";
               assistantImage = assistantImage || (res.image ?? undefined);
@@ -451,6 +472,8 @@ export function useChat(userId: string | null = null) {
     setActiveId,
     agent,
     setAgent,
+    thinkingLevel,
+    setThinkingLevel,
     loading,
     loadingHint,
     syncing,

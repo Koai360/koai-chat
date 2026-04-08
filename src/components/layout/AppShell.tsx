@@ -40,6 +40,8 @@ export function AppShell({ user, onLogout }: Props) {
     setActiveId,
     agent,
     setAgent,
+    thinkingLevel,
+    setThinkingLevel,
     loading,
     loadingHint,
     streamingText,
@@ -226,6 +228,8 @@ export function AppShell({ user, onLogout }: Props) {
               agent={agent}
               onAgentChange={setAgent}
               agentDisabled={loading}
+              thinkingLevel={thinkingLevel}
+              onThinkingLevelChange={setThinkingLevel}
               onNewConversation={handleNewConvo}
               user={user}
               theme={theme}

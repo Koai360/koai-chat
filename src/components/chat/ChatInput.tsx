@@ -84,9 +84,25 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Pregu
   const [imageEngine, setImageEngine] = useState("gemini");
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Sincroniza la altura real del wrapper a CSS var --input-height
+  // (consumido por .keyboard-aware-spacer en el flex flow)
+  useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    const update = () => {
+      const h = el.offsetHeight;
+      document.documentElement.style.setProperty("--input-height", `${h}px`);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const syncEditorToState = useCallback(() => {
     if (editorRef.current) setText(editorRef.current.innerText || "");
@@ -110,31 +126,44 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Pregu
   }, [autoFocus]);
 
   /**
-   * Keyboard handling estilo Claude.ai / Telegram:
-   * - viewport meta tiene `interactive-widget=overlays-content` → el teclado
-   *   NO redimensiona el viewport (no hay layout jump)
-   * - visualViewport API reporta el offset del teclado virtual
-   * - Sincronizamos un CSS var --keyboard-offset que se aplica como
-   *   `transform: translateY` a un wrapper fixed bottom de la barra de input
-   * - Como bonus: usamos VirtualKeyboard API si el browser la soporta
-   *   (Chrome 94+) para tener control aún más fino
+   * Keyboard handling para iOS Safari PWA — el approach correcto:
+   *
+   * iOS NO soporta interactive-widget=overlays-content. Cuando el teclado
+   * aparece, el viewport queda igual pero el visualViewport (subset visible)
+   * cambia: vv.height baja y vv.offsetTop sube. Position: fixed con bottom
+   * sigue anclado al layout viewport (no al visual), por eso queda DETRAS
+   * del teclado.
+   *
+   * Solución: el wrapper del input es position: fixed, pero usamos:
+   * - top: visualViewport.height + visualViewport.offsetTop
+   * - transform: translateY(-100%) para alinear a su propio bottom
+   * - Lo actualizamos en cada visualViewport resize/scroll event
+   *
+   * Esto hace que el input siempre quede pegado al BORDE SUPERIOR del
+   * teclado, sin importar si está abierto o cerrado. El resto del layout
+   * (chat messages, MobileTabBar) NO se mueve porque el viewport no cambió.
    */
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
 
-    // VirtualKeyboard API moderna (Chrome desktop, Android Chrome 108+)
-    // Le decimos al browser que NO ajuste el viewport automáticamente
+    // VirtualKeyboard API (Chrome Android 108+, NO iOS Safari)
     const vk = (navigator as Navigator & { virtualKeyboard?: { overlaysContent: boolean } })
       .virtualKeyboard;
     if (vk) vk.overlaysContent = true;
 
-    const updateKeyboardOffset = () => {
-      // En iOS, cuando el teclado aparece, vv.height < window.innerHeight
-      // y vv.offsetTop > 0. La diferencia es el alto del teclado.
-      const keyboardH = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-      document.documentElement.style.setProperty("--keyboard-offset", `${keyboardH}px`);
-      // Marcar data-keyboard para CSS rules (oculta MobileTabBar, etc.)
+    const updateKeyboard = () => {
+      // Posición vertical del bottom del visualViewport en coordenadas del layout viewport
+      const vvBottom = vv.height + vv.offsetTop;
+      // Distancia desde el bottom del layout viewport al bottom del visual
+      // (= alto del teclado virtual cuando está visible, ~0 cuando no)
+      const keyboardH = Math.max(0, window.innerHeight - vvBottom);
+
+      // Set CSS vars que el wrapper usa
+      document.documentElement.style.setProperty("--vv-bottom", `${vvBottom}px`);
+      document.documentElement.style.setProperty("--keyboard-h", `${keyboardH}px`);
+
+      // Data attr para CSS rules condicionales (ej. ocultar tabbar)
       if (keyboardH > 80) {
         document.documentElement.dataset.keyboard = "open";
       } else {
@@ -142,13 +171,17 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Pregu
       }
     };
 
-    updateKeyboardOffset();
-    vv.addEventListener("resize", updateKeyboardOffset);
-    vv.addEventListener("scroll", updateKeyboardOffset);
+    updateKeyboard();
+    vv.addEventListener("resize", updateKeyboard);
+    vv.addEventListener("scroll", updateKeyboard);
+    // En iOS los eventos a veces se disparan tarde — escuchar también window.scroll
+    window.addEventListener("scroll", updateKeyboard);
     return () => {
-      vv.removeEventListener("resize", updateKeyboardOffset);
-      vv.removeEventListener("scroll", updateKeyboardOffset);
-      document.documentElement.style.setProperty("--keyboard-offset", "0px");
+      vv.removeEventListener("resize", updateKeyboard);
+      vv.removeEventListener("scroll", updateKeyboard);
+      window.removeEventListener("scroll", updateKeyboard);
+      document.documentElement.style.setProperty("--vv-bottom", "100%");
+      document.documentElement.style.setProperty("--keyboard-h", "0px");
       delete document.documentElement.dataset.keyboard;
     };
   }, []);
@@ -290,8 +323,13 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Pregu
 
   return (
     <div
-      className="keyboard-aware-bottom max-w-[48rem] mx-auto w-full px-4 pt-2 pb-1 md:pb-2"
-    >
+      ref={wrapperRef}
+      className="keyboard-aware-bottom px-4 pt-2 pb-1 md:pb-2"
+      style={{
+        // Limitar el ancho interior pero mantener el wrapper full-width
+        // (necesario porque el wrapper es position:fixed left:0 right:0)
+      }}
+    ><div className="max-w-[48rem] mx-auto w-full">
       {/* Error toast */}
       <AnimatePresence>
         {error && (
@@ -531,6 +569,7 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Pregu
       <p className="hidden md:block text-[11px] text-text-muted text-center mt-2">
         Kira puede cometer errores. Verifica la información importante.
       </p>
+      </div>
     </div>
   );
 }

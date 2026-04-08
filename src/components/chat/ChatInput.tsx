@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
@@ -14,10 +13,11 @@ import {
   Paperclip,
   Palette,
   X,
-  Square,
   Loader2,
 } from "lucide-react";
 import { EngineSelector, type EngineValue } from "./EngineSelector";
+import { VoiceRecorderOverlay } from "./VoiceRecorderOverlay";
+import { useVoiceStream } from "@/hooks/useVoiceStream";
 
 interface Props {
   onSend: (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string) => void;
@@ -71,22 +71,35 @@ function compressImage(dataUrl: string, maxBytes: number): Promise<{ base64: str
 // ENGINE_OPTIONS y tipos viven en EngineSelector.tsx (single source of truth)
 // Backend dispatch correspondiente: /opt/koai-api/koai/tools/image_gen_tools.py:generate_image()
 
-export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Pregunta algo a Kira...", autoFocus, agent = "kira" }: Props) {
+export function ChatInput({ onSend, onTranscribe: _onTranscribe, disabled, placeholder = "Pregunta algo a Kira...", autoFocus, agent = "kira" }: Props) {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
-  const [recording, setRecording] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
-  const [transcribing, setTranscribing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [plusOpen, setPlusOpen] = useState(false);
   const [imageMode, setImageMode] = useState(false);
   const [imageEngine, setImageEngine] = useState("gemini");
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const textRef = useRef(text);
+  textRef.current = text;
+
+  // Voice streaming con Deepgram nova-3 — reemplaza la grabación batch anterior
+  const voice = useVoiceStream({
+    onFinal: (transcribed) => {
+      // Concatena al texto actual (permite múltiples grabaciones)
+      const currentText = textRef.current;
+      const newText = currentText ? currentText + " " + transcribed : transcribed;
+      setEditorContent(newText);
+      editorRef.current?.focus();
+    },
+    onError: (msg) => {
+      setError(msg);
+    },
+    lang: "es",
+  });
+  const recording = voice.state === "recording";
+  const transcribing = voice.state === "transcribing";
 
   // ChatInput ahora vive in-flow — no necesita tracking de altura
 
@@ -223,72 +236,12 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Pregu
 
   const clearImage = () => { setImagePreview(null); setImageBase64(null); };
 
-  const formatTime = (s: number) => {
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
-    return `${m}:${sec.toString().padStart(2, "0")}`;
-  };
-
-  const toggleRecording = async () => {
-    if (recording) { mediaRecorderRef.current?.stop(); return; }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 44100 },
-      });
-      let mimeType = "";
-      for (const candidate of ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/aac", "audio/ogg;codecs=opus"]) {
-        try { if (MediaRecorder.isTypeSupported(candidate)) { mimeType = candidate; break; } } catch {}
-      }
-      const recorderOptions: MediaRecorderOptions = {};
-      if (mimeType) recorderOptions.mimeType = mimeType;
-      const recorder = new MediaRecorder(stream, recorderOptions);
-      chunksRef.current = [];
-      recorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) chunksRef.current.push(e.data); };
-      recorder.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop());
-        setRecording(false);
-        if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-        setRecordingTime(0);
-        if (chunksRef.current.length === 0) { setError("No se grabó audio"); return; }
-        const actualMime = recorder.mimeType || mimeType || "audio/webm";
-        const blob = new Blob(chunksRef.current, { type: actualMime });
-        if (blob.size < 100) { setError("Audio muy corto"); return; }
-        setTranscribing(true);
-        try {
-          const transcribed = await onTranscribe(blob);
-          if (transcribed) {
-            const newText = text ? text + " " + transcribed : transcribed;
-            setEditorContent(newText);
-            editorRef.current?.focus();
-          } else { setError("No se detectó texto"); }
-        } catch (err) { setError(err instanceof Error ? err.message : "Error al transcribir"); }
-        finally { setTranscribing(false); }
-      };
-      recorder.onerror = () => {
-        stream.getTracks().forEach((t) => t.stop());
-        setRecording(false);
-        if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-        setRecordingTime(0);
-        setError("Error al grabar");
-      };
-      const MAX_RECORDING_SECONDS = 120;
-      setTimeout(() => { if (recorder.state === "recording") recorder.stop(); }, MAX_RECORDING_SECONDS * 1000);
-      recorder.start();
-      mediaRecorderRef.current = recorder;
-      setRecording(true);
-      setRecordingTime(0);
-      timerRef.current = setInterval(() => {
-        setRecordingTime((p) => {
-          const next = p + 1;
-          const remaining = MAX_RECORDING_SECONDS - next;
-          if (remaining === 10) setError(`${remaining}s restantes...`);
-          if (remaining === 5 && navigator.vibrate) navigator.vibrate([100, 50, 100]);
-          if (remaining === 0) setError(null);
-          return next;
-        });
-      }, 1000);
-      if (navigator.vibrate) navigator.vibrate(15);
-    } catch { setError("No se pudo acceder al micrófono"); }
+  const toggleRecording = () => {
+    if (recording) {
+      voice.stop();
+    } else {
+      voice.start();
+    }
   };
 
   const hasContent = text.trim().length > 0 || !!imageBase64;
@@ -296,7 +249,7 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Pregu
   const isMultiLine = text.includes("\n") || text.length > 60;
 
   return (
-    <div className="shrink-0 bg-bg px-4 pt-2 pb-1 md:pb-2">
+    <div className="shrink-0 bg-bg px-4 pt-2 pb-1 md:pb-2 relative">
       <div className="max-w-[48rem] mx-auto w-full">
       {/* Error toast */}
       <AnimatePresence>
@@ -328,26 +281,15 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Pregu
       )}
 
       {/* Recording indicator */}
-      <AnimatePresence>
-        {recording && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="flex items-center gap-2 px-3 py-2"
-          >
-            <span className="w-2.5 h-2.5 rounded-full bg-danger animate-pulse" />
-            <span className="text-xs font-medium text-danger">
-              Grabando {formatTime(recordingTime)}
-              {recordingTime >= 110 && <span className="ml-1 opacity-70">({120 - recordingTime}s)</span>}
-            </span>
-            <div className="flex-1" />
-            <Button variant="destructive" size="sm" className="h-6 text-[10px]" onClick={toggleRecording}>
-              Detener
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Voice recorder overlay — waveform + partial text + cancel/send */}
+      <VoiceRecorderOverlay
+        isVisible={recording}
+        elapsedSec={voice.elapsedSec}
+        partialText={voice.partialText}
+        getAmplitude={voice.getAmplitude}
+        onCancel={voice.cancel}
+        onStop={voice.stop}
+      />
 
       {/* Image mode panel — header chip + EngineSelector visual */}
       <AnimatePresence>
@@ -496,20 +438,18 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Pregu
           </button>
         </div>
 
-        {/* Mic button */}
-        {!hasContent && (
+        {/* Mic button — abre el overlay de grabación. Mientras grabas o
+            transcribes, el botón del input se oculta y el overlay maneja
+            los controles stop/cancel. */}
+        {!hasContent && !recording && (
           <button
             onClick={toggleRecording}
             disabled={isDisabled}
-            aria-label={recording ? "Detener grabación" : "Entrada de voz"}
-            className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 mb-0.5 disabled:opacity-50 ${
-              recording ? "bg-danger text-white animate-pulse" : "text-text-muted hover:text-text"
-            }`}
+            aria-label="Entrada de voz"
+            className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 mb-0.5 disabled:opacity-50 text-text-muted hover:text-text"
           >
             {transcribing ? (
               <Loader2 className="h-4 w-4 animate-spin text-text-muted" />
-            ) : recording ? (
-              <Square className="h-3.5 w-3.5 fill-current" />
             ) : (
               <Mic className="h-4 w-4" />
             )}

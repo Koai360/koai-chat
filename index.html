@@ -4,7 +4,13 @@
     <meta charset="UTF-8" />
     <link rel="icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1, interactive-widget=resizes-content" />
+    <!--
+      interactive-widget=overlays-content: el teclado virtual NO redimensiona
+      el viewport, queda flotando encima. El input se posiciona arriba del
+      teclado via visualViewport API en el JS, mientras el resto del layout
+      se mantiene intacto (no jump). Comportamiento estilo Claude.ai / Telegram.
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1, interactive-widget=overlays-content" />
     <meta name="theme-color" content="#0a0a0c" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

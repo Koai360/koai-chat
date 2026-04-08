@@ -109,19 +109,54 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Pregu
     if (autoFocus && editorRef.current) setTimeout(() => editorRef.current?.focus(), 100);
   }, [autoFocus]);
 
+  /**
+   * Keyboard handling estilo Claude.ai / Telegram:
+   * - viewport meta tiene `interactive-widget=overlays-content` → el teclado
+   *   NO redimensiona el viewport (no hay layout jump)
+   * - visualViewport API reporta el offset del teclado virtual
+   * - Sincronizamos un CSS var --keyboard-offset que se aplica como
+   *   `transform: translateY` a un wrapper fixed bottom de la barra de input
+   * - Como bonus: usamos VirtualKeyboard API si el browser la soporta
+   *   (Chrome 94+) para tener control aún más fino
+   */
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
-    const handleResize = () => {
-      const keyboardH = window.innerHeight - vv.height - vv.offsetTop;
-      document.documentElement.style.setProperty("--keyboard-height", `${Math.max(0, keyboardH)}px`);
+
+    // VirtualKeyboard API moderna (Chrome desktop, Android Chrome 108+)
+    // Le decimos al browser que NO ajuste el viewport automáticamente
+    const vk = (navigator as Navigator & { virtualKeyboard?: { overlaysContent: boolean } })
+      .virtualKeyboard;
+    if (vk) vk.overlaysContent = true;
+
+    const updateKeyboardOffset = () => {
+      // En iOS, cuando el teclado aparece, vv.height < window.innerHeight
+      // y vv.offsetTop > 0. La diferencia es el alto del teclado.
+      const keyboardH = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      document.documentElement.style.setProperty("--keyboard-offset", `${keyboardH}px`);
+      // Marcar data-keyboard para CSS rules (oculta MobileTabBar, etc.)
+      if (keyboardH > 80) {
+        document.documentElement.dataset.keyboard = "open";
+      } else {
+        delete document.documentElement.dataset.keyboard;
+      }
     };
-    vv.addEventListener("resize", handleResize);
-    return () => vv.removeEventListener("resize", handleResize);
+
+    updateKeyboardOffset();
+    vv.addEventListener("resize", updateKeyboardOffset);
+    vv.addEventListener("scroll", updateKeyboardOffset);
+    return () => {
+      vv.removeEventListener("resize", updateKeyboardOffset);
+      vv.removeEventListener("scroll", updateKeyboardOffset);
+      document.documentElement.style.setProperty("--keyboard-offset", "0px");
+      delete document.documentElement.dataset.keyboard;
+    };
   }, []);
 
+  // Focus handler — NO scrollIntoView (causaba jump). Con overlays-content
+  // el browser maneja el focus correctamente sin tocar nada.
   const handleFocus = useCallback(() => {
-    setTimeout(() => editorRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 300);
+    // intencionalmente vacío — antes hacia scrollIntoView que causaba layout jump
   }, []);
 
   useEffect(() => {
@@ -255,7 +290,7 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Pregu
 
   return (
     <div
-      className="max-w-[48rem] mx-auto w-full px-4 pt-2 pb-1 md:pb-2"
+      className="keyboard-aware-bottom max-w-[48rem] mx-auto w-full px-4 pt-2 pb-1 md:pb-2"
     >
       {/* Error toast */}
       <AnimatePresence>
@@ -406,6 +441,15 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Pregu
             onKeyDown={handleKeyDown}
             onFocus={handleFocus}
             onPaste={handlePaste}
+            // Suprimir la barra del check ✓ de iOS (toolbar nativo de
+            // contenteditable). Combinación de attrs que iOS Safari respeta:
+            spellCheck={false}
+            autoCorrect="off"
+            autoCapitalize="sentences"
+            // @ts-expect-error — atributo no estándar React pero soportado por iOS
+            autoComplete="off"
+            inputMode="text"
+            enterKeyHint="send"
             className="flex-1 py-[11px] pl-4 text-[16px] leading-[22px] max-h-[120px] overflow-y-auto text-text"
           />
           {/* Camera button */}

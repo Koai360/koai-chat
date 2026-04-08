@@ -156,24 +156,54 @@ html.light {
 }
 
 html {
-  height: 100%;
+  /* Usamos 100dvh (dynamic viewport height) en lugar de 100% para que
+     el teclado virtual no recalcule la altura del root container */
+  height: 100dvh;
   margin: 0;
   padding: 0;
   overscroll-behavior: none;
 }
 
 body {
-  height: 100%;
+  height: 100dvh;
   margin: 0;
   padding: 0;
   overscroll-behavior: none;
 }
 
 #root {
-  height: 100%;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+/* Keyboard offset CSS var — set por ChatInput.tsx via visualViewport API.
+   Default 0px cuando el teclado no está visible. */
+:root {
+  --keyboard-offset: 0px;
+}
+
+/* Wrapper que contiene el ChatInput + se mueve con el teclado.
+   Cuando el teclado aparece, transform translateY mueve el input arriba
+   sin tocar el resto del layout (que sigue en su sitio gracias a
+   interactive-widget=overlays-content). */
+.keyboard-aware-bottom {
+  transform: translateY(calc(-1 * var(--keyboard-offset)));
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+/* MobileTabBar se oculta cuando keyboard activo. ChatInput.tsx setea
+   data-keyboard="open" en <html> cuando el offset > 0. */
+html[data-keyboard="open"] .hide-on-keyboard {
+  transform: translateY(100%);
+  opacity: 0;
+  pointer-events: none;
+}
+.hide-on-keyboard {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.15s ease;
+  will-change: transform, opacity;
 }
 
 .pb-safe {

@@ -18,7 +18,7 @@ export function MobileTabBar({ currentPage, onNavigate }: Props) {
 
   return (
     <nav
-      className="md:hidden shrink-0 pb-safe border-t border-border"
+      className="md:hidden shrink-0 pb-safe border-t border-border hide-on-keyboard"
       style={{
         backgroundColor: "var(--color-bg)",
       }}

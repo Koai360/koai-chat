@@ -437,14 +437,14 @@ export function ChatInput({ onSend, onTranscribe: _onTranscribe, disabled, place
           </button>
         </div>
 
-        {/* Mic button — abre el overlay de grabación. Mientras grabas o
-            transcribes, el botón del input se oculta y el overlay maneja
-            los controles stop/cancel. */}
-        {!hasContent && !recording && (
+        {/* Mic button — siempre disponible (salvo mientras graba, que el
+            overlay maneja los controles). Cuando ya hay texto, el mic
+            permite seguir dictando y el texto nuevo se concatena al existente. */}
+        {!recording && (
           <button
             onClick={toggleRecording}
             disabled={isDisabled}
-            aria-label="Entrada de voz"
+            aria-label={hasContent ? "Añadir por voz" : "Entrada de voz"}
             className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 mb-0.5 disabled:opacity-50 text-text-muted hover:text-text"
           >
             {transcribing ? (
@@ -455,7 +455,7 @@ export function ChatInput({ onSend, onTranscribe: _onTranscribe, disabled, place
           </button>
         )}
 
-        {/* Send button */}
+        {/* Send button — solo cuando hay contenido */}
         {hasContent && (
           <motion.button
             initial={{ scale: 0.8 }}

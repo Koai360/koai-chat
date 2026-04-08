@@ -379,7 +379,7 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Pregu
               </div>
               <div className="text-left">
                 <div className="font-medium text-xs">Crear imagen</div>
-                <div className="text-[10px] text-text-muted">Gemini, Flux 2 o Studio</div>
+                <div className="text-[10px] text-text-muted">5 motores: Gemini, Z-Image, Flux.2 Pro y más</div>
               </div>
             </button>
           </PopoverContent>

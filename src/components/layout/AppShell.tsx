@@ -11,7 +11,6 @@ import { IconRail } from "./IconRail";
 import { ContentTopBar } from "./ContentTopBar";
 import { MobileTabBar } from "./MobileTabBar";
 import { ChatView } from "@/components/chat/ChatView";
-import { HomePage } from "@/components/pages/HomePage";
 import { ChatHistoryPage } from "@/components/pages/ChatHistoryPage";
 import { ExplorePage } from "@/components/pages/ExplorePage";
 import { MediaGalleryPage } from "@/components/pages/MediaGalleryPage";
@@ -109,13 +108,6 @@ export function AppShell({ user, onLogout }: Props) {
   const renderPage = () => {
     switch (currentPage) {
       case "home":
-        return (
-          <HomePage
-            userName={user.name}
-            onSend={handleHomeSend}
-            onNavigate={navigate}
-          />
-        );
       case "chat":
         return (
           <ChatView

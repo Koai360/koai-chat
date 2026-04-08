@@ -95,13 +95,16 @@ export function AppShell({ user, onLogout }: Props) {
     navigate("chat");
   }, [newConversation, navigate]);
 
-  // Handle send from HomePage — create convo, send, navigate
-  const handleHomeSend = useCallback((text: string) => {
-    newConversation();
-    navigate("chat");
-    // Small delay to let the conversation be created
-    setTimeout(() => sendMessage(text), 100);
-  }, [newConversation, navigate, sendMessage]);
+  // Handle send from HomePage — create convo, navigate to chat, send (with optional image mode)
+  const handleHomeSend = useCallback(
+    (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string) => {
+      newConversation();
+      navigate("chat");
+      // Small delay to let the conversation be created
+      setTimeout(() => sendMessage(text, imageBase64, imageMode, imageEngine), 100);
+    },
+    [newConversation, navigate, sendMessage]
+  );
 
   const renderPage = () => {
     switch (currentPage) {

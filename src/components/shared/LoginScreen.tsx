@@ -158,21 +158,21 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
       >
         {/* Bot icon + text */}
         <div className="flex flex-col items-center gap-[8px] w-full">
-          <img src="/images/kira-bot-icon.svg" alt="Kira AI" className="w-[90px] h-[90px]" />
+          <img src="/images/kira-bot-icon.svg" alt="Kira AI" className="w-[80px] h-[80px]" />
           <div className="text-center w-full">
             <p
-              className="text-[24px] font-semibold text-[#0D121C] leading-normal"
+              className="text-[22px] font-semibold text-[#0D121C] leading-normal"
               style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
             >
-              Lets Get Started
+              Bienvenido
             </p>
             <p
-              className="text-[16px] font-normal text-[#4B5565] leading-[1.6] tracking-[-0.32px]"
+              className="text-[14px] font-normal text-[#4B5565] leading-[1.55] tracking-[-0.28px] mt-1"
               style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
             >
-              Experience smarter conversations
+              Conversaciones inteligentes
               <br />
-              with Kira AI
+              con Kira y Kronos
             </p>
           </div>
         </div>
@@ -181,8 +181,8 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
         <button
           onClick={handleGoogleButtonClick}
           disabled={loading}
-          className="w-full h-[64px] flex items-center justify-center gap-[10px] p-[16px] transition-all active:scale-[0.98] disabled:opacity-60"
-          style={{ backgroundColor: "#582C77", borderRadius: "20px" }}
+          className="w-full h-[56px] flex items-center justify-center gap-[10px] px-[16px] transition-all active:scale-[0.98] disabled:opacity-60"
+          style={{ backgroundColor: "#582C77", borderRadius: "16px" }}
         >
           {loading ? (
             <Loader2 className="w-6 h-6 animate-spin text-[#C0D930]" />
@@ -190,10 +190,10 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
             <>
               <img src="/images/google-g-icon.svg" alt="" className="w-5 h-5 shrink-0" />
               <span
-                className="text-[28px] tracking-[0.38px] leading-[34px] whitespace-nowrap"
-                style={{ fontFamily: "-apple-system, 'SF Pro', system-ui, sans-serif", color: "#C0D930" }}
+                className="text-[17px] font-medium tracking-[0.2px] leading-none whitespace-nowrap"
+                style={{ fontFamily: "'Plus Jakarta Sans', -apple-system, system-ui, sans-serif", color: "#C0D930" }}
               >
-                Sign Up with Google
+                Continuar con Google
               </span>
             </>
           )}
@@ -253,16 +253,16 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
         )}
       </div>
 
-      {/* ===== BOTTOM — pegado abajo, sobre el home indicator del iPhone ===== */}
+      {/* Footer hint — small disclaimer, safe area aware */}
       <div
-        className="absolute left-0 right-0 flex flex-col items-center"
-        style={{ bottom: 0 }}
+        className="absolute left-0 right-0 flex flex-col items-center pb-safe"
+        style={{ bottom: "env(safe-area-inset-bottom, 16px)" }}
       >
         <p
-          className="text-[24px] font-semibold text-[#0D121C] text-center whitespace-nowrap"
+          className="text-[11px] text-[#4B5565] text-center px-6 leading-snug"
           style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
         >
-          Lets Get Started
+          Al continuar aceptas los términos de uso de KOAI Studios
         </p>
       </div>
     </div>

@@ -20,15 +20,15 @@ function formatDate(ts: number): string {
   const diffMs = now.getTime() - d.getTime();
   const diffDays = Math.floor(diffMs / 86_400_000);
 
-  if (diffDays === 0) return "Today";
-  if (diffDays === 1) return "Yesterday";
-  if (diffDays < 7) return `${diffDays} days ago`;
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  if (diffDays === 0) return "Hoy";
+  if (diffDays === 1) return "Ayer";
+  if (diffDays < 7) return `Hace ${diffDays} días`;
+  return d.toLocaleDateString("es-ES", { month: "short", day: "numeric" });
 }
 
 function getFirstUserMessage(c: Conversation): string {
   const msg = c.messages.find((m) => m.role === "user");
-  return msg?.content || c.title || "No messages";
+  return msg?.content || c.title || "Sin mensajes";
 }
 
 function getLastAssistantMessage(c: Conversation): string {
@@ -80,48 +80,51 @@ export function ChatHistoryPage({ conversations, onSelect, onDelete }: Props) {
         Historial
       </h1>
 
-      {/* Controls */}
-      <div className="flex items-center gap-3 mb-4 flex-wrap">
-        {/* Tab pills */}
-        <div className="flex items-center gap-1 liquid-glass rounded-full p-1">
-          {(["all", "latest"] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`px-3 py-1.5 text-sm rounded-full transition-all duration-200 ${
-                tab === t
-                  ? "bg-white/[0.08] text-text font-medium"
-                  : "text-text-muted hover:text-text"
-              }`}
-            >
-              {t === "all" ? "Todos" : "Recientes"}
-            </button>
-          ))}
-        </div>
-
-        {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* Search */}
-        <div className="relative w-48 sm:w-56">
+      {/* Controls — mobile: search full width, mobile: tabs+toggle row; desktop: all in one row */}
+      <div className="space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-3 mb-4">
+        {/* Search — full width en mobile, fixed en desktop */}
+        <div className="relative w-full sm:w-56 sm:order-2">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-text-muted" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search chats..."
-            className="pl-8 h-8 text-sm bg-bg-surface border-border"
+            placeholder="Buscar conversaciones..."
+            className="pl-8 h-9 text-sm bg-bg-surface border-border"
           />
         </div>
 
-        {/* View toggle */}
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}
-          className="text-text-muted hover:text-text"
-        >
-          {viewMode === "grid" ? <List className="size-4" /> : <LayoutGrid className="size-4" />}
-        </Button>
+        <div className="flex items-center gap-2 sm:order-1 sm:contents">
+          {/* Tab pills */}
+          <div className="flex items-center gap-1 liquid-glass rounded-full p-1">
+            {(["all", "latest"] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`px-3 py-1.5 text-xs sm:text-sm rounded-full transition-all duration-200 ${
+                  tab === t
+                    ? "bg-white/[0.08] text-text font-medium"
+                    : "text-text-muted hover:text-text"
+                }`}
+              >
+                {t === "all" ? "Todos" : "Recientes"}
+              </button>
+            ))}
+          </div>
+
+          {/* Spacer (desktop only) */}
+          <div className="hidden sm:flex sm:flex-1" />
+
+          {/* View toggle */}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}
+            className="text-text-muted hover:text-text sm:order-3 ml-auto sm:ml-0"
+            aria-label={viewMode === "grid" ? "Vista lista" : "Vista cuadrícula"}
+          >
+            {viewMode === "grid" ? <List className="size-4" /> : <LayoutGrid className="size-4" />}
+          </Button>
+        </div>
       </div>
 
       {/* Content */}
@@ -130,7 +133,7 @@ export function ChatHistoryPage({ conversations, onSelect, onDelete }: Props) {
           <div className="flex flex-col items-center justify-center py-20 text-text-muted">
             <Search className="size-10 mb-3 opacity-40" />
             <p className="text-sm">
-              {search ? "No chats match your search" : "No conversations yet"}
+              {search ? "No hay conversaciones que coincidan" : "Aún no hay conversaciones"}
             </p>
           </div>
         ) : viewMode === "grid" ? (
@@ -190,7 +193,7 @@ function ConversationCard({
       <div className="flex items-center gap-2 mb-2">
         <span className="text-xs text-text-muted">{formatDate(c.createdAt)}</span>
         <span className="text-xs text-text-subtle">
-          · {getResponseCount(c)} Response{getResponseCount(c) !== 1 ? "s" : ""}
+          · {getResponseCount(c)} {getResponseCount(c) === 1 ? "respuesta" : "respuestas"}
         </span>
         {hasImages(c) && <ImageIcon className="size-3 text-text-muted" />}
       </div>

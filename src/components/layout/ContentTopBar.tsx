@@ -11,6 +11,7 @@ interface Props {
   thinkingLevel: ThinkingLevel;
   onThinkingLevelChange: (level: ThinkingLevel) => void;
   onNewConversation: () => void;
+  currentPage: Page;
   user: AuthUser;
   // Mantenemos las props por compatibilidad pero ya no se usan visualmente
   theme?: "dark" | "light";
@@ -33,9 +34,14 @@ export function ContentTopBar({
   thinkingLevel,
   onThinkingLevelChange,
   onNewConversation,
+  currentPage,
   user,
   onNavigate,
 }: Props) {
+  // El botón "+" de nuevo chat solo tiene sentido fuera de home
+  // (home YA es un chat vacío conceptualmente — crear convo desde ahí
+  // pasa automáticamente al escribir o tocar un quick action)
+  const showNewChatButton = currentPage !== "home";
   return (
     <div
       className="flex items-center px-3 sm:px-4 shrink-0 bg-bg gap-2"
@@ -96,19 +102,21 @@ export function ContentTopBar({
 
       {/* Right side — touch targets >= 40px */}
       <div className="flex items-center gap-1.5">
-        {/* New Chat button — círculo en mobile, pill con label en desktop */}
-        <button
-          onClick={onNewConversation}
-          className="flex items-center justify-center gap-2 h-10 w-10 md:w-auto md:px-3 rounded-full text-sm font-medium transition-colors shrink-0"
-          style={{
-            backgroundColor: "var(--foreground)",
-            color: "var(--background)",
-          }}
-          aria-label="Nueva conversación"
-        >
-          <Plus className="w-[18px] h-[18px]" />
-          <span className="hidden md:inline font-display">Nuevo Chat</span>
-        </button>
+        {/* New Chat button — oculto en home (home ya es un chat vacío) */}
+        {showNewChatButton && (
+          <button
+            onClick={onNewConversation}
+            className="flex items-center justify-center gap-2 h-10 w-10 md:w-auto md:px-3 rounded-full text-sm font-medium transition-colors shrink-0"
+            style={{
+              backgroundColor: "var(--foreground)",
+              color: "var(--background)",
+            }}
+            aria-label="Nueva conversación"
+          >
+            <Plus className="w-[18px] h-[18px]" />
+            <span className="hidden md:inline font-display">Nuevo Chat</span>
+          </button>
+        )}
 
         {/* User avatar — touch wrapper 40x40 con avatar visual 32 */}
         <button

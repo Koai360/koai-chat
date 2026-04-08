@@ -156,25 +156,29 @@ export function useChat(userId: string | null = null) {
   );
 
   const newConversation = useCallback(async () => {
+    // Optimistic update — crear la convo inmediatamente en state antes de
+    // esperar al backend. El user ve el chat vacío sin lag percibido.
+    const tempId = crypto.randomUUID();
+    const optimistic: Conversation = {
+      id: tempId,
+      agent,
+      messages: [],
+      createdAt: Date.now(),
+      title: "Nueva conversación",
+    };
+    setConversations((prev) => [optimistic, ...prev]);
+    setActiveId(tempId);
+
     try {
       const serverConvo = await createConvApi(agent, "Nueva conversación");
-      const local = serverToLocal(serverConvo);
-      setConversations((prev) => [local, ...prev]);
-      setActiveId(local.id);
-      return local.id;
+      const real = serverToLocal(serverConvo);
+      // Reemplazar la convo optimistic con la real del backend
+      setConversations((prev) => prev.map((c) => (c.id === tempId ? real : c)));
+      setActiveId(real.id);
+      return real.id;
     } catch (err) {
-      console.error("[useChat] Failed to create conversation:", err);
-      const id = crypto.randomUUID();
-      const convo: Conversation = {
-        id,
-        agent,
-        messages: [],
-        createdAt: Date.now(),
-        title: "Nueva conversación",
-      };
-      setConversations((prev) => [convo, ...prev]);
-      setActiveId(id);
-      return id;
+      console.error("[useChat] Failed to create conversation (keeping optimistic):", err);
+      return tempId;
     }
   }, [agent]);
 

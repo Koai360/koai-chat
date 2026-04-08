@@ -11,6 +11,7 @@ import { IconRail } from "./IconRail";
 import { ContentTopBar } from "./ContentTopBar";
 import { MobileTabBar } from "./MobileTabBar";
 import { ChatView } from "@/components/chat/ChatView";
+import { HomePage } from "@/components/pages/HomePage";
 import { ChatHistoryPage } from "@/components/pages/ChatHistoryPage";
 import { ExplorePage } from "@/components/pages/ExplorePage";
 import { MediaGalleryPage } from "@/components/pages/MediaGalleryPage";
@@ -100,18 +101,23 @@ export function AppShell({ user, onLogout }: Props) {
   }, [setActiveId, navigate]);
 
   // Create new conversation and go to chat
-  const handleNewConvo = useCallback(() => {
-    newConversation();
+  const handleNewConvo = useCallback(async () => {
+    // Si ya hay una convo activa pero está vacía, reusarla (evita spawn
+    // de convos huérfanas). Solo aplica si estás EN el chat view.
+    if (currentPage === "chat" && active && active.messages.length === 0) {
+      return;
+    }
+    // Con optimistic update esto es instantáneo
+    await newConversation();
     navigate("chat");
-  }, [newConversation, navigate]);
+  }, [newConversation, navigate, currentPage, active]);
 
-  // Handle send from HomePage — create convo, navigate to chat, send (with optional image mode)
+  // Handle send from HomePage — create convo, navigate to chat, send
   const handleHomeSend = useCallback(
-    (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string) => {
-      newConversation();
+    async (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string) => {
+      await newConversation();
       navigate("chat");
-      // Small delay to let the conversation be created
-      setTimeout(() => sendMessage(text, imageBase64, imageMode, imageEngine), 100);
+      sendMessage(text, imageBase64, imageMode, imageEngine);
     },
     [newConversation, navigate, sendMessage]
   );
@@ -119,7 +125,20 @@ export function AppShell({ user, onLogout }: Props) {
   const renderPage = () => {
     switch (currentPage) {
       case "home":
+        return (
+          <HomePage
+            userName={user.name}
+            onSend={handleHomeSend}
+            onNavigate={navigate}
+          />
+        );
       case "chat":
+        // Si no hay convo activa en ruta "chat", redirigir a home
+        // (evita mostrar EmptyState de chat cuando realmente debería ser home)
+        if (!active) {
+          navigate("home");
+          return null;
+        }
         return (
           <ChatView
             conversation={active}
@@ -231,6 +250,7 @@ export function AppShell({ user, onLogout }: Props) {
               thinkingLevel={thinkingLevel}
               onThinkingLevelChange={setThinkingLevel}
               onNewConversation={handleNewConvo}
+              currentPage={currentPage}
               user={user}
               theme={theme}
               onToggleTheme={toggleTheme}

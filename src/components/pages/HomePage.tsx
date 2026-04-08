@@ -1,4 +1,6 @@
 import { EmptyState } from "@/components/chat/EmptyState";
+import { ChatInput } from "@/components/chat/ChatInput";
+import { transcribeAudio } from "@/lib/api";
 import type { Page } from "@/hooks/useNavigation";
 
 interface Props {
@@ -10,21 +12,38 @@ interface Props {
 /**
  * HomePage — pantalla de inicio cuando el usuario abre la app.
  *
- * Reutiliza EmptyState (mismo componente que se muestra en una conversación
- * vacía) para que el rediseño v2 con quick actions capacidad-aware sea
- * consistente entre la home y el chat vacío. Single source of truth.
+ * Layout: [EmptyState scrollable con quick actions] + [ChatInput in-flow]
  *
- * onSend acepta los 4 args (text, imageBase64, imageMode, imageEngine) y los
- * propaga a AppShell.handleHomeSend → useChat.sendMessage. De esta forma los
- * quick actions de generación de imagen funcionan desde la home.
+ * El ChatInput vive aquí directamente (no en ChatView) para que el user
+ * pueda escribir desde home sin tener que crear una conversación primero.
+ * handleHomeSend en AppShell se encarga de crear la convo + navegar +
+ * enviar cuando el user escribe algo.
+ *
+ * Los quick actions del EmptyState también terminan llamando a onSend
+ * con imageMode/imageEngine, así los shortcuts de imagen funcionan igual.
  */
 export function HomePage({ userName, onSend, onNavigate: _onNavigate }: Props) {
   return (
-    <EmptyState
-      agent="kira"
-      userName={userName}
-      onSend={onSend}
-      loading={false}
-    />
+    <div className="flex flex-col h-full bg-bg">
+      {/* Quick actions + greeting — scrollable */}
+      <div className="flex-1 overflow-y-auto px-3 py-2 min-h-0">
+        <div className="max-w-[48rem] mx-auto w-full h-full">
+          <EmptyState
+            agent="kira"
+            userName={userName}
+            onSend={onSend}
+            loading={false}
+          />
+        </div>
+      </div>
+
+      {/* Input in-flow (mismo approach que ChatView) */}
+      <ChatInput
+        onSend={onSend}
+        onTranscribe={transcribeAudio}
+        placeholder="Pregunta algo a Kira..."
+        agent="kira"
+      />
+    </div>
   );
 }

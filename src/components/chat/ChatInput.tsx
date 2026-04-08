@@ -357,7 +357,12 @@ export function ChatInput({ onSend, onTranscribe, disabled, placeholder = "Pregu
               <Plus className="h-5 w-5" />
             </button>
           </PopoverTrigger>
-          <PopoverContent side="top" align="start" className="w-52 p-1">
+          <PopoverContent
+            side="top"
+            align="start"
+            className="w-52 p-1 bg-bg-elevated border-border shadow-2xl"
+            style={{ backgroundColor: "#1a1a1e" }}
+          >
             <button
               onClick={() => { fileInputRef.current?.click(); setPlusOpen(false); }}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-text hover:bg-bg-surface transition-colors"

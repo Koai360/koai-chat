@@ -1,15 +1,7 @@
-import { Sun, Moon, Plus, ChevronDown } from "lucide-react";
+import { Plus } from "lucide-react";
 import type { Agent } from "@/hooks/useChat";
 import type { AuthUser } from "@/hooks/useAuth";
 import type { Page } from "@/hooks/useNavigation";
-import { AIStarIcon } from "@/components/shared/AIStarIcon";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 interface Props {
   agent: Agent;
@@ -17,85 +9,77 @@ interface Props {
   agentDisabled: boolean;
   onNewConversation: () => void;
   user: AuthUser;
-  theme: "dark" | "light";
-  onToggleTheme: () => void;
+  // Mantenemos las props por compatibilidad pero ya no se usan visualmente
+  theme?: "dark" | "light";
+  onToggleTheme?: () => void;
   onNavigate?: (page: Page) => void;
 }
 
-const AGENT_LABELS: Record<Agent, string> = {
-  kira: "Kira 1.0",
-  kronos: "Kronos 1.0",
-};
-
+/**
+ * ContentTopBar — barra superior con:
+ * - Toggle Kira ↔ Kronos (segmented control, no dropdown)
+ * - Botón "Nueva conversación"
+ * - Avatar usuario → Settings
+ *
+ * Tema dark fijo (toggle eliminado por decisión de producto).
+ */
 export function ContentTopBar({
   agent,
   onAgentChange,
   agentDisabled,
   onNewConversation,
   user,
-  theme,
-  onToggleTheme,
   onNavigate,
 }: Props) {
   return (
     <div
       className="flex items-center px-3 sm:px-4 shrink-0 bg-bg gap-2"
       style={{
-        // Safe area como padding-top, height fijo de 56px (no se suma)
         paddingTop: "env(safe-area-inset-top, 0px)",
         minHeight: "calc(56px + env(safe-area-inset-top, 0px))",
       }}
     >
-      {/* Model selector pill — más alto en mobile para touch */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild disabled={agentDisabled}>
-          <button
-            className="flex items-center gap-2 h-10 px-3 rounded-full border transition-colors min-w-0"
-            style={{
-              borderColor: agent === 'kronos' ? 'rgba(0,229,255,0.4)' : 'rgba(123, 45, 142, 0.4)',
-              background: agent === 'kronos' ? 'rgba(0,229,255,0.08)' : 'rgba(123, 45, 142, 0.25)',
-            }}
-            aria-label={`Cambiar agente. Actual: ${AGENT_LABELS[agent]}`}
-          >
-            <AIStarIcon size="sm" className="w-4 h-4 shrink-0" />
-            <span className="text-[13px] font-medium text-white/90 font-display truncate">
-              {AGENT_LABELS[agent]}
-            </span>
-            <ChevronDown className="w-3.5 h-3.5 text-text-muted shrink-0" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-44">
-          <DropdownMenuItem onClick={() => onAgentChange("kira")}>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-kira" />
-              <span>Kira 1.0</span>
-            </div>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onAgentChange("kronos")}>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-kronos" />
-              <span>Kronos 1.0</span>
-            </div>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {/* Toggle Kira ↔ Kronos — segmented control */}
+      <div
+        role="radiogroup"
+        aria-label="Seleccionar agente"
+        className="inline-flex items-center h-10 p-1 rounded-full border border-border bg-bg-surface"
+      >
+        {(["kira", "kronos"] as const).map((opt) => {
+          const isActive = agent === opt;
+          const label = opt === "kira" ? "Kira" : "Kronos";
+          const accent = opt === "kira" ? "#D4E94B" : "#00E5FF";
+          return (
+            <button
+              key={opt}
+              role="radio"
+              aria-checked={isActive}
+              disabled={agentDisabled}
+              onClick={() => onAgentChange(opt)}
+              className={`
+                relative h-8 px-3.5 rounded-full
+                font-display text-[12.5px] font-medium
+                transition-all duration-300
+                disabled:opacity-50 disabled:cursor-not-allowed
+                ${isActive ? "text-bg" : "text-text-muted hover:text-text"}
+              `}
+              style={{
+                background: isActive ? accent : "transparent",
+                boxShadow: isActive ? `0 0 12px ${accent}40, 0 0 0 1px ${accent}80` : "none",
+                letterSpacing: "-0.012em",
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
 
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Right side — touch targets ≥ 40px */}
+      {/* Right side — touch targets >= 40px */}
       <div className="flex items-center gap-1.5">
-        {/* Theme toggle — 40px mobile, 36px desktop */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-10 w-10 sm:h-9 sm:w-9 text-text-muted hover:text-text shrink-0"
-          onClick={onToggleTheme}
-          aria-label={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
-        >
-          {theme === "dark" ? <Sun className="w-[18px] h-[18px]" /> : <Moon className="w-[18px] h-[18px]" />}
-        </Button>
-
         {/* New Chat button — círculo en mobile, pill con label en desktop */}
         <button
           onClick={onNewConversation}
@@ -110,7 +94,7 @@ export function ContentTopBar({
           <span className="hidden md:inline font-display">Nuevo Chat</span>
         </button>
 
-        {/* User avatar — 36px touch target (boton wrapper de 40x40 con avatar 32 dentro) */}
+        {/* User avatar — touch wrapper 40x40 con avatar visual 32 */}
         <button
           onClick={() => onNavigate?.("settings")}
           aria-label="Ajustes de perfil"

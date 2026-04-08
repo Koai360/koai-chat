@@ -1,42 +1,47 @@
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useCallback } from "react";
 
 type Theme = "dark" | "light";
 
-const STORAGE_KEY = "koai-theme";
-
-function getInitialTheme(): Theme {
-  if (typeof window === "undefined") return "dark";
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored === "light" || stored === "dark") return stored;
-  return "dark";
-}
+/**
+ * useTheme — tema dark FIJO (decisión de producto, light mode eliminado).
+ *
+ * El hook se mantiene como API para no romper consumidores existentes
+ * (ContentTopBar, AppShell), pero siempre fuerza dark y los setters son no-op.
+ * Cualquier valor previo en localStorage queda obsoleto.
+ */
+const FIXED_THEME: Theme = "dark";
+const BG_COLOR = "#0a0a0c";
 
 export function useTheme() {
-  const [theme, setThemeState] = useState<Theme>(getInitialTheme);
-
   useEffect(() => {
     const root = document.documentElement;
-    root.classList.remove("dark", "light");
-    root.classList.add(theme);
-    root.style.colorScheme = theme;
-    localStorage.setItem(STORAGE_KEY, theme);
+    root.classList.remove("light");
+    root.classList.add("dark");
+    root.style.colorScheme = "dark";
 
-    // Tailwind v4 @theme compiles var(--color-bg) to a static value at build time,
-    // so we must set body/html bg dynamically via JS to match the active theme.
-    // This is critical for iOS PWA where the body bg shows behind safe areas.
-    const bgColor = theme === "dark" ? "#0a0a0c" : "#ffffff";
-    document.body.style.backgroundColor = bgColor;
-    document.documentElement.style.backgroundColor = bgColor;
+    // Tailwind v4 @theme compiles var(--color-bg) statically,
+    // so we set body/html bg via JS to match the active theme. Critical para iOS
+    // PWA donde el body bg se muestra detrás de safe areas.
+    document.body.style.backgroundColor = BG_COLOR;
+    document.documentElement.style.backgroundColor = BG_COLOR;
 
-    // Update theme-color meta for iOS PWA status bar and safe areas
+    // theme-color meta para status bar iOS PWA
     const meta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null;
     if (meta) {
-      meta.setAttribute("content", bgColor);
+      meta.setAttribute("content", BG_COLOR);
     }
-  }, [theme]);
 
-  const setTheme = useCallback((t: Theme) => setThemeState(t), []);
-  const toggleTheme = useCallback(() => setThemeState((t) => (t === "dark" ? "light" : "dark")), []);
+    // Limpiar localStorage de la preferencia de tema antigua
+    try {
+      localStorage.removeItem("koai-theme");
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
-  return { theme, setTheme, toggleTheme } as const;
+  // Setters no-op para compatibilidad
+  const setTheme = useCallback((_t: Theme) => {}, []);
+  const toggleTheme = useCallback(() => {}, []);
+
+  return { theme: FIXED_THEME, setTheme, toggleTheme } as const;
 }

@@ -1,5 +1,4 @@
 import { motion } from "framer-motion";
-import { AIStarIcon } from "@/components/shared/AIStarIcon";
 import type { Agent } from "@/hooks/useChat";
 
 interface Props {
@@ -123,22 +122,7 @@ export function EmptyState({ agent, userName, onSend, loading }: Props) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-6 pb-20 md:pb-24">
       <div className="w-full max-w-xl">
-        {/* AI Star with glow — preserved, but tightened */}
-        <motion.div
-          initial={{ scale: 0.85, opacity: 0, filter: "blur(10px)" }}
-          animate={{ scale: 1, opacity: 1, filter: "blur(0px)" }}
-          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          className="flex justify-start mb-5"
-          style={{
-            filter: isKronos
-              ? "drop-shadow(0 0 32px rgba(0,229,255,0.18))"
-              : "drop-shadow(0 0 32px rgba(212,233,75,0.18))",
-          }}
-        >
-          <AIStarIcon size="lg" />
-        </motion.div>
-
-        {/* Greeting — left-aligned, asymmetric (not centered) */}
+        {/* Greeting — left-aligned, asymmetric (not centered). Sin AIStarIcon (eliminado por diseño) */}
         <motion.div
           initial={{ y: 16, opacity: 0, filter: "blur(6px)" }}
           animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}

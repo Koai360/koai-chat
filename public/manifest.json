@@ -1,12 +1,17 @@
 {
-  "name": "Kira AI",
+  "name": "Kira AI — KOAI Studios",
   "short_name": "Kira AI",
-  "description": "Chat con Kira y Kronos — KOAI Studios",
+  "description": "Chat con Kira y Kronos. Generación de imagen con Z-Image-Turbo y Flux.2 Pro. Marketing, código y creatividad en un solo lugar.",
+  "lang": "es",
+  "dir": "ltr",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
   "orientation": "portrait",
   "background_color": "#0a0a0c",
-  "theme_color": "#572c77",
+  "theme_color": "#0a0a0c",
+  "categories": ["productivity", "business", "utilities"],
   "icons": [
     {
       "src": "/icons/koai-192.png",
@@ -20,5 +25,36 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "shortcuts": [
+    {
+      "name": "Nuevo chat con Kira",
+      "short_name": "Kira",
+      "description": "Iniciar una conversación con Kira",
+      "url": "/?agent=kira&new=1",
+      "icons": [{ "src": "/icons/koai-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Nuevo chat con Kronos",
+      "short_name": "Kronos",
+      "description": "Iniciar una conversación con Kronos",
+      "url": "/?agent=kronos&new=1",
+      "icons": [{ "src": "/icons/koai-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Generar imagen",
+      "short_name": "Imagen",
+      "description": "Crear imagen con Z-Image o Flux.2 Pro",
+      "url": "/?agent=kira&new=1&mode=image",
+      "icons": [{ "src": "/icons/koai-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Galería",
+      "short_name": "Galería",
+      "description": "Ver imágenes generadas",
+      "url": "/?view=gallery",
+      "icons": [{ "src": "/icons/koai-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "prefer_related_applications": false
 }

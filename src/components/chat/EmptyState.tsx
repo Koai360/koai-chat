@@ -1,35 +1,111 @@
 import { motion } from "framer-motion";
-import { Sparkles, Pen, HelpCircle } from "lucide-react";
 import { AIStarIcon } from "@/components/shared/AIStarIcon";
 import type { Agent } from "@/hooks/useChat";
 
 interface Props {
   agent: Agent;
   userName?: string;
-  onSend: (text: string) => void;
+  onSend: (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string) => void;
   loading: boolean;
 }
 
-const SUGGESTIONS = [
+/**
+ * Quick action — capability-aware shortcut shown in EmptyState.
+ *
+ * Each action represents a real Kira capability (image gen, voice, edit, etc).
+ * Clicking pre-fills the input or directly triggers the corresponding mode.
+ *
+ * The "mark" is a single letter / symbol (no Lucide icons → avoids AI slop
+ * fingerprint of "icon + heading + desc" cards). Letters are color-coded by
+ * capability category.
+ */
+interface QuickAction {
+  mark: string;
+  /** Tier/color category — uses tokens from .impeccable.md */
+  tone: "kira" | "kronos" | "premium" | "neutral";
+  /** Action verb in Spanish */
+  verb: string;
+  /** What it does — short hint */
+  hint: string;
+  /** Prompt that gets pre-filled or sent */
+  prompt: string;
+  /** Optional engine override (passed via onSend's imageEngine arg) */
+  imageMode?: boolean;
+  imageEngine?: string;
+}
+
+const KIRA_ACTIONS: QuickAction[] = [
   {
-    icon: Sparkles,
-    title: "Resumir",
-    description: "Condensa textos largos en puntos clave.",
-    prompt: "Resúmeme los puntos clave de este tema:",
+    mark: "Z",
+    tone: "kira",
+    verb: "Generar imagen rápida",
+    hint: "Z-Image · ~5s · $0.016",
+    prompt: "un café latte arte sobre una mesa de madera, fotorrealista",
+    imageMode: true,
+    imageEngine: "zimage",
   },
   {
-    icon: Pen,
-    title: "Escribir",
-    description: "Genera contenido creativo y copy.",
-    prompt: "Ayúdame a escribir contenido creativo sobre",
+    mark: "F",
+    tone: "premium",
+    verb: "Crear imagen premium",
+    hint: "Flux.2 Pro · 32B · $0.035",
+    prompt: "fotografía editorial de un producto de lujo con iluminación cinematográfica",
+    imageMode: true,
+    imageEngine: "flux2",
   },
   {
-    icon: HelpCircle,
-    title: "Preguntar",
-    description: "Respuestas rápidas a cualquier pregunta.",
-    prompt: "Tengo una pregunta:",
+    mark: "✺",
+    tone: "neutral",
+    verb: "Escribir copy",
+    hint: "Marketing, ads, redes",
+    prompt: "Ayúdame a escribir un anuncio para Instagram sobre",
+  },
+  {
+    mark: "?",
+    tone: "neutral",
+    verb: "Preguntar a Kira",
+    hint: "Estrategia, ideas, briefs",
+    prompt: "",
   },
 ];
+
+const KRONOS_ACTIONS: QuickAction[] = [
+  {
+    mark: "</",
+    tone: "kronos",
+    verb: "Revisar código",
+    hint: "Bug, refactor, review",
+    prompt: "Revisa este código y dime qué mejorar:\n\n",
+  },
+  {
+    mark: "⌘",
+    tone: "kronos",
+    verb: "Diseñar arquitectura",
+    hint: "Sistemas, schemas, infra",
+    prompt: "Necesito diseñar la arquitectura para",
+  },
+  {
+    mark: "↑",
+    tone: "kronos",
+    verb: "Deploy / ops",
+    hint: "Servidor, CI/CD, debug",
+    prompt: "",
+  },
+  {
+    mark: "?",
+    tone: "neutral",
+    verb: "Preguntar a Kronos",
+    hint: "Cualquier cosa técnica",
+    prompt: "",
+  },
+];
+
+const TONE_STYLES: Record<QuickAction["tone"], { color: string; glow: string; bg: string }> = {
+  kira:    { color: "#D4E94B", glow: "rgba(212,233,75,0.30)", bg: "rgba(212,233,75,0.06)" },
+  kronos:  { color: "#00E5FF", glow: "rgba(0,229,255,0.30)",  bg: "rgba(0,229,255,0.06)"  },
+  premium: { color: "#7B2D8E", glow: "rgba(123,45,142,0.40)", bg: "rgba(123,45,142,0.08)" },
+  neutral: { color: "rgba(255,255,255,0.85)", glow: "rgba(255,255,255,0.18)", bg: "rgba(255,255,255,0.04)" },
+};
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -41,84 +117,177 @@ function getGreeting(): string {
 export function EmptyState({ agent, userName, onSend, loading }: Props) {
   const greeting = getGreeting();
   const displayName = userName?.split(" ")[0] || (agent === "kronos" ? "Boss" : "");
+  const actions = agent === "kronos" ? KRONOS_ACTIONS : KIRA_ACTIONS;
+  const isKronos = agent === "kronos";
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.4 }}
-      className="flex-1 flex flex-col items-center justify-center px-6 pb-20 md:pb-32"
-    >
-      {/* AI Star with glow */}
-      <div style={{ filter: "drop-shadow(0 0 30px rgba(212, 233, 75, 0.2))" }}>
+    <div className="flex-1 flex flex-col items-center justify-center px-6 pb-20 md:pb-24">
+      <div className="w-full max-w-xl">
+        {/* AI Star with glow — preserved, but tightened */}
         <motion.div
-          initial={{ scale: 0.8, opacity: 0, filter: "blur(10px)" }}
+          initial={{ scale: 0.85, opacity: 0, filter: "blur(10px)" }}
           animate={{ scale: 1, opacity: 1, filter: "blur(0px)" }}
-          transition={{ duration: 0.6 }}
-          className="mb-6"
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="flex justify-start mb-5"
+          style={{
+            filter: isKronos
+              ? "drop-shadow(0 0 32px rgba(0,229,255,0.18))"
+              : "drop-shadow(0 0 32px rgba(212,233,75,0.18))",
+          }}
         >
           <AIStarIcon size="lg" />
         </motion.div>
-      </div>
 
-      {/* Greeting */}
-      <motion.div
-        initial={{ y: 30, opacity: 0, filter: "blur(8px)" }}
-        animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
-        transition={{ delay: 0.2, duration: 0.6 }}
-        className="text-center mb-10"
-      >
-        <h2 className="text-[24px] md:text-[32px] font-medium text-text leading-tight font-display">
-          {greeting}
-          {displayName ? (
-            <>
-              ,{" "}
-              <span className={agent === "kronos" ? "gradient-text-kronos" : "gradient-text-kira"}>
-                {displayName}
-              </span>
-            </>
-          ) : ""}
-        </h2>
-        <h2 className="text-[24px] md:text-[32px] font-medium text-text-muted leading-tight font-display">
-          ¿En qué puedo ayudarte?
-        </h2>
-      </motion.div>
-
-      {/* Suggestion Cards */}
-      <motion.div
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.4, duration: 0.5 }}
-        className="flex flex-col md:flex-row gap-3 w-full max-w-2xl overflow-x-auto md:overflow-visible no-scrollbar"
-      >
-        {SUGGESTIONS.map((suggestion, index) => (
-          <motion.button
-            key={suggestion.title}
-            initial={{ y: 20, opacity: 0, filter: "blur(4px)" }}
-            animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
-            transition={{ delay: 0.5 + index * 0.1, duration: 0.4 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={() => !loading && onSend(suggestion.prompt)}
-            disabled={loading}
-            aria-label={suggestion.title}
-            className="flex-1 min-w-[180px] liquid-glass-strong rounded-2xl p-4 text-left transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 border border-[rgba(212,233,75,0.12)] hover:border-[rgba(212,233,75,0.25)]"
+        {/* Greeting — left-aligned, asymmetric (not centered) */}
+        <motion.div
+          initial={{ y: 16, opacity: 0, filter: "blur(6px)" }}
+          animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
+          transition={{ delay: 0.1, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="mb-1"
+        >
+          <h2
+            className="font-display text-[28px] md:text-[36px] font-medium text-text leading-[1.05]"
+            style={{ letterSpacing: "-0.025em" }}
           >
-            <div
-              className="w-8 h-8 rounded-xl flex items-center justify-center mb-3"
-              style={{
-                background: agent === "kronos" ? "rgba(0,229,255,0.12)" : "rgba(212,233,75,0.15)",
-              }}
-            >
-              <suggestion.icon
-                className="h-4 w-4"
-                style={{ color: agent === "kronos" ? "#00E5FF" : "#D4E94B" }}
-              />
-            </div>
-            <div className="text-sm font-medium text-text font-display">{suggestion.title}</div>
-            <div className="text-xs text-text-muted mt-1">{suggestion.description}</div>
-          </motion.button>
-        ))}
-      </motion.div>
-    </motion.div>
+            {greeting}
+            {displayName ? (
+              <>
+                ,{" "}
+                <span className={isKronos ? "gradient-text-kronos" : "gradient-text-kira"}>
+                  {displayName}
+                </span>
+              </>
+            ) : ""}
+          </h2>
+        </motion.div>
+
+        {/* Subline */}
+        <motion.p
+          initial={{ y: 12, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+          className="font-display text-[18px] md:text-[20px] text-text-muted leading-tight mb-7"
+          style={{ letterSpacing: "-0.015em" }}
+        >
+          ¿Por dónde empezamos hoy?
+        </motion.p>
+
+        {/* Quick actions — vertical list, NOT a 2x2 grid (avoids icon-card-grid AI slop) */}
+        <div className="space-y-1.5">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3, duration: 0.4 }}
+            className="px-1 mb-2"
+          >
+            <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-text-subtle">
+              Acciones rápidas
+            </span>
+          </motion.div>
+
+          {actions.map((action, i) => {
+            const tone = TONE_STYLES[action.tone];
+            return (
+              <motion.button
+                key={`${action.verb}-${i}`}
+                disabled={loading}
+                onClick={() => {
+                  if (loading) return;
+                  if (navigator.vibrate) navigator.vibrate(8);
+                  onSend(action.prompt, undefined, action.imageMode, action.imageEngine);
+                }}
+                initial={{ opacity: 0, x: -8, filter: "blur(4px)" }}
+                animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+                transition={{
+                  delay: 0.35 + i * 0.06,
+                  duration: 0.4,
+                  ease: [0.16, 1, 0.3, 1],
+                }}
+                whileHover={{ x: 2 }}
+                whileTap={{ scale: 0.985 }}
+                className="
+                  group
+                  w-full flex items-center gap-3
+                  px-3 py-2.5
+                  rounded-xl
+                  transition-[background,box-shadow] duration-300
+                  hover:bg-bg-surface
+                  disabled:opacity-40
+                  text-left
+                  border border-transparent
+                  hover:border-border
+                "
+              >
+                {/* Mark — large letter/symbol, color-coded */}
+                <span
+                  className="
+                    shrink-0
+                    w-9 h-9
+                    rounded-lg
+                    flex items-center justify-center
+                    font-display font-bold
+                    transition-all duration-300
+                    group-hover:scale-105
+                  "
+                  style={{
+                    fontSize: "16px",
+                    color: tone.color,
+                    background: tone.bg,
+                    boxShadow: `inset 0 0 0 1px ${tone.glow}`,
+                    letterSpacing: "-0.04em",
+                  }}
+                >
+                  {action.mark}
+                </span>
+
+                {/* Verb + hint */}
+                <div className="flex-1 min-w-0">
+                  <div
+                    className="font-display text-[14px] font-medium text-text truncate"
+                    style={{ letterSpacing: "-0.012em" }}
+                  >
+                    {action.verb}
+                  </div>
+                  <div
+                    className="font-mono text-[10.5px] truncate"
+                    style={{
+                      color: "rgba(255,255,255,0.40)",
+                      marginTop: "1px",
+                    }}
+                  >
+                    {action.hint}
+                  </div>
+                </div>
+
+                {/* Hover affordance — chevron only on hover */}
+                <span
+                  className="
+                    shrink-0
+                    text-text-subtle opacity-0 group-hover:opacity-60
+                    transition-opacity duration-300
+                    text-[18px] leading-none
+                    -translate-x-1 group-hover:translate-x-0
+                  "
+                >
+                  →
+                </span>
+              </motion.button>
+            );
+          })}
+        </div>
+
+        {/* Footer hint — subtle, mono */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7, duration: 0.6 }}
+          className="mt-6 px-1"
+        >
+          <span className="font-mono text-[10px] text-text-subtle tracking-tight">
+            o escribe directamente abajo
+          </span>
+        </motion.div>
+      </div>
+    </div>
   );
 }

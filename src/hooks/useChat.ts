@@ -16,6 +16,15 @@ import {
 
 export type Agent = "kira" | "kronos";
 
+export interface ImageMetadata {
+  /** Engine identifier — matches keys in ENGINE_DISPLAY at ImageMetadataBadge.tsx */
+  engine: string;
+  /** Generation time in milliseconds (end-to-end including queueing/cold start) */
+  generationTimeMs?: number;
+  /** Estimated cost in USD */
+  costEstimateUsd?: number;
+}
+
 export interface Message {
   id: string;
   role: "user" | "assistant";
@@ -23,6 +32,7 @@ export interface Message {
   content: string;
   timestamp: number;
   image?: string;
+  imageMetadata?: ImageMetadata;
 }
 
 export interface Conversation {
@@ -69,6 +79,7 @@ export function useChat(userId: string | null = null) {
   const [streamingText, setStreamingText] = useState("");
   const [syncing, setSyncing] = useState(true);
   const initialLoadDone = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
 
   const active = conversations.find((c) => c.id === activeId) || null;
 
@@ -183,15 +194,37 @@ export function useChat(userId: string | null = null) {
       }
 
       setLoading(true);
-      setLoadingHint(
-        imageMode
-          ? imageEngine === "studioflux" || imageEngine === "studioflux-raw"
-            ? "Generando con Studio (puede tardar ~60s)..."
-            : imageEngine === "flux"
-              ? "Generando imagen con Flux 2..."
-              : "Generando imagen..."
-          : null,
-      );
+      // Hint inicial — mensaje según engine. Mensajes específicos para los nuevos modelos.
+      const initialHint = imageMode
+        ? imageEngine === "flux2"
+          ? "Generando con Flux.2 Pro (32B premium, ~30-60s)..."
+          : imageEngine === "zimage"
+            ? "Generando con Z-Image-Turbo (~5s)..."
+            : imageEngine === "studioflux" || imageEngine === "studioflux-raw"
+              ? "Generando con Studio (~5-30s)..."
+              : imageEngine === "flux"
+                ? "Generando imagen con Flux Hosted..."
+                : "Generando imagen..."
+        : null;
+      setLoadingHint(initialHint);
+
+      // Hint de cold start: si después de 8s sigue cargando y es un engine de Modal,
+      // mostrar mensaje explicativo (el GPU se está calentando, primer request del día)
+      const isModalEngine =
+        imageMode &&
+        (imageEngine === "zimage" ||
+          imageEngine === "flux2" ||
+          imageEngine === "studioflux" ||
+          imageEngine === "studioflux-raw");
+      const coldStartTimer = isModalEngine
+        ? setTimeout(() => {
+            setLoadingHint(
+              imageEngine === "flux2"
+                ? "Calentando GPU para Flux.2 (cold start ~60-90s)..."
+                : "Calentando GPU (cold start ~30-60s)..."
+            );
+          }, 8000)
+        : null;
       setStreamingText("");
 
       // Mantener pantalla encendida durante generación (evita que iOS mate el fetch)
@@ -225,12 +258,16 @@ export function useChat(userId: string | null = null) {
       try {
         let assistantContent = "";
         let assistantImage: string | undefined;
+        let assistantImageMetadata: ImageMetadata | undefined;
 
         const MAX_STREAM_RETRIES = 1;
 
         if (agent === "kira") {
           for (let attempt = 0; attempt <= MAX_STREAM_RETRIES; attempt++) {
             try {
+              // Crear nuevo AbortController para este stream — guardado en ref
+              // para que sea cancelable desde fuera (futuro botón "Stop")
+              abortRef.current = new AbortController();
               const res = await streamKiraMessage(
                 displayText,
                 convoId || undefined,
@@ -239,11 +276,29 @@ export function useChat(userId: string | null = null) {
                 imageEngine,
                 {
                   onToken: (accumulated) => setStreamingText(accumulated),
-                  onImage: (img) => { assistantImage = img; },
+                  onImage: (img, meta) => {
+                    assistantImage = img;
+                    if (meta) {
+                      assistantImageMetadata = {
+                        engine: meta.engine,
+                        generationTimeMs: meta.generation_time_ms,
+                        costEstimateUsd: meta.cost_estimate_usd,
+                      };
+                    }
+                  },
                 },
+                abortRef.current.signal,
               );
               assistantContent = res.fullText || "";
               assistantImage = assistantImage || (res.image ?? undefined);
+              // Si callback no recibió metadata pero el return sí, usarla
+              if (!assistantImageMetadata && res.imageMetadata) {
+                assistantImageMetadata = {
+                  engine: res.imageMetadata.engine,
+                  generationTimeMs: res.imageMetadata.generation_time_ms,
+                  costEstimateUsd: res.imageMetadata.cost_estimate_usd,
+                };
+              }
               if (assistantContent) break;
               // Respuesta vacia — reintentar una vez
               if (attempt < MAX_STREAM_RETRIES) {
@@ -296,6 +351,7 @@ export function useChat(userId: string | null = null) {
           content: assistantContent,
           timestamp: Date.now(),
           image: assistantImage,
+          imageMetadata: assistantImageMetadata,
         };
 
         setConversations((prev) =>
@@ -326,6 +382,7 @@ export function useChat(userId: string | null = null) {
         );
         setStreamingText("");
       } finally {
+        if (coldStartTimer) clearTimeout(coldStartTimer);
         setLoading(false);
         setLoadingHint(null);
         if (wakeLock) { wakeLock.release().catch(() => {}); }

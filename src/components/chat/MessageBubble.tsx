@@ -5,6 +5,7 @@ import type { Message } from "@/hooks/useChat";
 import { motion } from "framer-motion";
 import { AIStarIcon } from "@/components/shared/AIStarIcon";
 import { MessageActions } from "./MessageActions";
+import { ImageMetadataBadge } from "./ImageMetadataBadge";
 import { sendMessageFeedback } from "@/lib/api";
 
 interface Props {
@@ -96,7 +97,20 @@ export function MessageBubble({ message, conversationId, onImageClick, isLast, o
       </div>
 
       <div className="flex-1 min-w-0 flex flex-col">
-        {message.image && <ImageBlock image={message.image} isUser={false} onImageClick={onImageClick} />}
+        {message.image && (
+          <div className="mb-2">
+            <ImageBlock image={message.image} isUser={false} onImageClick={onImageClick} />
+            {message.imageMetadata && (
+              <div className="mt-1.5">
+                <ImageMetadataBadge
+                  engine={message.imageMetadata.engine}
+                  generationTimeMs={message.imageMetadata.generationTimeMs}
+                  costEstimateUsd={message.imageMetadata.costEstimateUsd}
+                />
+              </div>
+            )}
+          </div>
+        )}
         <div
           className="text-[15px] leading-[1.55] prose prose-sm prose-invert max-w-none
             [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:mb-2 [&>ol]:mb-2

@@ -54,9 +54,18 @@ export function AppShell({ user, onLogout }: Props) {
   const { theme, toggleTheme } = useTheme();
 
   const [activePanel, setActivePanel] = useState<PanelType>(null);
-  const [modalImage, setModalImage] = useState<string | null>(null);
+  const [modalImage, setModalImage] = useState<{ src: string; id?: string } | null>(null);
   const [swUpdate, setSwUpdate] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
+
+  // Handler de delete desde ImageViewer (delega al backend + dispatcha evento
+  // para que MediaGalleryPage refresque su lista localmente)
+  const handleViewerDelete = useCallback(async (imageId: string) => {
+    const { deleteImage } = await import("@/lib/api");
+    await deleteImage(imageId);
+    // Notify MediaGalleryPage to remove this id from its state
+    window.dispatchEvent(new CustomEvent("gallery-image-deleted", { detail: { id: imageId } }));
+  }, []);
 
   // Splash screen — 2.2s
   useEffect(() => {
@@ -121,7 +130,7 @@ export function AppShell({ user, onLogout }: Props) {
             onDelete={deleteConversation}
             onDeleteMessages={deleteMessages}
             userName={user.name}
-            onImageClick={setModalImage}
+            onImageClick={(src) => setModalImage({ src })}
           />
         );
       case "chatHistory":
@@ -142,7 +151,7 @@ export function AppShell({ user, onLogout }: Props) {
       case "media":
         return (
           <MediaGalleryPage
-            onImageClick={setModalImage}
+            onImageClick={(src, id) => setModalImage({ src, id })}
           />
         );
       case "settings":
@@ -263,7 +272,12 @@ export function AppShell({ user, onLogout }: Props) {
 
         {/* Image viewer modal */}
         {modalImage && (
-          <ImageViewer src={modalImage} onClose={() => setModalImage(null)} />
+          <ImageViewer
+            src={modalImage.src}
+            imageId={modalImage.id}
+            onDelete={modalImage.id ? handleViewerDelete : undefined}
+            onClose={() => setModalImage(null)}
+          />
         )}
 
         {/* SW update banner */}

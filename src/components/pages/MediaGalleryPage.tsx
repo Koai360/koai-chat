@@ -10,7 +10,11 @@ import {
 } from "@/lib/api";
 
 interface Props {
-  onImageClick: (src: string) => void;
+  /**
+   * Abre el ImageViewer modal. Recibe la URL completa y opcionalmente el id
+   * del mensaje (para que el viewer pueda ofrecer botón de eliminar).
+   */
+  onImageClick: (src: string, imageId?: string) => void;
 }
 
 /**
@@ -118,6 +122,23 @@ export function MediaGalleryPage({ onImageClick }: Props) {
       abortRef.current?.abort();
     };
   }, [loadFirstBatch]);
+
+  // Listen para deletes hechos desde el ImageViewer (modal abierto desde aquí)
+  // El AppShell hace el delete + dispatch del evento; nosotros solo limpiamos
+  // el state local y el cache módulo.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const id = (e as CustomEvent<{ id: string }>).detail?.id;
+      if (!id) return;
+      setImages((prev) => {
+        const filtered = prev.filter((img) => img.id !== id);
+        if (cache) cache = { ...cache, items: filtered, ts: Date.now() };
+        return filtered;
+      });
+    };
+    window.addEventListener("gallery-image-deleted", handler);
+    return () => window.removeEventListener("gallery-image-deleted", handler);
+  }, []);
 
   // Intersection observer for infinite scroll
   useEffect(() => {
@@ -240,7 +261,7 @@ export function MediaGalleryPage({ onImageClick }: Props) {
               {images.map((img) => (
                 <div
                   key={img.id}
-                  onClick={() => onImageClick(img.image)}
+                  onClick={() => onImageClick(img.image, img.id)}
                   className="mb-3 break-inside-avoid relative rounded-2xl overflow-hidden cursor-pointer group bg-bg-surface border border-border"
                 >
                   <img
@@ -250,30 +271,35 @@ export function MediaGalleryPage({ onImageClick }: Props) {
                     loading="lazy"
                     decoding="async"
                   />
-                  {/* Hover overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
-                    {img.content && (
-                      <p className="text-[11px] text-white/70 line-clamp-2 mb-2">
+
+                  {/* Action buttons — fixed top-right, siempre visibles en mobile */}
+                  <div className="absolute top-2 right-2 flex items-center gap-1.5 z-10">
+                    <button
+                      onClick={(e) => handleDownload(e, img.image)}
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-white transition-all active:scale-90 backdrop-blur-md"
+                      style={{ background: "rgba(0,0,0,0.55)" }}
+                      aria-label="Descargar imagen"
+                    >
+                      <Download className="size-3.5" />
+                    </button>
+                    <button
+                      onClick={(e) => handleDelete(e, img.id)}
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-white transition-all active:scale-90 backdrop-blur-md"
+                      style={{ background: "rgba(220,38,38,0.75)" }}
+                      aria-label="Eliminar imagen"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Prompt caption al hacer hover (desktop) o tap-hold (mobile) */}
+                  {img.content && (
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-3 pt-8 pointer-events-none">
+                      <p className="text-[11px] text-white/85 line-clamp-2">
                         {img.content}
                       </p>
-                    )}
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={(e) => handleDownload(e, img.image)}
-                        className="p-1.5 rounded-lg liquid-glass text-white hover:text-kira transition-colors"
-                        aria-label="Descargar"
-                      >
-                        <Download className="size-4" />
-                      </button>
-                      <button
-                        onClick={(e) => handleDelete(e, img.id)}
-                        className="p-1.5 rounded-lg liquid-glass text-white hover:text-danger transition-colors"
-                        aria-label="Eliminar"
-                      >
-                        <Trash2 className="size-4" />
-                      </button>
                     </div>
-                  </div>
+                  )}
                 </div>
               ))}
             </div>

@@ -34,9 +34,13 @@ function formatDate(ts: number): string {
   return d.toLocaleDateString("es-ES", { month: "short", day: "numeric" });
 }
 
-function getFirstUserMessage(c: Conversation): string {
+function getDisplayTitle(c: Conversation): string {
+  // Prioriza c.title (single source of truth — se auto-set al primer mensaje
+  // y se actualiza al renombrar). Fallback al primer mensaje solo si title
+  // está vacío (edge case) o es el placeholder "Nueva conversación" sin mensajes.
+  if (c.title && c.title !== "Nueva conversación") return c.title;
   const msg = c.messages.find((m) => m.role === "user");
-  return msg?.content || c.title || "Sin mensajes";
+  return msg?.content || c.title || "Nueva conversación";
 }
 
 function getLastAssistantMessage(c: Conversation): string {
@@ -234,7 +238,7 @@ function ConversationCard({
         <button
           onClick={(e) => {
             e.stopPropagation();
-            onEdit(c.id, c.title);
+            onEdit(c.id, getDisplayTitle(c));
           }}
           className="p-1 rounded-md hover:bg-bg-elevated text-text-muted hover:text-text"
           aria-label="Renombrar"
@@ -260,7 +264,7 @@ function ConversationCard({
       </div>
 
       {/* User message preview */}
-      <p className="text-sm text-text line-clamp-2 mb-1">{getFirstUserMessage(c)}</p>
+      <p className="text-sm text-text line-clamp-2 mb-1">{getDisplayTitle(c)}</p>
 
       {/* Assistant preview — solo desktop */}
       {getLastAssistantMessage(c) && (
@@ -290,7 +294,7 @@ function ConversationRow({
     >
       {/* Main text */}
       <p className="flex-1 min-w-0 text-[14px] text-text truncate">
-        {getFirstUserMessage(c)}
+        {getDisplayTitle(c)}
       </p>
 
       {/* Image indicator */}
@@ -305,7 +309,7 @@ function ConversationRow({
       <button
         onClick={(e) => {
           e.stopPropagation();
-          onEdit(c.id, c.title);
+          onEdit(c.id, getDisplayTitle(c));
         }}
         className="p-1 rounded-md text-text-subtle/50 hover:text-text active:text-text md:text-text-muted md:opacity-0 md:group-hover:opacity-100 transition-all shrink-0"
         aria-label="Renombrar"

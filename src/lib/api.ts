@@ -453,12 +453,55 @@ export interface GalleryImage {
   engine?: string;
 }
 
-export async function fetchImages(): Promise<GalleryImage[]> {
-  const res = await fetch(`${API_URL}/api/chat/images`, {
+export interface GalleryPage {
+  items: GalleryImage[];
+  next_cursor: string | null;
+}
+
+export interface FetchImagesOpts {
+  limit?: number;
+  before?: string | null;
+  signal?: AbortSignal;
+}
+
+/**
+ * Fetch paginado de la galería. Usa cursor pagination con `before` (ISO ts).
+ * Backend (chat_persistence.py:list_images) filtra por URLs (no base64) y
+ * devuelve { items, next_cursor }.
+ */
+export async function fetchImages(opts: FetchImagesOpts = {}): Promise<GalleryPage> {
+  const { limit = 24, before = null, signal } = opts;
+  const params = new URLSearchParams();
+  params.set("limit", String(limit));
+  if (before) params.set("before", before);
+
+  const res = await fetch(`${API_URL}/api/chat/images?${params.toString()}`, {
     headers: getHeaders(),
+    signal,
   });
   if (!res.ok) throw new Error(`Error ${res.status}`);
   return res.json();
+}
+
+/**
+ * Helper: convierte una URL de Supabase Storage a thumbnail con transformación.
+ *
+ * Si la URL es de Supabase Storage (`/storage/v1/object/public/`), inserta el
+ * path de transformaciones `/storage/v1/render/image/public/` con `?width=N`.
+ * Para otras URLs (third-party CDN, base64 legacy), devuelve sin tocar.
+ *
+ * Reduce el tamaño servido de ~1-2MB original a ~50-150KB para thumbnails 600px.
+ */
+export function getImageThumbUrl(url: string, width = 600, quality = 85): string {
+  if (!url || !url.includes("supabase.co/storage/v1/object/public/")) {
+    return url;
+  }
+  // Reescribir path de "object/public" a "render/image/public" + query params
+  const transformed = url.replace(
+    "/storage/v1/object/public/",
+    "/storage/v1/render/image/public/",
+  );
+  return `${transformed}?width=${width}&quality=${quality}&resize=contain`;
 }
 
 export async function deleteImage(messageId: string): Promise<void> {

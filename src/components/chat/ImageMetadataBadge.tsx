@@ -18,16 +18,22 @@ interface Props {
 }
 
 const ENGINE_DISPLAY: Record<string, { mark: string; label: string; color: string }> = {
+  // Generación
   "studioflux-zimage":     { mark: "Z", label: "Z-Image",        color: "#D4E94B" },
   "studioflux-flux2":      { mark: "F", label: "Flux.2 Pro",     color: "#7B2D8E" },
   "studioflux":            { mark: "Z", label: "Z-Image",        color: "#D4E94B" }, // legacy
-  "studioflux-raw":        { mark: "R", label: "Studio RAW",     color: "rgba(255,255,255,0.55)" },
+  "studioflux-raw":        { mark: "R", label: "Studio RAW",     color: "#E8704A" },
   "flux-2-max":            { mark: "B", label: "Flux Hosted",    color: "#00E5FF" },
   "flux-2-pro":            { mark: "B", label: "Flux Pro",       color: "#00E5FF" },
   "gemini":                { mark: "G", label: "Gemini",         color: "rgba(255,255,255,0.85)" },
   "gemini-3.1-flash-image-preview": { mark: "G", label: "Gemini", color: "rgba(255,255,255,0.85)" },
   "ideogram":              { mark: "I", label: "Ideogram",       color: "rgba(255,255,255,0.85)" },
-  "recraft":               { mark: "R", label: "Recraft",        color: "rgba(255,255,255,0.85)" },
+  "recraft":               { mark: "C", label: "Recraft",        color: "rgba(255,255,255,0.85)" },
+  // Edición (edit_image_smart + sus backends)
+  "gemini-edit":           { mark: "G", label: "Gemini Edit",    color: "rgba(255,255,255,0.85)" },
+  "flux-kontext-pro":      { mark: "K", label: "Kontext Pro",    color: "#7B2D8E" },
+  "flux-kontext-dev-modal":{ mark: "K", label: "Kontext Dev",    color: "#D4E94B" },
+  "studioflux-kontext":    { mark: "K", label: "Kontext Dev",    color: "#D4E94B" },
 };
 
 function formatTime(ms: number | undefined): string {

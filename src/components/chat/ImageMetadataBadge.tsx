@@ -18,13 +18,21 @@ interface Props {
 }
 
 const ENGINE_DISPLAY: Record<string, { mark: string; label: string; color: string }> = {
-  // Generación
+  // Flux family
   "studioflux-zimage":     { mark: "Z", label: "Z-Image",        color: "#D4E94B" },
+  "studioflux-flux1":      { mark: "1", label: "Flux.1 Dev",     color: "#D4E94B" },
   "studioflux-flux2":      { mark: "F", label: "Flux.2 Pro",     color: "#7B2D8E" },
   "studioflux":            { mark: "Z", label: "Z-Image",        color: "#D4E94B" }, // legacy
   "studioflux-raw":        { mark: "R", label: "Studio RAW",     color: "#E8704A" },
   "flux-2-max":            { mark: "B", label: "Flux Hosted",    color: "#00E5FF" },
   "flux-2-pro":            { mark: "B", label: "Flux Pro",       color: "#00E5FF" },
+  // SDXL stack (S106)
+  "studioflux-sdxl-dreamshaper": { mark: "D", label: "DreamShaper XL", color: "#4A9EFF" },
+  "studioflux-sdxl-realistic":   { mark: "V", label: "RealVisXL V5",   color: "#4A9EFF" },
+  "studioflux-sdxl-cyber":       { mark: "C", label: "CyberRealistic", color: "#4A9EFF" },
+  "studioflux-sdxl-pony":        { mark: "P", label: "Pony V6 XL",     color: "#F06BA8" },
+  "studioflux-sdxl-illustrious": { mark: "I", label: "Illustrious",    color: "#F06BA8" },
+  // Google / other APIs
   "gemini":                { mark: "G", label: "Gemini",         color: "rgba(255,255,255,0.85)" },
   "gemini-3.1-flash-image-preview": { mark: "G", label: "Gemini", color: "rgba(255,255,255,0.85)" },
   "ideogram":              { mark: "I", label: "Ideogram",       color: "rgba(255,255,255,0.85)" },

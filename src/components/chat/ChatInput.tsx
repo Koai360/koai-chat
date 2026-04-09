@@ -20,12 +20,16 @@ import { VoiceRecorderOverlay } from "./VoiceRecorderOverlay";
 import { useVoiceStream } from "@/hooks/useVoiceStream";
 
 interface Props {
-  onSend: (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string, editMode?: boolean) => void;
+  onSend: (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string, editMode?: boolean, imageUrl?: string) => void;
   onTranscribe: (blob: Blob) => Promise<string>;
   disabled?: boolean;
   placeholder?: string;
   autoFocus?: boolean;
   agent?: "kira" | "kronos";
+  /** URL de imagen existente en R2 para edit iterativo (click "Editar" en chat/galería) */
+  editSourceUrl?: string | null;
+  /** Callback para limpiar la URL cuando el usuario cancela el edit */
+  onClearEditSource?: () => void;
 }
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
@@ -71,7 +75,7 @@ function compressImage(dataUrl: string, maxBytes: number): Promise<{ base64: str
 // ENGINE_OPTIONS y tipos viven en EngineSelector.tsx (single source of truth)
 // Backend dispatch correspondiente: /opt/koai-api/koai/tools/image_gen_tools.py:generate_image()
 
-export function ChatInput({ onSend, onTranscribe: _onTranscribe, disabled, placeholder = "Pregunta algo a Kira...", autoFocus, agent = "kira" }: Props) {
+export function ChatInput({ onSend, onTranscribe: _onTranscribe, disabled, placeholder = "Pregunta algo a Kira...", autoFocus, agent = "kira", editSourceUrl, onClearEditSource }: Props) {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
@@ -82,6 +86,15 @@ export function ChatInput({ onSend, onTranscribe: _onTranscribe, disabled, place
   // editMode: cuando hay imagen adjunta, permite elegir si la imagen se USA como
   // referencia (default, pasa al LLM) o si se EDITA con edit_image_smart (Kontext).
   const [editMode, setEditMode] = useState(false);
+
+  // Auto-activar editMode cuando viene una URL externa (click "Editar" en chat/galería)
+  useEffect(() => {
+    if (editSourceUrl) {
+      setEditMode(true);
+      setImagePreview(editSourceUrl);
+      editorRef.current?.focus();
+    }
+  }, [editSourceUrl]);
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textRef = useRef(text);
@@ -190,9 +203,14 @@ export function ChatInput({ onSend, onTranscribe: _onTranscribe, disabled, place
   }, [error]);
 
   const handleSubmit = () => {
-    if ((!text.trim() && !imageBase64) || disabled) return;
-    // Edit mode requiere tanto imagen como instrucción de texto
-    if (editMode && (!imageBase64 || !text.trim())) return;
+    // Validación: si editMode + editSourceUrl, solo necesitamos texto
+    // Si editMode + upload manual, necesitamos base64 y texto
+    // Si modo normal, necesitamos texto O base64
+    const hasUrl = !!editSourceUrl;
+    const hasImage = !!imageBase64 || hasUrl;
+    if ((!text.trim() && !hasImage) || disabled) return;
+    if (editMode && !text.trim()) return;  // edit siempre requiere instrucción
+    if (editMode && !hasImage) return;
     if (navigator.vibrate) navigator.vibrate(10);
     onSend(
       text,
@@ -200,6 +218,7 @@ export function ChatInput({ onSend, onTranscribe: _onTranscribe, disabled, place
       imageMode || undefined,
       imageMode ? imageEngine : undefined,
       editMode || undefined,
+      editSourceUrl || undefined,
     );
     setText("");
     if (editorRef.current) editorRef.current.innerText = "";
@@ -207,6 +226,7 @@ export function ChatInput({ onSend, onTranscribe: _onTranscribe, disabled, place
     setImageBase64(null);
     if (imageMode) setImageMode(false);
     if (editMode) setEditMode(false);
+    if (editSourceUrl && onClearEditSource) onClearEditSource();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -246,7 +266,12 @@ export function ChatInput({ onSend, onTranscribe: _onTranscribe, disabled, place
     e.target.value = "";
   };
 
-  const clearImage = () => { setImagePreview(null); setImageBase64(null); setEditMode(false); };
+  const clearImage = () => {
+    setImagePreview(null);
+    setImageBase64(null);
+    setEditMode(false);
+    if (editSourceUrl && onClearEditSource) onClearEditSource();
+  };
 
   const toggleRecording = () => {
     if (recording) {

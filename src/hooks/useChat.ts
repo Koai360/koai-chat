@@ -199,22 +199,24 @@ export function useChat(userId: string | null = null) {
   }, [agent]);
 
   const sendMessage = useCallback(
-    async (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string, editMode?: boolean) => {
-      if ((!text.trim() && !imageBase64) || loading) return;
+    async (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string, editMode?: boolean, imageUrl?: string) => {
+      if ((!text.trim() && !imageBase64 && !imageUrl) || loading) return;
 
       let convoId = activeId;
       if (!convoId) {
         convoId = await newConversation();
       }
 
-      const displayText = text.trim() || (imageBase64 ? "[Imagen]" : "");
+      const displayText = text.trim() || ((imageBase64 || imageUrl) ? "[Imagen]" : "");
       const userMsg: Message = {
         id: crypto.randomUUID(),
         role: "user",
         agent,
         content: displayText,
         timestamp: Date.now(),
-        image: imageBase64,
+        // Para mostrar en chat: usa la URL R2 si hay edit_url (liviano),
+        // sino base64 inline (upload manual)
+        image: imageUrl || imageBase64,
       };
 
       const convo = conversations.find((c) => c.id === convoId);
@@ -333,6 +335,7 @@ export function useChat(userId: string | null = null) {
                 abortRef.current.signal,
                 thinkingLevel,
                 editMode,
+                imageUrl,
               );
               assistantContent = res.fullText || "";
               assistantImage = assistantImage || (res.image ?? undefined);

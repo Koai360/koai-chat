@@ -3,9 +3,9 @@ import { ImageIcon, Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   fetchImages,
-  getImageThumbUrl,
   type GalleryImage,
 } from "@/lib/api";
+import { getCfTransformUrl } from "@/lib/cfTransform";
 
 interface Props {
   /**
@@ -207,7 +207,7 @@ export function MediaGalleryPage({ onImageClick }: Props) {
                   className="mb-3 break-inside-avoid relative rounded-2xl overflow-hidden cursor-pointer group bg-bg-surface border border-border"
                 >
                   <img
-                    src={getImageThumbUrl(img.image, 600)}
+                    src={getCfTransformUrl(img.image, "thumb")}
                     alt={img.content || "Imagen generada"}
                     className="w-full h-auto object-cover"
                     loading="lazy"

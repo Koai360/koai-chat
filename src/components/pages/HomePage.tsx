@@ -5,7 +5,7 @@ import type { Page } from "@/hooks/useNavigation";
 
 interface Props {
   userName: string;
-  onSend: (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string, editMode?: boolean) => void;
+  onSend: (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string, editMode?: boolean, imageUrl?: string) => void;
   onNavigate: (page: Page) => void;
 }
 

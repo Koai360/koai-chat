@@ -7,11 +7,13 @@ import { AIStarIcon } from "@/components/shared/AIStarIcon";
 import { MessageActions } from "./MessageActions";
 import { ImageMetadataBadge } from "./ImageMetadataBadge";
 import { sendMessageFeedback } from "@/lib/api";
+import { getCfTransformUrl } from "@/lib/cfTransform";
 
 interface Props {
   message: Message;
   conversationId?: string;
   onImageClick?: (src: string) => void;
+  onEditImage?: (imageUrl: string) => void;
   isLast?: boolean;
   onRegenerate?: () => void;
 }
@@ -43,22 +45,57 @@ function CodeBlock({ children, className }: { children: string; className?: stri
   );
 }
 
-function ImageBlock({ image, isUser, onImageClick }: { image: string; isUser: boolean; onImageClick?: (src: string) => void }) {
+function ImageBlock({
+  image,
+  isUser,
+  onImageClick,
+  onEditImage,
+}: {
+  image: string;
+  isUser: boolean;
+  onImageClick?: (src: string) => void;
+  onEditImage?: (imageUrl: string) => void;
+}) {
   const isUrl = image.startsWith("http://") || image.startsWith("https://");
-  const src = isUrl
-    ? image
+  // Para URLs R2: usar CF Transform preview (1200px, format=auto) → mobile friendly
+  // Para base64 legacy: construir data URI
+  const displaySrc = isUrl
+    ? getCfTransformUrl(image, "preview")
     : `data:${image.startsWith("iVBOR") ? "image/png" : image.startsWith("R0lGOD") ? "image/gif" : image.startsWith("UklGR") ? "image/webp" : "image/jpeg"};base64,${image}`;
+  // La URL que se pasa al viewer y al edit es la ORIGINAL (sin transformar)
+  const originalSrc = isUrl ? image : displaySrc;
+  // Edit solo disponible para URLs R2 (no base64 legacy)
+  const canEdit = isUrl && !isUser && onEditImage;
+
   return (
-    <img
-      src={src}
-      alt={isUser ? "Adjunta" : "Generada"}
-      className={`rounded-xl w-auto mb-2 cursor-pointer transition-transform hover:scale-[1.02] border border-border ${isUser ? "max-h-52" : "max-h-80"}`}
-      onClick={() => onImageClick?.(src)}
-    />
+    <div className="relative group/img mb-2 inline-block">
+      <img
+        src={displaySrc}
+        alt={isUser ? "Adjunta" : "Generada"}
+        className={`rounded-xl w-auto cursor-pointer transition-transform hover:scale-[1.02] border border-border ${isUser ? "max-h-52" : "max-h-80"}`}
+        onClick={() => onImageClick?.(originalSrc)}
+        loading="lazy"
+        decoding="async"
+      />
+      {canEdit && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (navigator.vibrate) navigator.vibrate(8);
+            onEditImage(originalSrc);
+          }}
+          className="absolute top-2 right-2 px-2.5 py-1.5 bg-black/70 backdrop-blur-sm border border-white/15 rounded-lg text-[11px] font-medium text-white opacity-0 group-hover/img:opacity-100 active:opacity-100 transition-opacity flex items-center gap-1"
+          aria-label="Editar esta imagen con Kontext"
+        >
+          <span className="text-[#E5A3F0]">✎</span>
+          Editar
+        </button>
+      )}
+    </div>
   );
 }
 
-export function MessageBubble({ message, conversationId, onImageClick, isLast, onRegenerate }: Props) {
+export function MessageBubble({ message, conversationId, onImageClick, onEditImage, isLast, onRegenerate }: Props) {
   const isUser = message.role === "user";
 
   if (isUser) {
@@ -70,7 +107,7 @@ export function MessageBubble({ message, conversationId, onImageClick, isLast, o
         className="flex flex-col items-end px-4 mb-3 group/msg"
       >
         <div className="max-w-[85%] md:max-w-[70%] ml-auto bg-bg-surface border border-border rounded-2xl px-4 py-3">
-          {message.image && <ImageBlock image={message.image} isUser onImageClick={onImageClick} />}
+          {message.image && <ImageBlock image={message.image} isUser onImageClick={onImageClick} onEditImage={onEditImage} />}
           {message.content && message.content !== "[Imagen]" && (
             <p className="text-[15px] leading-[1.4] text-text whitespace-pre-wrap">
               {message.content}
@@ -99,7 +136,7 @@ export function MessageBubble({ message, conversationId, onImageClick, isLast, o
       <div className="flex-1 min-w-0 flex flex-col">
         {message.image && (
           <div className="mb-2">
-            <ImageBlock image={message.image} isUser={false} onImageClick={onImageClick} />
+            <ImageBlock image={message.image} isUser={false} onImageClick={onImageClick} onEditImage={onEditImage} />
             {message.imageMetadata && (
               <div className="mt-1.5">
                 <ImageMetadataBadge

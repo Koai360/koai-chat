@@ -59,6 +59,9 @@ export function AppShell({ user, onLogout }: Props) {
 
   const [activePanel, setActivePanel] = useState<PanelType>(null);
   const [modalImage, setModalImage] = useState<{ src: string; id?: string } | null>(null);
+  // editSourceUrl: URL de imagen R2 que el usuario pidió editar (desde chat o galería).
+  // Se pasa a ChatView → ChatInput, que abre el modo edit automático y envía vía image_url.
+  const [editSourceUrl, setEditSourceUrl] = useState<string | null>(null);
   const [swUpdate, setSwUpdate] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
 
@@ -70,6 +73,21 @@ export function AppShell({ user, onLogout }: Props) {
     // Notify MediaGalleryPage to remove this id from its state
     window.dispatchEvent(new CustomEvent("gallery-image-deleted", { detail: { id: imageId } }));
   }, []);
+
+  // Handler de edit desde ImageViewer o MessageBubble:
+  //   1. Guarda la URL R2 del original (para enviarla al backend)
+  //   2. Cierra el viewer si estaba abierto
+  //   3. Navega al chat (si veníamos de la galería)
+  //   4. ChatView recibe editSourceUrl como prop y abre el modo edit automático
+  const handleEditImage = useCallback((imageUrl: string) => {
+    setEditSourceUrl(imageUrl);
+    setModalImage(null);
+    if (currentPage !== "chat") {
+      navigate("chat");
+    }
+  }, [currentPage, navigate]);
+
+  const clearEditSource = useCallback(() => setEditSourceUrl(null), []);
 
   // Splash screen — 2.2s
   useEffect(() => {
@@ -115,10 +133,10 @@ export function AppShell({ user, onLogout }: Props) {
 
   // Handle send from HomePage — create convo, navigate to chat, send
   const handleHomeSend = useCallback(
-    async (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string, editMode?: boolean) => {
+    async (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string, editMode?: boolean, imageUrl?: string) => {
       await newConversation();
       navigate("chat");
-      sendMessage(text, imageBase64, imageMode, imageEngine, editMode);
+      sendMessage(text, imageBase64, imageMode, imageEngine, editMode, imageUrl);
     },
     [newConversation, navigate, sendMessage]
   );
@@ -161,6 +179,9 @@ export function AppShell({ user, onLogout }: Props) {
             onDeleteMessages={deleteMessages}
             userName={user.name}
             onImageClick={(src) => setModalImage({ src })}
+            onEditImage={handleEditImage}
+            editSourceUrl={editSourceUrl}
+            onClearEditSource={clearEditSource}
           />
         );
       case "chatHistory":
@@ -310,6 +331,7 @@ export function AppShell({ user, onLogout }: Props) {
             src={modalImage.src}
             imageId={modalImage.id}
             onDelete={modalImage.id ? handleViewerDelete : undefined}
+            onEdit={handleEditImage}
             onClose={() => setModalImage(null)}
           />
         )}

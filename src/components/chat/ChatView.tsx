@@ -13,17 +13,22 @@ interface Props {
   loading: boolean;
   loadingHint?: string | null;
   streamingText: string;
-  onSend: (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string, editMode?: boolean) => void;
+  onSend: (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string, editMode?: boolean, imageUrl?: string) => void;
   onTranscribe: (blob: Blob) => Promise<string>;
   onDelete?: (id: string) => void;
   onDeleteMessages?: (conversationId: string, messageIds: string[]) => void;
   userName?: string;
   onImageClick?: (imageSrc: string) => void;
+  /** Callback cuando el usuario click "Editar" en una imagen del chat */
+  onEditImage?: (imageUrl: string) => void;
+  /** URL del source de edit (viene de AppShell) — se reenvía a ChatInput */
+  editSourceUrl?: string | null;
+  onClearEditSource?: () => void;
   selectMode?: boolean;
   onSelectMode?: (active: boolean) => void;
 }
 
-export function ChatView({ conversation, agent, loading, loadingHint, streamingText, onSend, onTranscribe, onDelete: _onDelete, onDeleteMessages, userName, onImageClick, selectMode: externalSelectMode, onSelectMode }: Props) {
+export function ChatView({ conversation, agent, loading, loadingHint, streamingText, onSend, onTranscribe, onDelete: _onDelete, onDeleteMessages, userName, onImageClick, onEditImage, editSourceUrl, onClearEditSource, selectMode: externalSelectMode, onSelectMode }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
@@ -126,6 +131,7 @@ export function ChatView({ conversation, agent, loading, loadingHint, streamingT
                   message={msg}
                   conversationId={conversation.id}
                   onImageClick={selectMode ? undefined : onImageClick}
+                  onEditImage={selectMode ? undefined : onEditImage}
                   isLast={!selectMode && msg.role === "assistant" && i === conversation.messages.length - 1}
                   onRegenerate={!selectMode && msg.role === "assistant" && i === conversation.messages.length - 1 && !loading
                     ? () => {
@@ -163,6 +169,8 @@ export function ChatView({ conversation, agent, loading, loadingHint, streamingT
         placeholder={agent === "kira" ? "Pregunta algo a Kira..." : "Pregunta algo a Kronos..."}
         autoFocus={!!conversation}
         agent={agent}
+        editSourceUrl={editSourceUrl}
+        onClearEditSource={onClearEditSource}
       />
     </div>
   );

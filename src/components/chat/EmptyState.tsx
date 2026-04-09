@@ -4,7 +4,7 @@ import type { Agent } from "@/hooks/useChat";
 interface Props {
   agent: Agent;
   userName?: string;
-  onSend: (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string, editMode?: boolean) => void;
+  onSend: (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string, editMode?: boolean, imageUrl?: string) => void;
   loading: boolean;
 }
 

@@ -167,6 +167,7 @@ export async function streamKiraMessage(
   signal?: AbortSignal,
   thinkingLevel: ThinkingLevel = "medium",
   editMode?: boolean,
+  imageUrl?: string,
 ): Promise<{ conversation_id: string; agent_used: string; fullText: string; image?: string; imageMetadata?: ImageMetadataPayload }> {
   const body: Record<string, unknown> = {
     message,
@@ -175,6 +176,7 @@ export async function streamKiraMessage(
     thinking_level: thinkingLevel,
   };
   if (imageBase64) body.image_base64 = imageBase64;
+  if (imageUrl) body.image_url = imageUrl;
   if (imageMode) body.image_mode = true;
   if (imageEngine) body.image_engine = imageEngine;
   if (editMode) body.edit_mode = true;
@@ -494,19 +496,18 @@ export async function fetchImages(opts: FetchImagesOpts = {}): Promise<GalleryPa
 }
 
 /**
- * Helper: convierte una URL de Supabase Storage a thumbnail con transformación.
+ * @deprecated Usa `getCfTransformUrl(url, "thumb")` de `@/lib/cfTransform`.
  *
- * Si la URL es de Supabase Storage (`/storage/v1/object/public/`), inserta el
- * path de transformaciones `/storage/v1/render/image/public/` con `?width=N`.
- * Para otras URLs (third-party CDN, base64 legacy), devuelve sin tocar.
+ * Este helper era para Supabase Storage Image Transformations, pero migramos
+ * a Cloudflare R2 + CF Transformations el 2026-04-09. Se mantiene solo como
+ * fallback para URLs legacy de Supabase durante la ventana de migración.
  *
- * Reduce el tamaño servido de ~1-2MB original a ~50-150KB para thumbnails 600px.
+ * Ver: src/lib/cfTransform.ts
  */
 export function getImageThumbUrl(url: string, width = 600, quality = 85): string {
   if (!url || !url.includes("supabase.co/storage/v1/object/public/")) {
     return url;
   }
-  // Reescribir path de "object/public" a "render/image/public" + query params
   const transformed = url.replace(
     "/storage/v1/object/public/",
     "/storage/v1/render/image/public/",

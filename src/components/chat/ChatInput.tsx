@@ -87,6 +87,11 @@ export function ChatInput({ onSend, onTranscribe: _onTranscribe, disabled, place
   // referencia (default, pasa al LLM) o si se EDITA con edit_image_smart (Kontext).
   const [editMode, setEditMode] = useState(false);
 
+  const editorRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const textRef = useRef(text);
+  textRef.current = text;
+
   // Auto-activar editMode cuando viene una URL externa (click "Editar" en chat/galería)
   useEffect(() => {
     if (editSourceUrl) {
@@ -95,19 +100,29 @@ export function ChatInput({ onSend, onTranscribe: _onTranscribe, disabled, place
       editorRef.current?.focus();
     }
   }, [editSourceUrl]);
-  const editorRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const textRef = useRef(text);
-  textRef.current = text;
+
+  // Auto-grow textarea hasta max-h (120px). Llamar después de cambios de `text`.
+  const autoGrow = () => {
+    const el = editorRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 120) + "px";
+  };
+
+  // Ajustar altura cuando cambia text programáticamente (voice, clear, etc.)
+  useEffect(() => {
+    autoGrow();
+  }, [text]);
 
   // Voice streaming con Deepgram nova-3 — reemplaza la grabación batch anterior
   const voice = useVoiceStream({
     onFinal: (transcribed) => {
-      // Concatena al texto actual (permite múltiples grabaciones)
+      // Concatena al texto actual (permite múltiples grabaciones).
+      // Usa textRef para evitar stale closure en callbacks del WS.
       const currentText = textRef.current;
       const newText = currentText ? currentText + " " + transcribed : transcribed;
-      setEditorContent(newText);
-      editorRef.current?.focus();
+      setText(newText);
+      setTimeout(() => editorRef.current?.focus(), 0);
     },
     onError: (msg) => {
       setError(msg);
@@ -116,25 +131,6 @@ export function ChatInput({ onSend, onTranscribe: _onTranscribe, disabled, place
   });
   const recording = voice.state === "recording";
   const transcribing = voice.state === "transcribing";
-
-  // ChatInput ahora vive in-flow — no necesita tracking de altura
-
-  const syncEditorToState = useCallback(() => {
-    if (editorRef.current) setText(editorRef.current.innerText || "");
-  }, []);
-
-  const setEditorContent = useCallback((value: string) => {
-    if (editorRef.current) {
-      editorRef.current.innerText = value;
-      setText(value);
-      const range = document.createRange();
-      const sel = window.getSelection();
-      range.selectNodeContents(editorRef.current);
-      range.collapse(false);
-      sel?.removeAllRanges();
-      sel?.addRange(range);
-    }
-  }, []);
 
   useEffect(() => {
     if (autoFocus && editorRef.current) setTimeout(() => editorRef.current?.focus(), 100);
@@ -221,7 +217,6 @@ export function ChatInput({ onSend, onTranscribe: _onTranscribe, disabled, place
       editSourceUrl || undefined,
     );
     setText("");
-    if (editorRef.current) editorRef.current.innerText = "";
     setImagePreview(null);
     setImageBase64(null);
     if (imageMode) setImageMode(false);
@@ -229,18 +224,11 @@ export function ChatInput({ onSend, onTranscribe: _onTranscribe, disabled, place
     if (editSourceUrl && onClearEditSource) onClearEditSource();
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSubmit();
     }
-  };
-
-  const handlePaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const plainText = e.clipboardData.getData("text/plain");
-    document.execCommand("insertText", false, plainText);
-    syncEditorToState();
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -454,29 +442,28 @@ export function ChatInput({ onSend, onTranscribe: _onTranscribe, disabled, place
         <div
           className="flex-1 flex items-end min-h-[44px] overflow-hidden liquid-glass-strong transition-all duration-300 rounded-lg"
         >
-          <div
+          <textarea
             ref={editorRef}
-            contentEditable={!isDisabled}
-            role="textbox"
-            aria-label="Escribe tu mensaje"
-            data-placeholder={transcribing ? "Transcribiendo..." : editMode ? "Qué cambiar en la imagen..." : imageMode ? "Describe la imagen..." : placeholder}
-            onInput={syncEditorToState}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
             onFocus={handleFocus}
-            onPaste={handlePaste}
+            disabled={isDisabled}
+            rows={1}
+            aria-label="Escribe tu mensaje"
+            placeholder={transcribing ? "Transcribiendo..." : editMode ? "Qué cambiar en la imagen..." : imageMode ? "Describe la imagen..." : placeholder}
             // NOTA: la barra ^/v/✓ de iOS (Form Assistant / accessory view)
             // NO se puede ocultar desde una PWA web — es parte nativa del
-            // teclado iOS y aparece para cualquier input/contenteditable.
+            // teclado iOS y aparece para cualquier input/textarea.
             // Solo Apple la puede desactivar. Los attrs de abajo desactivan
             // autocorrect/suggestions/spellcheck pero NO la barra en sí.
             spellCheck={false}
             autoCorrect="off"
             autoCapitalize="sentences"
-            // @ts-expect-error — atributo no estándar React pero soportado por iOS
             autoComplete="off"
             inputMode="text"
             enterKeyHint="send"
-            className="flex-1 py-[11px] pl-4 text-[16px] leading-[22px] max-h-[120px] overflow-y-auto text-text"
+            className="flex-1 py-[11px] pl-4 text-[16px] leading-[22px] max-h-[120px] overflow-y-auto text-text bg-transparent border-none outline-none resize-none placeholder:text-text-muted disabled:opacity-60"
           />
           {/* Camera button */}
           <button

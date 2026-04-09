@@ -247,8 +247,27 @@ export function useChat(userId: string | null = null) {
             : imageEngine === "studioflux-raw"
               ? "Generando con Studio RAW (~5-30s)..."
               : "Generando imagen..."
-        : null;
+        : "Pensando..."; // NUEVO: default para chat normal (antes era null → solo dots)
       setLoadingHint(initialHint);
+
+      // NUEVO: rotación de hints para chat normal mientras espera primer token.
+      // Apenas llega el primer token, streamingText toma el relevo visual (StreamingBubble),
+      // así que este rotator solo se ve durante el "pensamiento inicial".
+      let rotateTimer: ReturnType<typeof setInterval> | null = null;
+      if (!imageMode && !editMode) {
+        const CHAT_HINTS = [
+          "Pensando...",
+          "Consultando contexto...",
+          "Revisando memoria...",
+          "Buscando la mejor respuesta...",
+          "Casi listo...",
+        ];
+        let hintIdx = 0;
+        rotateTimer = setInterval(() => {
+          hintIdx = (hintIdx + 1) % CHAT_HINTS.length;
+          setLoadingHint(CHAT_HINTS[hintIdx]);
+        }, 2500);
+      }
 
       // Hint de cold start: si después de 8s sigue cargando y es un engine de Modal,
       // mostrar mensaje explicativo (el GPU se está calentando, primer request del día)
@@ -299,6 +318,16 @@ export function useChat(userId: string | null = null) {
           await noSleepVideo.play().catch(() => {});
         } catch { /* fallback no disponible */ }
       }
+
+      // Phase D fix #1: abort any in-flight controller antes de crear uno nuevo
+      // (evita que 2 streams paralelos se pisen cuando el user envía rápido)
+      if (abortRef.current) {
+        try { abortRef.current.abort(); } catch { /* ignore */ }
+      }
+
+      // Phase D fix #2: flag para detectar silent fail — si termina sin haber agregado
+      // mensaje (ni éxito ni error), el finally agrega un mensaje de emergencia
+      let messageAdded = false;
 
       try {
         let assistantContent = "";
@@ -365,7 +394,16 @@ export function useChat(userId: string | null = null) {
             }
           }
           if (!assistantContent) {
-            assistantContent = "No pude generar una respuesta. Intenta enviar tu mensaje de nuevo.";
+            console.warn("[useChat] Empty assistantContent after all retries", {
+              convoId,
+              activeId,
+              imageMode,
+              editMode,
+              hasImage: !!assistantImage,
+            });
+            assistantContent = assistantImage
+              ? "(imagen generada)"
+              : "No pude generar una respuesta. Intenta enviar tu mensaje de nuevo.";
           }
           setStreamingText("");
         } else {
@@ -402,11 +440,21 @@ export function useChat(userId: string | null = null) {
           imageMetadata: assistantImageMetadata,
         };
 
-        setConversations((prev) =>
-          prev.map((c) =>
+        setConversations((prev) => {
+          // Phase D fix: verificar que la convo target exista, sino warn
+          const targetExists = prev.some((c) => c.id === convoId);
+          if (!targetExists) {
+            console.error("[useChat] Convo gone when adding assistant msg", {
+              convoId,
+              prevIds: prev.map((c) => c.id),
+            });
+            return prev;
+          }
+          return prev.map((c) =>
             c.id === convoId ? { ...c, messages: [...c.messages, assistantMsg] } : c,
-          ),
-        );
+          );
+        });
+        messageAdded = true;
 
         // Persist both messages to server
         if (convoId) {
@@ -428,9 +476,29 @@ export function useChat(userId: string | null = null) {
             c.id === convoId ? { ...c, messages: [...c.messages, errorMsg] } : c,
           ),
         );
+        messageAdded = true;
         setStreamingText("");
       } finally {
+        // Phase D fix: safety net — si por alguna razón el try/catch terminó sin agregar
+        // mensaje (silent fail), añadir uno de emergencia para que el user no se quede
+        // con el spinner desaparecido y sin ninguna respuesta.
+        if (!messageAdded) {
+          console.error("[useChat] Silent fail detected — no message added!", { convoId, activeId });
+          const safetyMsg: Message = {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            agent,
+            content: "Ups, algo pasó con la respuesta. Intenta enviar tu mensaje de nuevo.",
+            timestamp: Date.now(),
+          };
+          setConversations((prev) =>
+            prev.map((c) =>
+              c.id === convoId ? { ...c, messages: [...c.messages, safetyMsg] } : c,
+            ),
+          );
+        }
         if (coldStartTimer) clearTimeout(coldStartTimer);
+        if (rotateTimer) clearInterval(rotateTimer); // Phase C cleanup
         setLoading(false);
         setLoadingHint(null);
         if (wakeLock) { wakeLock.release().catch(() => {}); }

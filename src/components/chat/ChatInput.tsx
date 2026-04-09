@@ -20,7 +20,7 @@ import { VoiceRecorderOverlay } from "./VoiceRecorderOverlay";
 import { useVoiceStream } from "@/hooks/useVoiceStream";
 
 interface Props {
-  onSend: (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string) => void;
+  onSend: (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string, editMode?: boolean) => void;
   onTranscribe: (blob: Blob) => Promise<string>;
   disabled?: boolean;
   placeholder?: string;
@@ -79,6 +79,9 @@ export function ChatInput({ onSend, onTranscribe: _onTranscribe, disabled, place
   const [plusOpen, setPlusOpen] = useState(false);
   const [imageMode, setImageMode] = useState(false);
   const [imageEngine, setImageEngine] = useState("gemini");
+  // editMode: cuando hay imagen adjunta, permite elegir si la imagen se USA como
+  // referencia (default, pasa al LLM) o si se EDITA con edit_image_smart (Kontext).
+  const [editMode, setEditMode] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textRef = useRef(text);
@@ -188,13 +191,22 @@ export function ChatInput({ onSend, onTranscribe: _onTranscribe, disabled, place
 
   const handleSubmit = () => {
     if ((!text.trim() && !imageBase64) || disabled) return;
+    // Edit mode requiere tanto imagen como instrucción de texto
+    if (editMode && (!imageBase64 || !text.trim())) return;
     if (navigator.vibrate) navigator.vibrate(10);
-    onSend(text, imageBase64 || undefined, imageMode || undefined, imageMode ? imageEngine : undefined);
+    onSend(
+      text,
+      imageBase64 || undefined,
+      imageMode || undefined,
+      imageMode ? imageEngine : undefined,
+      editMode || undefined,
+    );
     setText("");
     if (editorRef.current) editorRef.current.innerText = "";
     setImagePreview(null);
     setImageBase64(null);
     if (imageMode) setImageMode(false);
+    if (editMode) setEditMode(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -234,7 +246,7 @@ export function ChatInput({ onSend, onTranscribe: _onTranscribe, disabled, place
     e.target.value = "";
   };
 
-  const clearImage = () => { setImagePreview(null); setImageBase64(null); };
+  const clearImage = () => { setImagePreview(null); setImageBase64(null); setEditMode(false); };
 
   const toggleRecording = () => {
     if (recording) {
@@ -264,10 +276,10 @@ export function ChatInput({ onSend, onTranscribe: _onTranscribe, disabled, place
         )}
       </AnimatePresence>
 
-      {/* Image preview */}
+      {/* Image preview + mode segmented (Generar con referencia | Editar) */}
       {imagePreview && (
-        <div className="px-2 pt-2 pb-1">
-          <div className="relative inline-block">
+        <div className="px-2 pt-2 pb-1 flex items-start gap-3">
+          <div className="relative inline-block shrink-0">
             <img src={imagePreview} alt="Preview" className="h-20 w-auto rounded-xl object-cover border border-border" />
             <button
               onClick={clearImage}
@@ -275,6 +287,45 @@ export function ChatInput({ onSend, onTranscribe: _onTranscribe, disabled, place
             >
               <X className="h-3 w-3" />
             </button>
+          </div>
+          {/* Segmented: Generar con referencia / Editar esta imagen */}
+          <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+            <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-text-subtle px-0.5">
+              Qué hacer con la imagen
+            </span>
+            <div role="radiogroup" aria-label="Modo de imagen" className="grid grid-cols-2 gap-1">
+              <button
+                role="radio"
+                aria-checked={!editMode}
+                onClick={() => { if (navigator.vibrate) navigator.vibrate(6); setEditMode(false); }}
+                className={`
+                  text-[11px] font-medium py-2 px-2 rounded-lg border transition-all duration-200
+                  ${!editMode
+                    ? "bg-white/10 border-white/30 text-text"
+                    : "bg-transparent border-white/10 text-text-subtle hover:bg-white/5"}
+                `}
+              >
+                Usar como referencia
+              </button>
+              <button
+                role="radio"
+                aria-checked={editMode}
+                onClick={() => { if (navigator.vibrate) navigator.vibrate(6); setEditMode(true); }}
+                className={`
+                  text-[11px] font-medium py-2 px-2 rounded-lg border transition-all duration-200
+                  ${editMode
+                    ? "bg-[rgba(123,45,142,0.12)] border-[rgba(123,45,142,0.55)] text-[#E5A3F0]"
+                    : "bg-transparent border-white/10 text-text-subtle hover:bg-white/5"}
+                `}
+              >
+                Editar esta imagen
+              </button>
+            </div>
+            {editMode && (
+              <span className="font-mono text-[9.5px] text-text-subtle px-0.5 leading-snug">
+                Kontext Pro · cambio de ropa, fondos, look — preserva el resto
+              </span>
+            )}
           </div>
         </div>
       )}
@@ -383,7 +434,7 @@ export function ChatInput({ onSend, onTranscribe: _onTranscribe, disabled, place
             contentEditable={!isDisabled}
             role="textbox"
             aria-label="Escribe tu mensaje"
-            data-placeholder={transcribing ? "Transcribiendo..." : imageMode ? "Describe la imagen..." : placeholder}
+            data-placeholder={transcribing ? "Transcribiendo..." : editMode ? "Qué cambiar en la imagen..." : imageMode ? "Describe la imagen..." : placeholder}
             onInput={syncEditorToState}
             onKeyDown={handleKeyDown}
             onFocus={handleFocus}

@@ -3,38 +3,36 @@ import { motion } from "framer-motion";
 /**
  * EngineSelector — visual model picker compacto.
  *
- * 5 cards en grid de 5 columnas (sin scroll horizontal). Cada card es mini:
+ * 3 cards en grid de 3 columnas. Stack unificado post-S105:
+ *   - gemini: rápido gratis, filtra NSFW
+ *   - zimage: default barato sin filtro (Modal)
+ *   - flux2:  premium sin filtro (Modal)
+ *
+ * Cada card tiene:
  *   - mark grande (letra inicial color-coded por tier)
  *   - label corto debajo
  *
  * La descripción detallada (precio, velocidad) se muestra en una FILA debajo
  * solo del engine activo, en estilo mono micro-label tipo Linear/Vercel logs.
- *
- * Esto evita el scroll horizontal y mantiene los 5 motores visibles
- * en una vista de teléfono (375px+).
  */
 
 export type EngineValue =
   | "gemini"
   | "zimage"
-  | "flux2"
-  | "flux"
-  | "studioflux-raw";
+  | "flux2";
 
 export interface EngineOption {
   value: EngineValue;
   label: string;
   desc: string;
-  tier: "free" | "value" | "premium" | "premium-paid" | "advanced";
+  tier: "free" | "value" | "premium";
   mark: string;
 }
 
 export const ENGINE_OPTIONS: readonly EngineOption[] = [
-  { value: "gemini", label: "Rápida", desc: "Gemini · gratis · ~3s", tier: "free", mark: "G" },
-  { value: "zimage", label: "Z-Image", desc: "Turbo · $0.016 · ~5s", tier: "value", mark: "Z" },
-  { value: "flux2", label: "Flux.2", desc: "Pro 32B · $0.035 · ~30s", tier: "premium", mark: "F" },
-  { value: "flux", label: "Hosted", desc: "BFL API · $0.07 · ~8s", tier: "premium-paid", mark: "B" },
-  { value: "studioflux-raw", label: "RAW", desc: "Sin enhancer · directo", tier: "advanced", mark: "R" },
+  { value: "gemini", label: "Rápida",  desc: "Gemini · gratis · ~3s",           tier: "free",    mark: "G" },
+  { value: "zimage", label: "Z-Image", desc: "Modal · sin filtro · $0.016 · ~5s", tier: "value",   mark: "Z" },
+  { value: "flux2",  label: "Flux.2",  desc: "Modal · 32B premium · $0.035 · ~30s", tier: "premium", mark: "F" },
 ] as const;
 
 interface Props {
@@ -43,11 +41,9 @@ interface Props {
 }
 
 const TIER_COLOR: Record<EngineOption["tier"], { mark: string; glow: string; bg: string }> = {
-  free:          { mark: "rgba(255,255,255,0.85)", glow: "rgba(255,255,255,0.18)",  bg: "rgba(255,255,255,0.04)"  },
-  value:         { mark: "#D4E94B",                glow: "rgba(212,233,75,0.35)",   bg: "rgba(212,233,75,0.06)"   },
-  premium:       { mark: "#7B2D8E",                glow: "rgba(123,45,142,0.40)",   bg: "rgba(123,45,142,0.08)"   },
-  "premium-paid":{ mark: "#00E5FF",                glow: "rgba(0,229,255,0.30)",    bg: "rgba(0,229,255,0.06)"    },
-  advanced:      { mark: "rgba(255,255,255,0.55)", glow: "rgba(255,255,255,0.10)",  bg: "rgba(255,255,255,0.03)"  },
+  free:    { mark: "rgba(255,255,255,0.85)", glow: "rgba(255,255,255,0.18)", bg: "rgba(255,255,255,0.04)" },
+  value:   { mark: "#D4E94B",                glow: "rgba(212,233,75,0.35)",  bg: "rgba(212,233,75,0.06)"  },
+  premium: { mark: "#7B2D8E",                glow: "rgba(123,45,142,0.40)",  bg: "rgba(123,45,142,0.08)"  },
 };
 
 export function EngineSelector({ value, onChange }: Props) {
@@ -66,11 +62,11 @@ export function EngineSelector({ value, onChange }: Props) {
         </span>
       </div>
 
-      {/* Grid de 5 columnas — todas las cards visibles, sin scroll */}
+      {/* Grid de 3 columnas — todas las cards visibles, mobile-first */}
       <div
         role="radiogroup"
         aria-label="Motor de generación de imagen"
-        className="grid grid-cols-5 gap-1.5"
+        className="grid grid-cols-3 gap-1.5"
       >
         {ENGINE_OPTIONS.map((opt, i) => {
           const isActive = value === opt.value;

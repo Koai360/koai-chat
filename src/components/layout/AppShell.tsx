@@ -115,10 +115,10 @@ export function AppShell({ user, onLogout }: Props) {
 
   // Handle send from HomePage — create convo, navigate to chat, send
   const handleHomeSend = useCallback(
-    async (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string) => {
+    async (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string, editMode?: boolean) => {
       await newConversation();
       navigate("chat");
-      sendMessage(text, imageBase64, imageMode, imageEngine);
+      sendMessage(text, imageBase64, imageMode, imageEngine, editMode);
     },
     [newConversation, navigate, sendMessage]
   );

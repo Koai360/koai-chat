@@ -13,7 +13,7 @@ interface Props {
   loading: boolean;
   loadingHint?: string | null;
   streamingText: string;
-  onSend: (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string) => void;
+  onSend: (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string, editMode?: boolean) => void;
   onTranscribe: (blob: Blob) => Promise<string>;
   onDelete?: (id: string) => void;
   onDeleteMessages?: (conversationId: string, messageIds: string[]) => void;

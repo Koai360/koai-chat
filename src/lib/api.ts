@@ -19,6 +19,7 @@ export async function sendKiraMessage(
   imageBase64?: string,
   imageMode?: boolean,
   imageEngine?: string,
+  editMode?: boolean,
 ): Promise<{ conversation_id: string; messages: Array<{ role: string; agent: string; content: string; image?: string }> }> {
   const body: Record<string, unknown> = {
     message,
@@ -28,16 +29,19 @@ export async function sendKiraMessage(
   if (imageBase64) body.image_base64 = imageBase64;
   if (imageMode) body.image_mode = true;
   if (imageEngine) body.image_engine = imageEngine;
+  if (editMode) body.edit_mode = true;
 
-  // Timeout por engine (sincronizado con StudioFlux v2):
-  // - flux2: 32B, ~30-90s warm, ~120s cold → 240_000ms
-  // - studioflux/studioflux-raw/zimage: Z-Image-Turbo, ~5-30s warm, ~60s cold → 180_000ms
-  // - flux/flux-pro: BFL API hosted, ~6-15s → 90_000ms
-  // - gemini: ~3s, default → 60_000ms
-  const timeoutMs = imageMode
-    ? imageEngine === "flux2" ? 240_000
-    : (imageEngine === "studioflux" || imageEngine === "studioflux-raw" || imageEngine === "zimage") ? 180_000
-    : 90_000
+  // Timeout por modo:
+  // - edit_mode: BFL Kontext Pro ~8s + fallback Modal ~45s → 180_000ms
+  // - flux2: 32B premium, cold ~120s → 240_000ms
+  // - zimage / studioflux-raw: Z-Image-Turbo ~5-30s warm, ~60s cold → 180_000ms
+  // - gemini: ~3s → 60_000ms
+  const timeoutMs = editMode
+    ? 180_000
+    : imageMode
+      ? imageEngine === "flux2" ? 240_000
+      : (imageEngine === "zimage" || imageEngine === "studioflux-raw") ? 180_000
+      : 60_000
     : 60_000;
 
   const MAX_RETRIES = 1;
@@ -162,6 +166,7 @@ export async function streamKiraMessage(
   callbacks: KiraStreamCallbacks = { onToken: () => {} },
   signal?: AbortSignal,
   thinkingLevel: ThinkingLevel = "medium",
+  editMode?: boolean,
 ): Promise<{ conversation_id: string; agent_used: string; fullText: string; image?: string; imageMetadata?: ImageMetadataPayload }> {
   const body: Record<string, unknown> = {
     message,
@@ -172,19 +177,20 @@ export async function streamKiraMessage(
   if (imageBase64) body.image_base64 = imageBase64;
   if (imageMode) body.image_mode = true;
   if (imageEngine) body.image_engine = imageEngine;
+  if (editMode) body.edit_mode = true;
 
-  // Timeout por engine (sincronizado con StudioFlux v2):
+  // Timeout por modo:
+  // - edit_mode: BFL Pro ~8s + fallback Modal ~45s → 180_000ms
   // - flux2: 32B premium → 240_000ms
-  // - studioflux/zimage variants: Z-Image-Turbo → 180_000ms
-  // - resto: 90_000ms para imagen, 120_000ms para chat normal
-  const isStudio =
-    imageEngine === "studioflux" ||
-    imageEngine === "studioflux-raw" ||
-    imageEngine === "zimage";
-  const timeoutMs = imageMode
-    ? imageEngine === "flux2" ? 240_000
-    : isStudio ? 180_000
-    : 90_000
+  // - zimage/studioflux-raw: ~5-60s → 180_000ms
+  // - resto: 120_000ms
+  const isStudio = imageEngine === "studioflux-raw" || imageEngine === "zimage";
+  const timeoutMs = editMode
+    ? 180_000
+    : imageMode
+      ? imageEngine === "flux2" ? 240_000
+      : isStudio ? 180_000
+      : 90_000
     : 120_000;
 
   const controller = new AbortController();

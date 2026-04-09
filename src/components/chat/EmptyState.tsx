@@ -4,7 +4,7 @@ import type { Agent } from "@/hooks/useChat";
 interface Props {
   agent: Agent;
   userName?: string;
-  onSend: (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string) => void;
+  onSend: (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string, editMode?: boolean) => void;
   loading: boolean;
 }
 
@@ -38,7 +38,7 @@ const KIRA_ACTIONS: QuickAction[] = [
     mark: "Z",
     tone: "kira",
     verb: "Generar imagen rápida",
-    hint: "Z-Image · ~5s · $0.016",
+    hint: "Z-Image · sin filtro · ~5s",
     prompt: "un café latte arte sobre una mesa de madera, fotorrealista",
     imageMode: true,
     imageEngine: "zimage",
@@ -47,17 +47,17 @@ const KIRA_ACTIONS: QuickAction[] = [
     mark: "F",
     tone: "premium",
     verb: "Crear imagen premium",
-    hint: "Flux.2 Pro · 32B · $0.035",
+    hint: "Flux.2 · 32B · $0.035",
     prompt: "fotografía editorial de un producto de lujo con iluminación cinematográfica",
     imageMode: true,
     imageEngine: "flux2",
   },
   {
-    mark: "✺",
-    tone: "neutral",
-    verb: "Escribir copy",
-    hint: "Marketing, ads, redes",
-    prompt: "Ayúdame a escribir un anuncio para Instagram sobre",
+    mark: "✎",
+    tone: "premium",
+    verb: "Editar una foto",
+    hint: "Kontext Pro · cambio de ropa, fondos, look",
+    prompt: "Adjunta una imagen y dime qué quieres cambiar (ej: \"cámbiale el vestido por uno rojo\").",
   },
   {
     mark: "?",

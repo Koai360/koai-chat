@@ -199,7 +199,7 @@ export function useChat(userId: string | null = null) {
   }, [agent]);
 
   const sendMessage = useCallback(
-    async (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string) => {
+    async (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string, editMode?: boolean) => {
       if ((!text.trim() && !imageBase64) || loading) return;
 
       let convoId = activeId;
@@ -234,17 +234,17 @@ export function useChat(userId: string | null = null) {
       }
 
       setLoading(true);
-      // Hint inicial — mensaje según engine. Mensajes específicos para los nuevos modelos.
-      const initialHint = imageMode
+      // Hint inicial — mensaje según modo + engine.
+      const initialHint = editMode
+        ? "Editando con Flux Kontext Pro (~8s, fallback Modal si filtra)..."
+        : imageMode
         ? imageEngine === "flux2"
           ? "Generando con Flux.2 Pro (32B premium, ~30-60s)..."
           : imageEngine === "zimage"
             ? "Generando con Z-Image-Turbo (~5s)..."
-            : imageEngine === "studioflux" || imageEngine === "studioflux-raw"
-              ? "Generando con Studio (~5-30s)..."
-              : imageEngine === "flux"
-                ? "Generando imagen con Flux Hosted..."
-                : "Generando imagen..."
+            : imageEngine === "studioflux-raw"
+              ? "Generando con Studio RAW (~5-30s)..."
+              : "Generando imagen..."
         : null;
       setLoadingHint(initialHint);
 
@@ -254,7 +254,6 @@ export function useChat(userId: string | null = null) {
         imageMode &&
         (imageEngine === "zimage" ||
           imageEngine === "flux2" ||
-          imageEngine === "studioflux" ||
           imageEngine === "studioflux-raw");
       const coldStartTimer = isModalEngine
         ? setTimeout(() => {
@@ -264,7 +263,11 @@ export function useChat(userId: string | null = null) {
                 : "Calentando GPU (cold start ~30-60s)..."
             );
           }, 8000)
-        : null;
+        : editMode
+          ? setTimeout(() => {
+              setLoadingHint("BFL filtró contenido — probando Modal Kontext Dev sin filtro (~45s)...");
+            }, 15000)
+          : null;
       setStreamingText("");
 
       // Mantener pantalla encendida durante generación (evita que iOS mate el fetch)
@@ -329,6 +332,7 @@ export function useChat(userId: string | null = null) {
                 },
                 abortRef.current.signal,
                 thinkingLevel,
+                editMode,
               );
               assistantContent = res.fullText || "";
               assistantImage = assistantImage || (res.image ?? undefined);

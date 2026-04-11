@@ -27,6 +27,7 @@ import { PushToast } from "@/components/shared/PushToast";
 import { SplashScreen } from "@/components/shared/SplashScreen";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ToastProvider } from "@/components/ui/toast";
 
 type PanelType = "notifications" | "briefs" | "memory" | "systemStatus" | null;
 
@@ -265,6 +266,7 @@ export function AppShell({ user, onLogout }: Props) {
   };
 
   return (
+    <ToastProvider>
     <TooltipProvider delayDuration={0}>
       <AnimatePresence>
         {showSplash && <SplashScreen />}
@@ -393,5 +395,6 @@ export function AppShell({ user, onLogout }: Props) {
         <PushToast />
       </div>
     </TooltipProvider>
+    </ToastProvider>
   );
 }

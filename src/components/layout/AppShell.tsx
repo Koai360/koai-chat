@@ -221,7 +221,7 @@ export function AppShell({ user, onLogout }: Props) {
             onDelete={deleteConversation}
             onDeleteMessages={deleteMessages}
             userName={user.name}
-            onImageClick={(src) => setModalImage({ src })}
+            onImageClick={(src, messageId) => setModalImage({ src, id: messageId })}
             onEditImage={handleEditImage}
             editSourceUrl={editSourceUrl}
             onClearEditSource={clearEditSource}

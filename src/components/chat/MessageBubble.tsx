@@ -12,7 +12,7 @@ import { getCfTransformUrl } from "@/lib/cfTransform";
 interface Props {
   message: Message;
   conversationId?: string;
-  onImageClick?: (src: string) => void;
+  onImageClick?: (src: string, messageId?: string) => void;
   onEditImage?: (imageUrl: string) => void;
   isLast?: boolean;
   onRegenerate?: () => void;
@@ -47,13 +47,15 @@ function CodeBlock({ children, className }: { children: string; className?: stri
 
 function ImageBlock({
   image,
+  messageId,
   isUser,
   onImageClick,
   onEditImage,
 }: {
   image: string;
+  messageId?: string;
   isUser: boolean;
-  onImageClick?: (src: string) => void;
+  onImageClick?: (src: string, messageId?: string) => void;
   onEditImage?: (imageUrl: string) => void;
 }) {
   const isUrl = image.startsWith("http://") || image.startsWith("https://");
@@ -73,7 +75,7 @@ function ImageBlock({
         src={displaySrc}
         alt={isUser ? "Adjunta" : "Generada"}
         className={`rounded-xl w-auto cursor-pointer transition-transform hover:scale-[1.02] border border-border ${isUser ? "max-h-52" : "max-h-80"}`}
-        onClick={() => onImageClick?.(originalSrc)}
+        onClick={() => onImageClick?.(originalSrc, messageId)}
         loading="lazy"
         decoding="async"
       />
@@ -107,7 +109,7 @@ export function MessageBubble({ message, conversationId, onImageClick, onEditIma
         className="flex flex-col items-end px-4 mb-3 group/msg"
       >
         <div className="max-w-[85%] md:max-w-[70%] ml-auto bg-bg-surface border border-border rounded-2xl px-4 py-3">
-          {message.image && <ImageBlock image={message.image} isUser onImageClick={onImageClick} onEditImage={onEditImage} />}
+          {message.image && <ImageBlock image={message.image} messageId={message.id} isUser onImageClick={onImageClick} onEditImage={onEditImage} />}
           {message.content && message.content !== "[Imagen]" && (
             <p className="text-[15px] leading-[1.4] text-text whitespace-pre-wrap">
               {message.content}
@@ -136,7 +138,7 @@ export function MessageBubble({ message, conversationId, onImageClick, onEditIma
       <div className="flex-1 min-w-0 flex flex-col">
         {message.image && (
           <div className="mb-2">
-            <ImageBlock image={message.image} isUser={false} onImageClick={onImageClick} onEditImage={onEditImage} />
+            <ImageBlock image={message.image} messageId={message.id} isUser={false} onImageClick={onImageClick} onEditImage={onEditImage} />
             {message.imageMetadata && (
               <div className="mt-1.5">
                 <ImageMetadataBadge

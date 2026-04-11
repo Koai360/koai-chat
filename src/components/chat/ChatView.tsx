@@ -19,7 +19,7 @@ interface Props {
   onDelete?: (id: string) => void;
   onDeleteMessages?: (conversationId: string, messageIds: string[]) => void;
   userName?: string;
-  onImageClick?: (imageSrc: string) => void;
+  onImageClick?: (imageSrc: string, messageId?: string) => void;
   /** Callback cuando el usuario click "Editar" en una imagen del chat */
   onEditImage?: (imageUrl: string) => void;
   /** URL del source de edit (viene de AppShell) — se reenvía a ChatInput */

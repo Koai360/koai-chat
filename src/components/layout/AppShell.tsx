@@ -105,6 +105,24 @@ export function AppShell({ user, onLogout }: Props) {
     return () => clearTimeout(t);
   }, []);
 
+  // Pausar ambient orbs cuando la pestaña/PWA está en background
+  // (setea html[data-page-hidden=true] → CSS pausa animation)
+  useEffect(() => {
+    const handler = () => {
+      if (document.visibilityState === "hidden") {
+        document.documentElement.dataset.pageHidden = "true";
+      } else {
+        delete document.documentElement.dataset.pageHidden;
+      }
+    };
+    document.addEventListener("visibilitychange", handler);
+    handler();
+    return () => {
+      document.removeEventListener("visibilitychange", handler);
+      delete document.documentElement.dataset.pageHidden;
+    };
+  }, []);
+
   // Push subscription
   useEffect(() => {
     const timer = setTimeout(() => requestPushPermission(), 2000);

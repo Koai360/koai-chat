@@ -84,6 +84,7 @@ export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [imageMeta, setImageMeta] = useState<{ size: number; width?: number; height?: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [plusOpen, setPlusOpen] = useState(false);
   const [imageMode, setImageMode] = useState(false);
@@ -268,10 +269,19 @@ export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe
     }
   };
 
+  const readImageDimensions = (dataUrl: string): Promise<{ width: number; height: number }> =>
+    new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      img.onerror = () => resolve({ width: 0, height: 0 });
+      img.src = dataUrl;
+    });
+
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > MAX_IMAGE_SIZE) { setError("Imagen muy grande (max 5MB)"); return; }
+    const originalSize = file.size;
     const reader = new FileReader();
     reader.onload = async () => {
       const dataUrl = reader.result as string;
@@ -282,9 +292,14 @@ export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe
         const { base64, preview } = await compressImage(dataUrl, MAX_BASE64_SIZE);
         setImagePreview(preview);
         setImageBase64(base64);
+        const dims = await readImageDimensions(preview);
+        // base64 length * 0.75 ≈ bytes
+        setImageMeta({ size: Math.round(base64.length * 0.75), width: dims.width, height: dims.height });
       } else {
         setImagePreview(dataUrl);
         setImageBase64(raw64);
+        const dims = await readImageDimensions(dataUrl);
+        setImageMeta({ size: originalSize, width: dims.width, height: dims.height });
       }
     };
     reader.readAsDataURL(file);
@@ -294,6 +309,7 @@ export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe
   const clearImage = () => {
     setImagePreview(null);
     setImageBase64(null);
+    setImageMeta(null);
     setEditMode(false);
     if (editSourceUrl && onClearEditSource) onClearEditSource();
   };
@@ -329,14 +345,27 @@ export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe
       {/* Image preview + mode segmented (Generar con referencia | Editar) */}
       {imagePreview && (
         <div className="px-2 pt-2 pb-1 flex items-start gap-3">
-          <div className="relative inline-block shrink-0">
-            <img src={imagePreview} alt="Preview" className="h-20 w-auto rounded-xl object-cover border border-border" />
-            <button
-              onClick={clearImage}
-              className="absolute -top-2 -right-2 w-5 h-5 bg-bg-elevated text-text rounded-full flex items-center justify-center border border-border active:scale-90"
-            >
-              <X className="h-3 w-3" />
-            </button>
+          <div className="shrink-0 flex flex-col items-center gap-0.5">
+            <div className="relative inline-block">
+              <img src={imagePreview} alt="Preview" className="h-20 w-auto rounded-xl object-cover border border-border" />
+              <button
+                onClick={clearImage}
+                className="absolute -top-2 -right-2 w-5 h-5 bg-bg-elevated text-text rounded-full flex items-center justify-center border border-border active:scale-90"
+                aria-label="Quitar imagen"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+            {imageMeta && (
+              <span className="font-mono text-[9px] text-text-subtle tracking-tight whitespace-nowrap">
+                {imageMeta.size < 1024
+                  ? `${imageMeta.size}B`
+                  : imageMeta.size < 1048576
+                    ? `${Math.round(imageMeta.size / 1024)}KB`
+                    : `${(imageMeta.size / 1048576).toFixed(1)}MB`}
+                {imageMeta.width && imageMeta.height ? ` · ${imageMeta.width}×${imageMeta.height}` : ""}
+              </span>
+            )}
           </div>
           {/* Segmented: Generar con referencia / Editar esta imagen */}
           <div className="flex-1 min-w-0 flex flex-col gap-1.5">
@@ -500,7 +529,8 @@ export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe
             autoComplete="off"
             inputMode="text"
             enterKeyHint="send"
-            className="flex-1 py-[11px] pl-4 text-[16px] leading-[22px] max-h-[120px] overflow-y-auto text-text bg-transparent border-none outline-none resize-none placeholder:text-text-muted disabled:opacity-60"
+            style={{ fontSize: "var(--text-input, 16px)" }}
+            className="flex-1 py-[11px] pl-4 leading-[22px] max-h-[120px] overflow-y-auto text-text bg-transparent border-none outline-none resize-none placeholder:text-text-muted disabled:opacity-60"
           />
           {/* Camera button */}
           <button
@@ -511,6 +541,7 @@ export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe
                 const file = (ev.target as HTMLInputElement).files?.[0];
                 if (!file) return;
                 if (file.size > MAX_IMAGE_SIZE) { setError("Imagen muy grande (max 5MB)"); return; }
+                const originalSize = file.size;
                 const reader = new FileReader();
                 reader.onload = async () => {
                   const dataUrl = reader.result as string;
@@ -520,9 +551,13 @@ export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe
                     const { base64, preview } = await compressImage(dataUrl, MAX_BASE64_SIZE);
                     setImagePreview(preview);
                     setImageBase64(base64);
+                    const dims = await readImageDimensions(preview);
+                    setImageMeta({ size: Math.round(base64.length * 0.75), width: dims.width, height: dims.height });
                   } else {
                     setImagePreview(dataUrl);
                     setImageBase64(raw64);
+                    const dims = await readImageDimensions(dataUrl);
+                    setImageMeta({ size: originalSize, width: dims.width, height: dims.height });
                   }
                 };
                 reader.readAsDataURL(file);

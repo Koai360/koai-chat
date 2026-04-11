@@ -106,6 +106,11 @@ export function useChat(userId: string | null = null) {
 
   const active = conversations.find((c) => c.id === activeId) || null;
 
+  // Ref sincronizado con conversations — evita que sendMessage se re-cree
+  // en cada token del stream (que actualiza conversations → deps cambian).
+  const conversationsRef = useRef(conversations);
+  conversationsRef.current = conversations;
+
   // Load conversations from server on init
   useEffect(() => {
     if (!userId) return;
@@ -220,7 +225,7 @@ export function useChat(userId: string | null = null) {
         image: imageUrl || imageBase64,
       };
 
-      const convo = conversations.find((c) => c.id === convoId);
+      const convo = conversationsRef.current.find((c) => c.id === convoId);
       const isFirstMsg = !convo || convo.messages.length === 0;
       const newTitle = isFirstMsg ? generateTitle(displayText) : undefined;
 
@@ -307,18 +312,30 @@ export function useChat(userId: string | null = null) {
       // Fallback iOS: video silencioso mantiene pantalla activa
       if (!wakeLock) {
         try {
+          // Defensive cleanup: si hay un video huérfano de un stream anterior
+          // interrumpido, remover antes de crear uno nuevo
+          document
+            .querySelectorAll("video[data-nosleep-wakelock]")
+            .forEach((v) => {
+              try { (v as HTMLVideoElement).pause(); } catch { /* ignore */ }
+              v.remove();
+            });
           noSleepVideo = document.createElement("video");
           noSleepVideo.setAttribute("playsinline", "");
           noSleepVideo.setAttribute("muted", "");
+          noSleepVideo.setAttribute("data-nosleep-wakelock", "1");
           noSleepVideo.muted = true;
           noSleepVideo.loop = true;
           // Tiny blank MP4 (smallest valid video, ~200 bytes base64)
           noSleepVideo.src = "data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAAAhmcmVlAAAAGm1kYXQAAABfAQAAAF8BAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHG==";
+          // Position off-screen sin afectar layout (similar al fix de download)
           noSleepVideo.style.position = "fixed";
-          noSleepVideo.style.top = "-1px";
+          noSleepVideo.style.left = "-9999px";
           noSleepVideo.style.width = "1px";
           noSleepVideo.style.height = "1px";
           noSleepVideo.style.opacity = "0";
+          noSleepVideo.style.pointerEvents = "none";
+          noSleepVideo.setAttribute("aria-hidden", "true");
           document.body.appendChild(noSleepVideo);
           await noSleepVideo.play().catch(() => {});
         } catch { /* fallback no disponible */ }
@@ -439,7 +456,7 @@ export function useChat(userId: string | null = null) {
         } else {
           const MAX_HISTORY_MESSAGES = 40;
           const history =
-            conversations
+            conversationsRef.current
               .find((c) => c.id === convoId)
               ?.messages.map((m) => ({
                 role: m.role === "user" ? ("user" as const) : ("assistant" as const),
@@ -535,7 +552,7 @@ export function useChat(userId: string | null = null) {
         if (noSleepVideo) { noSleepVideo.pause(); noSleepVideo.remove(); }
       }
     },
-    [activeId, agent, loading, conversations, newConversation],
+    [activeId, agent, loading, thinkingLevel, newConversation],
   );
 
   const moveToProject = useCallback(

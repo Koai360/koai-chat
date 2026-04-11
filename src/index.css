@@ -59,6 +59,10 @@
   --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --font-display: 'Sora', 'DM Sans', -apple-system, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Text input font size — 16px es el mínimo para evitar zoom-out iOS Safari
+     cuando el input gana focus. NO bajar de 16px en inputs/textareas. */
+  --text-input: 16px;
 }
 
 /* ===== SHADCN DARK (default) ===== */
@@ -601,13 +605,23 @@ button, a, [role="button"] {
   }
 }
 
-/* ===== AMBIENT ORB ===== */
+/* ===== AMBIENT ORB =====
+ * Pausable en background (via html[data-page-hidden]) + respeta prefers-reduced-motion.
+ */
 .ambient-orb {
   position: absolute;
   border-radius: 50%;
   filter: blur(80px);
   pointer-events: none;
   will-change: transform;
+}
+html[data-page-hidden="true"] .ambient-orb {
+  animation-play-state: paused !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ambient-orb {
+    animation: none !important;
+  }
 }
 
 /* ===== LOGIN BACKGROUND ===== */

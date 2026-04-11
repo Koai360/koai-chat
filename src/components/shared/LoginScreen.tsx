@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { motion } from "framer-motion";
 import { API_URL } from "@/config";
 import { Loader2 } from "lucide-react";
+import { AIStarIcon } from "@/components/shared/AIStarIcon";
 
 interface Props {
   onLogin: (username: string, password: string) => Promise<void>;
@@ -84,7 +86,7 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
 
         if (googleBtnRef.current) {
           window.google.accounts.id.renderButton(googleBtnRef.current, {
-            type: "standard", theme: "outline", size: "large",
+            type: "standard", theme: "filled_black", size: "large",
             text: "signin_with", shape: "pill", logo_alignment: "left", width: 320,
           });
         }
@@ -99,7 +101,7 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
     return () => { cancelled = true; clearTimeout(timeout); };
   }, [handleGoogleResponse]);
 
-  const handleFallbackSubmit = async (e: React.FormEvent) => {
+  const handleFallbackSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!username.trim() || !password.trim()) return;
     setLoading(true); setError("");
@@ -123,147 +125,215 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
   };
 
   return (
-    <div
-      className="fixed inset-0 overflow-hidden z-50"
-      style={{ backgroundColor: "#EDE5DD" }}
-    >
-      {/* Hidden real Google SSO button */}
-      <div ref={googleBtnRef} className="absolute opacity-0 pointer-events-none" />
+    <div className="fixed inset-0 overflow-hidden z-50 flex flex-col bg-bg text-text">
+      {/* Grain overlay */}
+      <div className="grain pointer-events-none fixed inset-0 z-[5]" />
 
-      {/* ===== HEADER BG — top 0, 308px (Figma includes safe area) ===== */}
-      <img
-        src="/images/login-header-bg.svg"
-        alt=""
-        className="absolute top-0 left-0 w-full"
-        style={{ height: "32.2%" }}
-      />
-
-      {/* ===== KOAI LOGO — top 68/956 = 7.1% ===== */}
-      <img
-        src="/images/koai-logo-lg.png"
-        alt="KOAI Studios"
-        className="absolute left-1/2 -translate-x-1/2"
-        style={{
-          width: "40.5%",
-          maxWidth: "178px",
-          objectFit: "contain",
-          top: "7.1%",
-        }}
-      />
-
-      {/* ===== CENTER CONTENT — top 352/956 = 36.8% ===== */}
-      <div
-        className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center gap-[36px] w-[335px] max-w-[calc(100%-40px)]"
-        style={{ top: "36.8%" }}
-      >
-        {/* Bot icon + text */}
-        <div className="flex flex-col items-center gap-[8px] w-full">
-          <img src="/images/kira-bot-icon.svg" alt="Noa AI" className="w-[80px] h-[80px]" />
-          <div className="text-center w-full">
-            <p
-              className="text-[22px] font-semibold text-[#0D121C] leading-normal"
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-            >
-              Bienvenido
-            </p>
-            <p
-              className="text-[14px] font-normal text-[#4B5565] leading-[1.55] tracking-[-0.28px] mt-1"
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-            >
-              Conversaciones inteligentes
-              <br />
-              con Noa y Kronos
-            </p>
-          </div>
-        </div>
-
-        {/* Google button */}
-        <button
-          onClick={handleGoogleButtonClick}
-          disabled={loading}
-          className="w-full h-[56px] flex items-center justify-center gap-[10px] px-[16px] transition-all active:scale-[0.98] disabled:opacity-60"
-          style={{ backgroundColor: "#582C77", borderRadius: "16px" }}
-        >
-          {loading ? (
-            <Loader2 className="w-6 h-6 animate-spin text-[#C0D930]" />
-          ) : (
-            <>
-              <img src="/images/google-g-icon.svg" alt="" className="w-5 h-5 shrink-0" />
-              <span
-                className="text-[17px] font-medium tracking-[0.2px] leading-none whitespace-nowrap"
-                style={{ fontFamily: "'Plus Jakarta Sans', -apple-system, system-ui, sans-serif", color: "#C0D930" }}
-              >
-                Continuar con Google
-              </span>
-            </>
-          )}
-        </button>
-
-        {/* Manual login link */}
-        <button
-          type="button"
-          onClick={() => setShowFallback(true)}
-          className="text-[13px] text-[#582C77] hover:underline"
-          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-        >
-          Usar login manual
-        </button>
-
-        {/* Fallback form */}
-        {showFallback && (
-          <form onSubmit={handleFallbackSubmit} className="w-full space-y-3">
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Usuario"
-              autoComplete="username"
-              autoCapitalize="none"
-              autoCorrect="off"
-              disabled={loading}
-              className="w-full h-[52px] px-4 rounded-[14px] border border-[#D5CEC8] text-[#0D121C] text-[16px] outline-none focus:border-[#582C77] transition-colors"
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", backgroundColor: "rgba(255,255,255,0.6)" }}
-            />
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Contraseña"
-              autoComplete="current-password"
-              disabled={loading}
-              className="w-full h-[52px] px-4 rounded-[14px] border border-[#D5CEC8] text-[#0D121C] text-[16px] outline-none focus:border-[#582C77] transition-colors"
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", backgroundColor: "rgba(255,255,255,0.6)" }}
-            />
-            <button
-              type="submit"
-              disabled={loading || !username.trim() || !password.trim()}
-              className="w-full h-[56px] rounded-[16px] text-[18px] font-semibold transition-all active:scale-[0.98] disabled:opacity-60"
-              style={{ backgroundColor: "#582C77", color: "#C0D930", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-            >
-              {loading ? "Entrando..." : "Iniciar sesión"}
-            </button>
-          </form>
-        )}
-
-        {/* Error */}
-        {error && (
-          <div className="w-full px-4 py-3 rounded-[14px] bg-red-50 border border-red-200">
-            <p className="text-[14px] text-red-600 text-center">{error}</p>
-          </div>
-        )}
+      {/* Ambient orbs — lime Kira + purple KOAI, matching splash/app vibe */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <motion.div
+          className="absolute rounded-full"
+          style={{
+            width: "500px",
+            height: "500px",
+            top: "-15%",
+            right: "-15%",
+            background: "radial-gradient(circle, rgba(212, 233, 75, 0.12) 0%, transparent 70%)",
+            filter: "blur(80px)",
+          }}
+          animate={{
+            x: [0, 20, -10, 0],
+            y: [0, -15, 10, 0],
+          }}
+          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute rounded-full"
+          style={{
+            width: "480px",
+            height: "480px",
+            bottom: "-15%",
+            left: "-10%",
+            background: "radial-gradient(circle, rgba(123, 45, 142, 0.10) 0%, transparent 70%)",
+            filter: "blur(80px)",
+          }}
+          animate={{
+            x: [0, -15, 10, 0],
+            y: [0, 12, -8, 0],
+          }}
+          transition={{ duration: 22, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+        />
       </div>
 
-      {/* Footer hint — small disclaimer, safe area aware */}
+      {/* Hidden real Google SSO button (para click delegation) */}
+      <div ref={googleBtnRef} className="absolute opacity-0 pointer-events-none -z-10" />
+
+      {/* Content scroll container */}
       <div
-        className="absolute left-0 right-0 flex flex-col items-center pb-safe"
-        style={{ bottom: "env(safe-area-inset-bottom, 16px)" }}
+        className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 overflow-y-auto"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
-        <p
-          className="text-[11px] text-[#4B5565] text-center px-6 leading-snug"
-          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        <div className="w-full max-w-[360px] flex flex-col items-center">
+          {/* AI Star icon — brand marker */}
+          <motion.div
+            initial={{ scale: 0.7, opacity: 0, filter: "blur(12px)" }}
+            animate={{ scale: 1, opacity: 1, filter: "blur(0px)" }}
+            transition={{ delay: 0.1, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            style={{ filter: "drop-shadow(0 0 40px rgba(212, 233, 75, 0.25))" }}
+          >
+            <AIStarIcon size="lg" />
+          </motion.div>
+
+          {/* Brand */}
+          <motion.div
+            initial={{ y: 20, opacity: 0, filter: "blur(6px)" }}
+            animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
+            transition={{ delay: 0.25, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            className="text-center mt-6 mb-2"
+          >
+            <h1
+              className="font-display text-[32px] font-medium leading-none tracking-tight mb-1"
+              style={{ letterSpacing: "-0.025em" }}
+            >
+              <span className="gradient-text-kira">Noa</span>
+              <span className="text-text-muted"> · </span>
+              <span className="gradient-text-kronos">Kronos</span>
+            </h1>
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-text-subtle">
+              by KOAI Studios
+            </p>
+          </motion.div>
+
+          {/* Welcome headline */}
+          <motion.div
+            initial={{ y: 16, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.4, duration: 0.5 }}
+            className="text-center mb-8 mt-6"
+          >
+            <h2
+              className="font-display text-[22px] font-medium text-text mb-1.5"
+              style={{ letterSpacing: "-0.018em" }}
+            >
+              Bienvenido al equipo
+            </h2>
+            <p className="text-[13px] text-text-muted leading-snug max-w-[300px] mx-auto">
+              Chat privado con Noa y Kronos. Generación de imágenes, código y estrategia en un solo lugar.
+            </p>
+          </motion.div>
+
+          {/* Google button — primario */}
+          <motion.button
+            initial={{ y: 12, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.55, duration: 0.5 }}
+            onClick={handleGoogleButtonClick}
+            disabled={loading}
+            className="w-full h-[52px] flex items-center justify-center gap-3 rounded-full transition-all active:scale-[0.98] disabled:opacity-60 font-display text-[14px] font-medium"
+            style={{
+              backgroundColor: "#D4E94B",
+              color: "#0a0a0c",
+              boxShadow: "0 0 24px -6px rgba(212, 233, 75, 0.4), 0 0 0 1px rgba(212, 233, 75, 0.2)",
+              letterSpacing: "-0.01em",
+            }}
+          >
+            {loading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <>
+                <img src="/images/google-g-icon.svg" alt="" className="w-[18px] h-[18px] shrink-0" />
+                <span>Continuar con Google</span>
+              </>
+            )}
+          </motion.button>
+
+          {/* Manual fallback toggle — sutil link */}
+          {!showFallback && (
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.7, duration: 0.5 }}
+              type="button"
+              onClick={() => setShowFallback(true)}
+              className="mt-5 font-mono text-[11px] tracking-wide text-text-muted hover:text-text transition-colors"
+            >
+              o usa login manual →
+            </motion.button>
+          )}
+
+          {/* Fallback form */}
+          {showFallback && (
+            <motion.form
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35 }}
+              onSubmit={handleFallbackSubmit}
+              className="w-full space-y-2.5 mt-5"
+            >
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Usuario"
+                autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                disabled={loading}
+                className="w-full h-[48px] px-4 rounded-xl bg-bg-elevated border border-border text-text text-[15px] outline-none focus:border-kira focus:ring-1 focus:ring-kira/30 transition-all placeholder:text-text-muted"
+              />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Contraseña"
+                autoComplete="current-password"
+                disabled={loading}
+                className="w-full h-[48px] px-4 rounded-xl bg-bg-elevated border border-border text-text text-[15px] outline-none focus:border-kira focus:ring-1 focus:ring-kira/30 transition-all placeholder:text-text-muted"
+              />
+              <button
+                type="submit"
+                disabled={loading || !username.trim() || !password.trim()}
+                className="w-full h-[48px] rounded-xl text-[14px] font-display font-medium transition-all active:scale-[0.98] disabled:opacity-60 border border-border bg-bg-surface hover:bg-bg-elevated text-text"
+                style={{ letterSpacing: "-0.01em" }}
+              >
+                {loading ? (
+                  <span className="inline-flex items-center gap-2 justify-center">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Entrando...
+                  </span>
+                ) : (
+                  "Iniciar sesión"
+                )}
+              </button>
+            </motion.form>
+          )}
+
+          {/* Error */}
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-4 w-full px-4 py-2.5 rounded-xl bg-danger-soft border border-danger/30"
+            >
+              <p className="text-[12.5px] text-danger text-center">{error}</p>
+            </motion.div>
+          )}
+        </div>
+      </div>
+
+      {/* Footer — terms, safe-area aware */}
+      <div
+        className="relative z-10 shrink-0 pb-4 px-6"
+        style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom, 0px))" }}
+      >
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.9, duration: 0.6 }}
+          className="font-mono text-[10px] text-text-subtle text-center leading-snug"
         >
           Al continuar aceptas los términos de uso de KOAI Studios
-        </p>
+        </motion.p>
       </div>
     </div>
   );

@@ -47,7 +47,9 @@ export function ChatView({ conversation, agent, loading, loadingHint, streamingT
 
   useEffect(() => {
     if (!isNearBottomRef.current) return;
-    const isMobile = window.innerWidth < 768;
+    // matchMedia es reactivo a rotation / ventana redimensionada (a diferencia
+    // de innerWidth que se captura una sola vez al ejecutar el effect).
+    const isMobile = window.matchMedia("(max-width: 767px)").matches;
     bottomRef.current?.scrollIntoView({ behavior: isMobile ? "auto" : "smooth" });
   }, [conversation?.messages.length, streamingText]);
 

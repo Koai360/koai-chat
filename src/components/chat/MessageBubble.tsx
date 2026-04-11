@@ -213,8 +213,9 @@ export function MessageBubble({ message, conversationId, onImageClick, onEditIma
   );
 }
 
-export function StreamingBubble({ text, agent: _agent }: { text: string; agent: "kira" | "kronos" }) {
+export function StreamingBubble({ text, agent }: { text: string; agent: "kira" | "kronos" }) {
   if (!text) return null;
+  const cursorColor = agent === "kronos" ? "#00E5FF" : "#D4E94B";
 
   return (
     <motion.div
@@ -229,7 +230,13 @@ export function StreamingBubble({ text, agent: _agent }: { text: string; agent: 
       <div className="flex-1 min-w-0">
         <div className="text-[15px] leading-[1.55] prose prose-sm prose-invert max-w-none text-text">
           <ReactMarkdown rehypePlugins={[rehypeHighlight]}>{text}</ReactMarkdown>
-          <span className="inline-block w-1.5 h-4 animate-pulse ml-0.5 -mb-0.5 rounded-sm opacity-70 bg-text-muted" />
+          <span
+            className="inline-block w-[3px] h-4 animate-pulse ml-0.5 -mb-0.5 rounded-sm"
+            style={{
+              backgroundColor: cursorColor,
+              boxShadow: `0 0 8px ${cursorColor}80`,
+            }}
+          />
         </div>
       </div>
     </motion.div>

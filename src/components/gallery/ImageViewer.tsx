@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Download, Trash2, Loader2, Pencil, EyeOff, Eye, MoreVertical } from "lucide-react";
+import { X, Download, Trash2, Loader2, Pencil, EyeOff, Eye, MoreVertical, ThumbsUp, ThumbsDown } from "lucide-react";
 import { getCfTransformUrl, getOriginalUrl, triggerDownload } from "@/lib/cfTransform";
 
 interface Props {
@@ -15,6 +15,10 @@ interface Props {
   onHide?: (id: string, hidden: boolean) => Promise<void>;
   /** Si la imagen está oculta actualmente */
   isHidden?: boolean;
+  /** Callback de like/dislike — sistema de style preference. rating: 1|-1, o 0 para quitar. */
+  onRate?: (id: string, rating: 1 | -1 | 0) => Promise<void>;
+  /** Rating actual de la imagen (1 likeada, -1 disliked, 0/undef sin rating) */
+  currentRating?: 1 | -1 | 0;
   onClose: () => void;
 }
 
@@ -33,12 +37,38 @@ const DOWNLOAD_OPTIONS: {
   { value: "original", label: "Original", hint: "PNG lossless nativo", mark: "∞", color: "#E5A3F0" },
 ];
 
-export function ImageViewer({ src, imageId, onDelete, onEdit, onHide, isHidden, onClose }: Props) {
+export function ImageViewer({ src, imageId, onDelete, onEdit, onHide, isHidden, onRate, currentRating, onClose }: Props) {
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [downloadOpen, setDownloadOpen] = useState(false);
   const [hiding, setHiding] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [rating, setRating] = useState<1 | -1 | 0>(currentRating ?? 0);
+  const [rateBusy, setRateBusy] = useState(false);
+
+  // Sync cuando cambia la imagen
+  useEffect(() => {
+    setRating(currentRating ?? 0);
+  }, [src, imageId, currentRating]);
+
+  const handleRate = useCallback(
+    async (newRating: 1 | -1) => {
+      if (!imageId || !onRate || rateBusy) return;
+      setRateBusy(true);
+      // Toggle: si ya estaba en ese rating, quita (rating=0)
+      const target: 1 | -1 | 0 = rating === newRating ? 0 : newRating;
+      try {
+        await onRate(imageId, target);
+        setRating(target);
+        if (navigator.vibrate) navigator.vibrate(target === 0 ? 5 : target === 1 ? 12 : 8);
+      } catch (err) {
+        console.error("[ImageViewer] Rate failed:", err);
+      } finally {
+        setRateBusy(false);
+      }
+    },
+    [imageId, onRate, rating, rateBusy],
+  );
 
   useEffect(() => {
     const handle = (e: KeyboardEvent) => {
@@ -358,6 +388,81 @@ export function ImageViewer({ src, imageId, onDelete, onEdit, onHide, isHidden, 
         onClick={(e) => e.stopPropagation()}
         draggable={false}
       />
+
+      {/* Bottom center — like/dislike bar (style preference + futuro LoRA) */}
+      {imageId && onRate && (
+        <div
+          className="absolute left-1/2 -translate-x-1/2 flex items-center gap-3 z-10"
+          style={{
+            bottom: "calc(1.5rem + env(safe-area-inset-bottom, 0px))",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Dislike */}
+          <button
+            onClick={() => handleRate(-1)}
+            disabled={rateBusy}
+            aria-label={rating === -1 ? "Quitar dislike" : "No me gusta (descartar estilo)"}
+            className="w-14 h-14 rounded-full flex items-center justify-center transition-all active:scale-90 disabled:opacity-60"
+            style={{
+              background:
+                rating === -1
+                  ? "rgba(220, 38, 38, 0.95)"
+                  : "rgba(255, 255, 255, 0.08)",
+              border:
+                rating === -1
+                  ? "2px solid rgba(220, 38, 38, 1)"
+                  : "1.5px solid rgba(255, 255, 255, 0.15)",
+              boxShadow:
+                rating === -1
+                  ? "0 0 20px rgba(220, 38, 38, 0.4)"
+                  : "0 4px 12px rgba(0, 0, 0, 0.3)",
+              backdropFilter: "blur(12px)",
+            }}
+          >
+            <ThumbsDown
+              className="h-6 w-6"
+              style={{ color: rating === -1 ? "#fff" : "rgba(255, 255, 255, 0.85)" }}
+            />
+          </button>
+
+          {/* Like */}
+          <button
+            onClick={() => handleRate(1)}
+            disabled={rateBusy}
+            aria-label={rating === 1 ? "Quitar like" : "Me gusta (guardar estilo)"}
+            className="w-16 h-16 rounded-full flex items-center justify-center transition-all active:scale-90 disabled:opacity-60"
+            style={{
+              background:
+                rating === 1
+                  ? "rgba(212, 233, 75, 0.95)"
+                  : "rgba(255, 255, 255, 0.08)",
+              border:
+                rating === 1
+                  ? "2px solid rgba(212, 233, 75, 1)"
+                  : "1.5px solid rgba(255, 255, 255, 0.15)",
+              boxShadow:
+                rating === 1
+                  ? "0 0 28px rgba(212, 233, 75, 0.5)"
+                  : "0 4px 16px rgba(0, 0, 0, 0.3)",
+              backdropFilter: "blur(12px)",
+            }}
+          >
+            {rateBusy ? (
+              <Loader2
+                className="h-6 w-6 animate-spin"
+                style={{ color: rating === 1 ? "#0a0a0c" : "rgba(255, 255, 255, 0.85)" }}
+              />
+            ) : (
+              <ThumbsUp
+                className="h-7 w-7"
+                style={{ color: rating === 1 ? "#0a0a0c" : "rgba(255, 255, 255, 0.85)" }}
+                fill={rating === 1 ? "#0a0a0c" : "none"}
+              />
+            )}
+          </button>
+        </div>
+      )}
     </motion.div>
   );
 }

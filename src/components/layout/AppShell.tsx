@@ -61,7 +61,7 @@ export function AppShell({ user, onLogout }: Props) {
   const { isUnlocked: isPrivateUnlocked } = usePrivateMode();
 
   const [activePanel, setActivePanel] = useState<PanelType>(null);
-  const [modalImage, setModalImage] = useState<{ src: string; id?: string; isHidden?: boolean } | null>(null);
+  const [modalImage, setModalImage] = useState<{ src: string; id?: string; isHidden?: boolean; rating?: 1 | -1 | 0 } | null>(null);
   // editSourceUrl: URL de imagen R2 que el usuario pidió editar (desde chat o galería).
   // Se pasa a ChatView → ChatInput, que abre el modo edit automático y envía vía image_url.
   const [editSourceUrl, setEditSourceUrl] = useState<string | null>(null);
@@ -97,6 +97,20 @@ export function AppShell({ user, onLogout }: Props) {
     const { hideImage } = await import("@/lib/api");
     await hideImage(imageId, hidden);
     window.dispatchEvent(new CustomEvent("gallery-image-hidden", { detail: { id: imageId, hidden } }));
+  }, []);
+
+  // Handler de like/dislike — sistema de style preference (híbrido LoRA)
+  const handleViewerRate = useCallback(async (imageId: string, rating: 1 | -1 | 0) => {
+    const { likeImage, unlikeImage } = await import("@/lib/api");
+    if (rating === 0) {
+      await unlikeImage(imageId);
+    } else {
+      await likeImage(imageId, rating);
+    }
+    // Notificar a SettingsPage u otros listeners del count
+    window.dispatchEvent(
+      new CustomEvent("image-rated", { detail: { id: imageId, rating } }),
+    );
   }, []);
 
   // Splash screen — 1.4s (balance entre brand moment y no hacer esperar)
@@ -363,9 +377,11 @@ export function AppShell({ user, onLogout }: Props) {
             src={modalImage.src}
             imageId={modalImage.id}
             isHidden={modalImage.isHidden}
+            currentRating={modalImage.rating}
             onDelete={modalImage.id ? handleViewerDelete : undefined}
             onEdit={handleEditImage}
             onHide={modalImage.id ? handleViewerHide : undefined}
+            onRate={modalImage.id ? handleViewerRate : undefined}
             onClose={() => setModalImage(null)}
           />
         )}

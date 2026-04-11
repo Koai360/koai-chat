@@ -17,10 +17,15 @@ import {
   Loader2,
   Check,
   KeyRound,
+  Sparkles,
+  ThumbsUp,
+  ThumbsDown,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { usePrivateMode } from "@/hooks/usePrivateMode";
+import { fetchImageLikes, unlikeImage, type ImageLike } from "@/lib/api";
+import { getCfTransformUrl } from "@/lib/cfTransform";
 import type { AuthUser } from "@/hooks/useAuth";
 
 interface Props {
@@ -34,6 +39,7 @@ type Section =
   | "account"
   | "preferences"
   | "personalization"
+  | "style"
   | "notifications"
   | "integrations"
   | "subscription"
@@ -44,6 +50,7 @@ const NAV_ITEMS: { id: Section; label: string; icon: typeof UserCircle }[] = [
   { id: "account", label: "Cuenta", icon: UserCircle },
   { id: "preferences", label: "Preferencias", icon: SlidersHorizontal },
   { id: "personalization", label: "Personalización", icon: Paintbrush },
+  { id: "style", label: "Estilo IA", icon: Sparkles },
   { id: "notifications", label: "Notificaciones", icon: Bell },
   { id: "integrations", label: "Integraciones", icon: Link },
   { id: "subscription", label: "Suscripción", icon: CreditCard },
@@ -118,7 +125,8 @@ export function SettingsPage({ user, onLogout, theme, onToggleTheme }: Props) {
             <PreferencesSection theme={theme} onToggleTheme={onToggleTheme} />
           )}
           {activeSection === "security" && <SecuritySection />}
-          {activeSection !== "account" && activeSection !== "preferences" && activeSection !== "security" && (
+          {activeSection === "style" && <StyleSection />}
+          {activeSection !== "account" && activeSection !== "preferences" && activeSection !== "security" && activeSection !== "style" && (
             <ComingSoon label={NAV_ITEMS.find((n) => n.id === activeSection)?.label || ""} />
           )}
         </div>
@@ -251,6 +259,191 @@ function PreferencesSection({
     </div>
   );
 }
+
+/* ─── Estilo IA (image likes + futuro LoRA) ─── */
+
+const LORA_TARGET = 30;
+
+function StyleSection() {
+  const [likes, setLikes] = useState<ImageLike[]>([]);
+  const [likesCount, setLikesCount] = useState(0);
+  const [dislikesCount, setDislikesCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const resp = await fetchImageLikes({ limit: 50 });
+      setLikes(resp.items);
+      setLikesCount(resp.likes_count);
+      setDislikesCount(resp.dislikes_count);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  // Listen for rate changes from ImageViewer
+  useEffect(() => {
+    const handler = () => load();
+    window.addEventListener("image-rated", handler);
+    return () => window.removeEventListener("image-rated", handler);
+  }, [load]);
+
+  const handleRemove = async (messageId: string) => {
+    try {
+      await unlikeImage(messageId);
+      setLikes((prev) => prev.filter((l) => l.message_id !== messageId));
+      // Reload counts
+      const resp = await fetchImageLikes({ limit: 50 });
+      setLikesCount(resp.likes_count);
+      setDislikesCount(resp.dislikes_count);
+    } catch (err) {
+      console.error("[StyleSection] unlike failed:", err);
+    }
+  };
+
+  const onlyLikes = likes.filter((l) => l.rating === 1);
+  const progress = Math.min(100, Math.round((likesCount / LORA_TARGET) * 100));
+  const remaining = Math.max(0, LORA_TARGET - likesCount);
+  const loraReady = likesCount >= LORA_TARGET;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-medium text-text font-display animate-fadeUpBlur">
+          Estilo IA
+        </h2>
+        <p className="text-xs text-text-muted mt-1">
+          Noa aprende de las imágenes que te gustan. Cuando llegues a {LORA_TARGET} likes,
+          podrás entrenar un LoRA custom con tu estilo.
+        </p>
+      </div>
+
+      {/* Progress card */}
+      <div className="liquid-glass rounded-2xl p-5 space-y-4">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-kira/10 flex items-center justify-center shrink-0">
+            <Sparkles className="size-5 text-kira" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-medium text-text">
+              {loraReady ? "LoRA listo para entrenar" : "Progreso hacia tu LoRA"}
+            </h3>
+            <p className="text-xs text-text-muted mt-0.5">
+              {loraReady
+                ? `Tienes ${likesCount} imágenes likeadas — suficiente para entrenar`
+                : `${likesCount} / ${LORA_TARGET} imágenes · faltan ${remaining}`}
+            </p>
+          </div>
+        </div>
+
+        {/* Progress bar */}
+        <div className="relative h-2 rounded-full bg-white/[0.06] overflow-hidden">
+          <div
+            className="absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out"
+            style={{
+              width: `${progress}%`,
+              background: loraReady
+                ? "linear-gradient(90deg, #D4E94B 0%, #A8D830 100%)"
+                : "linear-gradient(90deg, #D4E94B 0%, rgba(212,233,75,0.6) 100%)",
+              boxShadow: "0 0 12px rgba(212, 233, 75, 0.3)",
+            }}
+          />
+        </div>
+
+        {/* Stats row */}
+        <div className="flex items-center gap-4 text-xs">
+          <div className="flex items-center gap-1.5">
+            <ThumbsUp className="size-3.5 text-kira" />
+            <span className="text-text-muted">
+              <span className="text-text font-medium">{likesCount}</span> likes
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <ThumbsDown className="size-3.5 text-danger" />
+            <span className="text-text-muted">
+              <span className="text-text font-medium">{dislikesCount}</span> descartes
+            </span>
+          </div>
+        </div>
+
+        {/* Train button — activo solo cuando >= LORA_TARGET */}
+        <button
+          disabled={!loraReady}
+          className="w-full py-2.5 rounded-xl text-sm font-medium transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{
+            backgroundColor: loraReady ? "#D4E94B" : "rgba(255,255,255,0.05)",
+            color: loraReady ? "#0a0a0c" : "rgba(255,255,255,0.4)",
+            boxShadow: loraReady ? "0 0 20px rgba(212, 233, 75, 0.35)" : "none",
+          }}
+        >
+          {loraReady ? "Entrenar mi LoRA" : `Bloqueado (${remaining} likes faltantes)`}
+        </button>
+      </div>
+
+      {/* Grid de likes */}
+      {loading ? (
+        <div className="flex justify-center py-10">
+          <Loader2 className="size-5 animate-spin text-text-muted" />
+        </div>
+      ) : error ? (
+        <div className="text-center py-10 text-text-muted">
+          <p className="text-sm text-danger">{error}</p>
+          <button onClick={load} className="mt-3 text-xs text-kira hover:underline">
+            Reintentar
+          </button>
+        </div>
+      ) : onlyLikes.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-10 text-text-muted">
+          <ThumbsUp className="size-10 mb-3 opacity-30" />
+          <p className="text-sm">Aún no has likeado ninguna imagen</p>
+          <p className="text-xs text-text-subtle mt-1 max-w-[280px] text-center">
+            Abre cualquier imagen en la galería o chat y dale 👍 para guardar su estilo
+          </p>
+        </div>
+      ) : (
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-text-subtle mb-2 px-1">
+            Últimas likeadas
+          </p>
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+            {onlyLikes.slice(0, 24).map((like) => (
+              <div
+                key={like.id}
+                className="relative aspect-square rounded-lg overflow-hidden bg-bg-surface border border-border group"
+              >
+                {like.image_url && (
+                  <img
+                    src={getCfTransformUrl(like.image_url, "thumb")}
+                    alt={like.prompt || "Liked"}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                )}
+                <button
+                  onClick={() => handleRemove(like.message_id)}
+                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/70 backdrop-blur-sm text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center active:opacity-100"
+                  aria-label="Quitar like"
+                >
+                  <ThumbsDown className="size-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 /* ─── Security ─── */
 

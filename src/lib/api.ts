@@ -560,6 +560,57 @@ export async function hideImage(messageId: string, hidden: boolean): Promise<voi
   if (!res.ok) throw new Error(`Error ${res.status}`);
 }
 
+// --- Image Likes (style preference + futuro LoRA training) ---
+
+export interface ImageLike {
+  id: string;
+  message_id: string;
+  rating: 1 | -1;
+  prompt: string | null;
+  engine: string | null;
+  image_url: string | null;
+  created_at: string;
+}
+
+export interface LikesResponse {
+  items: ImageLike[];
+  likes_count: number;
+  dislikes_count: number;
+  lora_ready: boolean;
+}
+
+export async function likeImage(messageId: string, rating: 1 | -1): Promise<void> {
+  const res = await fetch(`${API_URL}/api/chat/images/${messageId}/like`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({ rating }),
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+}
+
+export async function unlikeImage(messageId: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/chat/images/${messageId}/like`, {
+    method: "DELETE",
+    headers: getHeaders(),
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+}
+
+export async function fetchImageLikes(
+  opts: { rating?: 1 | -1; limit?: number } = {},
+): Promise<LikesResponse> {
+  const params = new URLSearchParams();
+  if (opts.rating !== undefined) params.set("rating", String(opts.rating));
+  if (opts.limit) params.set("limit", String(opts.limit));
+  const qs = params.toString();
+  const res = await fetch(
+    `${API_URL}/api/chat/images/likes${qs ? `?${qs}` : ""}`,
+    { headers: getHeaders() },
+  );
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
 // --- Private Gallery PIN ---
 
 export async function fetchPrivateStatus(): Promise<{ has_pin: boolean }> {

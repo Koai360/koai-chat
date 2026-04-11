@@ -562,13 +562,29 @@ export async function hideImage(messageId: string, hidden: boolean): Promise<voi
 
 // --- Image Likes (style preference + futuro LoRA training) ---
 
+export type StyleCategory = "anime" | "people" | "photo" | "art" | "design" | "uncategorized";
+
+export const STYLE_CATEGORIES: { id: StyleCategory; label: string; icon: string }[] = [
+  { id: "anime", label: "Anime", icon: "🎨" },
+  { id: "people", label: "Personas", icon: "👤" },
+  { id: "photo", label: "Fotografía", icon: "📷" },
+  { id: "art", label: "Arte digital", icon: "✏️" },
+  { id: "design", label: "Diseño", icon: "🎯" },
+  { id: "uncategorized", label: "Sin categoría", icon: "📦" },
+];
+
 export interface ImageLike {
   id: string;
-  message_id: string;
+  message_id: string | null;
   rating: 1 | -1;
   prompt: string | null;
   engine: string | null;
   image_url: string | null;
+  external_image_url?: string | null;
+  source?: string | null;
+  source_url?: string | null;
+  category?: StyleCategory | null;
+  params?: Record<string, unknown> | null;
   created_at: string;
 }
 
@@ -576,7 +592,63 @@ export interface LikesResponse {
   items: ImageLike[];
   likes_count: number;
   dislikes_count: number;
+  category_counts?: Record<string, number>;
   lora_ready: boolean;
+}
+
+// --- Civitai Import ---
+
+export interface CivitaiPreview {
+  image_id: string;
+  image_url: string;
+  width: number;
+  height: number;
+  prompt: string;
+  negative_prompt: string;
+  params: {
+    cfg_scale?: number;
+    steps?: number;
+    sampler?: string;
+    scheduler?: string;
+    clip_skip?: number;
+    width?: number;
+    height?: number;
+    seed?: number;
+    model_name?: string;
+    base_model?: string;
+    loras?: Array<{ name: string; weight: number; hash?: string }>;
+  };
+  suggested_engine: string;
+  suggested_category: StyleCategory;
+}
+
+export async function previewCivitai(url: string): Promise<CivitaiPreview> {
+  const res = await fetch(`${API_URL}/api/chat/images/likes/import-civitai/preview`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({ url }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({ detail: "Error" }));
+    throw new Error(data.detail || `Error ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function importCivitai(
+  url: string,
+  category: StyleCategory,
+): Promise<{ ok: boolean; category: string; engine: string; preview_url: string }> {
+  const res = await fetch(`${API_URL}/api/chat/images/likes/import-civitai`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({ url, category }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({ detail: "Error" }));
+    throw new Error(data.detail || `Error ${res.status}`);
+  }
+  return res.json();
 }
 
 export async function likeImage(messageId: string, rating: 1 | -1): Promise<void> {
@@ -596,11 +668,21 @@ export async function unlikeImage(messageId: string): Promise<void> {
   if (!res.ok) throw new Error(`Error ${res.status}`);
 }
 
+/** Delete a like by its UUID (works for both PWA likes and Civitai imports). */
+export async function deleteLike(likeId: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/chat/images/likes/${likeId}`, {
+    method: "DELETE",
+    headers: getHeaders(),
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+}
+
 export async function fetchImageLikes(
-  opts: { rating?: 1 | -1; limit?: number } = {},
+  opts: { rating?: 1 | -1; category?: StyleCategory; limit?: number } = {},
 ): Promise<LikesResponse> {
   const params = new URLSearchParams();
   if (opts.rating !== undefined) params.set("rating", String(opts.rating));
+  if (opts.category) params.set("category", opts.category);
   if (opts.limit) params.set("limit", String(opts.limit));
   const qs = params.toString();
   const res = await fetch(

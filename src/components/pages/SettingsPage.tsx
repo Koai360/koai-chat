@@ -24,7 +24,16 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { usePrivateMode } from "@/hooks/usePrivateMode";
-import { fetchImageLikes, unlikeImage, type ImageLike } from "@/lib/api";
+import {
+  fetchImageLikes,
+  deleteLike,
+  previewCivitai,
+  importCivitai,
+  STYLE_CATEGORIES,
+  type ImageLike,
+  type StyleCategory,
+  type CivitaiPreview,
+} from "@/lib/api";
 import { getCfTransformUrl } from "@/lib/cfTransform";
 import type { AuthUser } from "@/hooks/useAuth";
 
@@ -260,25 +269,36 @@ function PreferencesSection({
   );
 }
 
-/* ─── Estilo IA (image likes + futuro LoRA) ─── */
+/* ─── Estilo IA (image likes + Civitai imports + futuro LoRA) ─── */
 
 const LORA_TARGET = 30;
+type ActiveTab = "all" | StyleCategory;
 
 function StyleSection() {
   const [likes, setLikes] = useState<ImageLike[]>([]);
   const [likesCount, setLikesCount] = useState(0);
-  const [dislikesCount, setDislikesCount] = useState(0);
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<ActiveTab>("all");
+
+  // Import Civitai state
+  const [importUrl, setImportUrl] = useState("");
+  const [preview, setPreview] = useState<CivitaiPreview | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [importCategory, setImportCategory] = useState<StyleCategory>("anime");
+  const [importBusy, setImportBusy] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importSuccess, setImportSuccess] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const resp = await fetchImageLikes({ limit: 50 });
+      const resp = await fetchImageLikes({ limit: 100 });
       setLikes(resp.items);
       setLikesCount(resp.likes_count);
-      setDislikesCount(resp.dislikes_count);
+      setCategoryCounts(resp.category_counts || {});
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -290,106 +310,270 @@ function StyleSection() {
     load();
   }, [load]);
 
-  // Listen for rate changes from ImageViewer
   useEffect(() => {
     const handler = () => load();
     window.addEventListener("image-rated", handler);
     return () => window.removeEventListener("image-rated", handler);
   }, [load]);
 
-  const handleRemove = async (messageId: string) => {
+  const handleRemove = async (likeId: string) => {
     try {
-      await unlikeImage(messageId);
-      setLikes((prev) => prev.filter((l) => l.message_id !== messageId));
-      // Reload counts
-      const resp = await fetchImageLikes({ limit: 50 });
-      setLikesCount(resp.likes_count);
-      setDislikesCount(resp.dislikes_count);
+      await deleteLike(likeId);
+      setLikes((prev) => prev.filter((l) => l.id !== likeId));
+      load(); // refresh counts
     } catch (err) {
-      console.error("[StyleSection] unlike failed:", err);
+      console.error("[StyleSection] delete failed:", err);
     }
   };
 
-  const onlyLikes = likes.filter((l) => l.rating === 1);
+  const handlePreview = async () => {
+    const url = importUrl.trim();
+    if (!url) return;
+    setPreviewLoading(true);
+    setImportError(null);
+    setImportSuccess(false);
+    setPreview(null);
+    try {
+      const p = await previewCivitai(url);
+      setPreview(p);
+      setImportCategory(p.suggested_category === "uncategorized" ? "anime" : p.suggested_category);
+    } catch (err) {
+      setImportError((err as Error).message);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const handleConfirmImport = async () => {
+    if (!preview) return;
+    setImportBusy(true);
+    setImportError(null);
+    try {
+      await importCivitai(importUrl.trim(), importCategory);
+      setImportSuccess(true);
+      setPreview(null);
+      setImportUrl("");
+      load();
+      setTimeout(() => setImportSuccess(false), 2500);
+    } catch (err) {
+      setImportError((err as Error).message);
+    } finally {
+      setImportBusy(false);
+    }
+  };
+
+  const handleCancelPreview = () => {
+    setPreview(null);
+    setImportError(null);
+  };
+
+  const filteredLikes = likes.filter((l) => {
+    if (l.rating !== 1) return false;
+    if (activeTab === "all") return true;
+    return (l.category || "uncategorized") === activeTab;
+  });
+
   const progress = Math.min(100, Math.round((likesCount / LORA_TARGET) * 100));
   const remaining = Math.max(0, LORA_TARGET - likesCount);
   const loraReady = likesCount >= LORA_TARGET;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
         <h2 className="text-xl font-medium text-text font-display animate-fadeUpBlur">
           Estilo IA
         </h2>
         <p className="text-xs text-text-muted mt-1">
-          Noa aprende de las imágenes que te gustan. Cuando llegues a {LORA_TARGET} likes,
-          podrás entrenar un LoRA custom con tu estilo.
+          Noa aprende de las imágenes que te gustan. Pégale un link de Civitai o dale 👍
+          a cualquier imagen del chat. Cuando llegues a {LORA_TARGET}, entrenas tu LoRA custom.
         </p>
       </div>
 
-      {/* Progress card */}
-      <div className="liquid-glass rounded-2xl p-5 space-y-4">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl bg-kira/10 flex items-center justify-center shrink-0">
-            <Sparkles className="size-5 text-kira" />
+      {/* Progress card — compacto */}
+      <div className="liquid-glass rounded-2xl p-4 space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-kira/10 flex items-center justify-center shrink-0">
+            <Sparkles className="size-4 text-kira" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-medium text-text">
-              {loraReady ? "LoRA listo para entrenar" : "Progreso hacia tu LoRA"}
-            </h3>
-            <p className="text-xs text-text-muted mt-0.5">
+            <p className="text-xs text-text-muted">
               {loraReady
-                ? `Tienes ${likesCount} imágenes likeadas — suficiente para entrenar`
-                : `${likesCount} / ${LORA_TARGET} imágenes · faltan ${remaining}`}
+                ? `${likesCount} imágenes · LoRA listo para entrenar 🎯`
+                : `${likesCount} / ${LORA_TARGET} · faltan ${remaining} para entrenar LoRA`}
             </p>
           </div>
         </div>
-
-        {/* Progress bar */}
-        <div className="relative h-2 rounded-full bg-white/[0.06] overflow-hidden">
+        <div className="relative h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
           <div
             className="absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out"
             style={{
               width: `${progress}%`,
-              background: loraReady
-                ? "linear-gradient(90deg, #D4E94B 0%, #A8D830 100%)"
-                : "linear-gradient(90deg, #D4E94B 0%, rgba(212,233,75,0.6) 100%)",
-              boxShadow: "0 0 12px rgba(212, 233, 75, 0.3)",
+              background: "linear-gradient(90deg, #D4E94B 0%, rgba(212,233,75,0.6) 100%)",
+              boxShadow: "0 0 10px rgba(212, 233, 75, 0.3)",
             }}
           />
         </div>
-
-        {/* Stats row */}
-        <div className="flex items-center gap-4 text-xs">
-          <div className="flex items-center gap-1.5">
-            <ThumbsUp className="size-3.5 text-kira" />
-            <span className="text-text-muted">
-              <span className="text-text font-medium">{likesCount}</span> likes
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <ThumbsDown className="size-3.5 text-danger" />
-            <span className="text-text-muted">
-              <span className="text-text font-medium">{dislikesCount}</span> descartes
-            </span>
-          </div>
-        </div>
-
-        {/* Train button — activo solo cuando >= LORA_TARGET */}
-        <button
-          disabled={!loraReady}
-          className="w-full py-2.5 rounded-xl text-sm font-medium transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
-          style={{
-            backgroundColor: loraReady ? "#D4E94B" : "rgba(255,255,255,0.05)",
-            color: loraReady ? "#0a0a0c" : "rgba(255,255,255,0.4)",
-            boxShadow: loraReady ? "0 0 20px rgba(212, 233, 75, 0.35)" : "none",
-          }}
-        >
-          {loraReady ? "Entrenar mi LoRA" : `Bloqueado (${remaining} likes faltantes)`}
-        </button>
       </div>
 
-      {/* Grid de likes */}
+      {/* Import Civitai */}
+      <div className="liquid-glass rounded-2xl p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-text-subtle">
+            Importar de Civitai
+          </span>
+        </div>
+        {!preview && (
+          <div className="flex gap-2">
+            <input
+              type="url"
+              value={importUrl}
+              onChange={(e) => setImportUrl(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handlePreview()}
+              placeholder="https://civitai.com/images/..."
+              className="flex-1 h-10 px-3 rounded-lg bg-bg-elevated border border-border text-text text-sm outline-none focus:border-kira focus:ring-1 focus:ring-kira/30 transition-all placeholder:text-text-subtle"
+              disabled={previewLoading}
+            />
+            <button
+              onClick={handlePreview}
+              disabled={!importUrl.trim() || previewLoading}
+              className="h-10 px-4 rounded-lg bg-kira text-[#0a0a0c] text-sm font-medium transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+            >
+              {previewLoading ? <Loader2 className="size-4 animate-spin" /> : "Ver preview"}
+            </button>
+          </div>
+        )}
+
+        {/* Preview con params + selector de categoría */}
+        {preview && (
+          <div className="space-y-3">
+            <div className="flex gap-3">
+              <img
+                src={preview.image_url}
+                alt="Preview"
+                className="w-24 h-36 object-cover rounded-lg border border-border shrink-0"
+              />
+              <div className="flex-1 min-w-0 space-y-1 text-[11px]">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-text-subtle">Modelo:</span>
+                  <span className="text-text font-medium truncate">
+                    {preview.params.base_model || "Desconocido"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-text-subtle">Engine sugerido:</span>
+                  <span className="text-kira font-mono">{preview.suggested_engine}</span>
+                </div>
+                {preview.params.cfg_scale !== undefined && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-text-subtle">CFG:</span>
+                    <span className="text-text font-mono">{preview.params.cfg_scale}</span>
+                  </div>
+                )}
+                {preview.params.sampler && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-text-subtle">Sampler:</span>
+                    <span className="text-text font-mono truncate">{preview.params.sampler}</span>
+                  </div>
+                )}
+                {preview.params.steps !== undefined && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-text-subtle">Steps:</span>
+                    <span className="text-text font-mono">{preview.params.steps}</span>
+                  </div>
+                )}
+                {(preview.params.loras?.length ?? 0) > 0 && (
+                  <div className="flex items-start gap-1.5">
+                    <span className="text-text-subtle shrink-0">LoRAs:</span>
+                    <span className="text-text font-mono text-[10px] break-all">
+                      {preview.params.loras!.map((l) => `${l.name}@${l.weight}`).join(", ")}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Category selector */}
+            <div>
+              <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-text-subtle mb-1.5">
+                Categoría — elige a cuál pertenece
+              </p>
+              <div className="grid grid-cols-3 gap-1.5">
+                {STYLE_CATEGORIES.filter((c) => c.id !== "uncategorized").map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setImportCategory(cat.id)}
+                    className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-[11px] font-medium transition-all ${
+                      importCategory === cat.id
+                        ? "bg-kira/15 border border-kira/60 text-text"
+                        : "bg-bg-elevated border border-border text-text-muted hover:text-text"
+                    }`}
+                  >
+                    <span>{cat.icon}</span>
+                    <span className="truncate">{cat.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={handleCancelPreview}
+                disabled={importBusy}
+                className="flex-1 h-10 rounded-lg border border-border text-text-muted hover:text-text text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmImport}
+                disabled={importBusy}
+                className="flex-1 h-10 rounded-lg bg-kira text-[#0a0a0c] text-sm font-medium transition-all active:scale-[0.98] disabled:opacity-50"
+              >
+                {importBusy ? (
+                  <Loader2 className="size-4 animate-spin mx-auto" />
+                ) : (
+                  `Guardar en ${STYLE_CATEGORIES.find((c) => c.id === importCategory)?.label}`
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {importError && (
+          <p className="text-[11px] text-danger text-center">{importError}</p>
+        )}
+        {importSuccess && (
+          <p className="text-[11px] text-emerald-400 text-center flex items-center justify-center gap-1">
+            <Check className="size-3" /> Guardado en tu biblioteca
+          </p>
+        )}
+      </div>
+
+      {/* Tabs por categoría */}
+      <div>
+        <div className="flex gap-1 overflow-x-auto no-scrollbar pb-2">
+          <TabButton
+            active={activeTab === "all"}
+            onClick={() => setActiveTab("all")}
+            label="Todas"
+            count={likesCount}
+          />
+          {STYLE_CATEGORIES.map((cat) => {
+            const count = categoryCounts[cat.id] || 0;
+            if (count === 0 && cat.id === "uncategorized") return null;
+            return (
+              <TabButton
+                key={cat.id}
+                active={activeTab === cat.id}
+                onClick={() => setActiveTab(cat.id)}
+                label={`${cat.icon} ${cat.label}`}
+                count={count}
+              />
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Grid */}
       {loading ? (
         <div className="flex justify-center py-10">
           <Loader2 className="size-5 animate-spin text-text-muted" />
@@ -401,46 +585,82 @@ function StyleSection() {
             Reintentar
           </button>
         </div>
-      ) : onlyLikes.length === 0 ? (
+      ) : filteredLikes.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-10 text-text-muted">
           <ThumbsUp className="size-10 mb-3 opacity-30" />
-          <p className="text-sm">Aún no has likeado ninguna imagen</p>
+          <p className="text-sm">
+            {activeTab === "all"
+              ? "Aún no has guardado imágenes"
+              : "No hay imágenes en esta categoría"}
+          </p>
           <p className="text-xs text-text-subtle mt-1 max-w-[280px] text-center">
-            Abre cualquier imagen en la galería o chat y dale 👍 para guardar su estilo
+            Pega un link de Civitai arriba o dale 👍 a una imagen del chat
           </p>
         </div>
       ) : (
-        <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-text-subtle mb-2 px-1">
-            Últimas likeadas
-          </p>
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-            {onlyLikes.slice(0, 24).map((like) => (
-              <div
-                key={like.id}
-                className="relative aspect-square rounded-lg overflow-hidden bg-bg-surface border border-border group"
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+          {filteredLikes.map((like) => (
+            <div
+              key={like.id}
+              className="relative aspect-square rounded-lg overflow-hidden bg-bg-surface border border-border group"
+            >
+              {like.image_url && (
+                <img
+                  src={like.source === "civitai" ? like.image_url : getCfTransformUrl(like.image_url, "thumb")}
+                  alt={like.prompt || "Liked"}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              )}
+              {like.source === "civitai" && (
+                <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-black/70 backdrop-blur-sm text-[8px] font-mono text-white/80">
+                  civitai
+                </div>
+              )}
+              <button
+                onClick={() => handleRemove(like.id)}
+                className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/70 backdrop-blur-sm text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center active:opacity-100"
+                aria-label="Quitar"
               >
-                {like.image_url && (
-                  <img
-                    src={getCfTransformUrl(like.image_url, "thumb")}
-                    alt={like.prompt || "Liked"}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                )}
-                <button
-                  onClick={() => handleRemove(like.message_id)}
-                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/70 backdrop-blur-sm text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center active:opacity-100"
-                  aria-label="Quitar like"
-                >
-                  <ThumbsDown className="size-3" />
-                </button>
-              </div>
-            ))}
-          </div>
+                <ThumbsDown className="size-3" />
+              </button>
+            </div>
+          ))}
         </div>
       )}
     </div>
+  );
+}
+
+function TabButton({
+  active,
+  onClick,
+  label,
+  count,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  count: number;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
+        active
+          ? "bg-white/[0.08] text-text"
+          : "text-text-muted hover:text-text"
+      }`}
+    >
+      {label}
+      {count > 0 && (
+        <span
+          className={`ml-1.5 text-[10px] font-mono ${active ? "text-kira" : "text-text-subtle"}`}
+        >
+          {count}
+        </span>
+      )}
+    </button>
   );
 }
 

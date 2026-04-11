@@ -3,8 +3,8 @@ import { motion } from "framer-motion";
 /**
  * EngineSelector — visual model picker.
  *
- * Mobile: 3 engines primarios (gemini/zimage/flux2) en grid 3 cols.
- * Desktop (md+): 9 engines totales organizados en 2 filas de 5 columnas:
+ * Mobile: 4 engines primarios en grid 4 cols — gemini, zimage, flux2, sdxl.
+ * Desktop (md+): 10 engines totales en 2 filas de 5 columnas:
  *   Fila 1 — Flux family: gemini, zimage, flux1, flux2, raw
  *   Fila 2 — SDXL stack:  sdxl-dreamshaper, sdxl-realistic, sdxl-cyber, sdxl-pony, sdxl-illustrious
  *

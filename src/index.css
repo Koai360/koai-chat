@@ -675,3 +675,13 @@ button, a, [role="button"] {
 /* ===== NO SCROLLBAR UTILITY ===== */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ===== TOUCH-VISIBLE TIMESTAMPS =====
+ * En dispositivos touch (sin hover) los timestamps de mensajes quedan
+ * visibles con opacity reducida, ya que el group-hover nunca dispara.
+ */
+@media (hover: none) {
+  .timestamp-on-hover {
+    opacity: 0.5 !important;
+  }
+}

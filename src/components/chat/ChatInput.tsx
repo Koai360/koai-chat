@@ -101,6 +101,38 @@ export function ChatInput({ onSend, onTranscribe: _onTranscribe, disabled, place
     }
   }, [editSourceUrl]);
 
+  // Escuchar eventos de prefill disparados desde EmptyState quick actions.
+  // Permite que los shortcuts prellenen el input sin enviar automáticamente.
+  useEffect(() => {
+    const handlePrefill = (e: Event) => {
+      const detail = (e as CustomEvent<{
+        text?: string;
+        imageMode?: boolean;
+        imageEngine?: string;
+      }>).detail;
+      if (!detail) return;
+      if (detail.text !== undefined) setText(detail.text);
+      if (detail.imageMode) {
+        setImageMode(true);
+        if (detail.imageEngine) setImageEngine(detail.imageEngine);
+      }
+      // Focus + select para que el user pueda editar rápido
+      setTimeout(() => {
+        editorRef.current?.focus();
+        editorRef.current?.select();
+      }, 50);
+    };
+    const handleFocus = () => {
+      setTimeout(() => editorRef.current?.focus(), 50);
+    };
+    window.addEventListener("chat-prefill", handlePrefill);
+    window.addEventListener("chat-focus", handleFocus);
+    return () => {
+      window.removeEventListener("chat-prefill", handlePrefill);
+      window.removeEventListener("chat-focus", handleFocus);
+    };
+  }, []);
+
   // Auto-grow textarea hasta max-h (120px). Llamar después de cambios de `text`.
   const autoGrow = () => {
     const el = editorRef.current;

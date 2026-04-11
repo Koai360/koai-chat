@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ThumbsUp, ThumbsDown, RefreshCw, Copy, Check, MoreHorizontal } from "lucide-react";
+import { ThumbsUp, ThumbsDown, RefreshCw, Copy, Check } from "lucide-react";
 
 interface Props {
   onThumbsUp?: () => void;
@@ -63,26 +63,25 @@ export function MessageActions({ onThumbsUp, onThumbsDown, onRegenerate, onCopy,
     >
       <ActionButton
         icon={ThumbsUp}
-        tooltip="Good response"
+        tooltip="Buena respuesta"
         onClick={handleThumbsUp}
         active={thumbState === "up"}
       />
       <ActionButton
         icon={ThumbsDown}
-        tooltip="Bad response"
+        tooltip="Mala respuesta"
         onClick={handleThumbsDown}
         active={thumbState === "down"}
       />
       {isLast && onRegenerate && (
-        <ActionButton icon={RefreshCw} tooltip="Regenerate" onClick={onRegenerate} />
+        <ActionButton icon={RefreshCw} tooltip="Regenerar" onClick={onRegenerate} />
       )}
       <ActionButton
         icon={copied ? Check : Copy}
-        tooltip="Copy"
+        tooltip={copied ? "Copiado" : "Copiar"}
         onClick={handleCopy}
         active={copied}
       />
-      <ActionButton icon={MoreHorizontal} tooltip="More" />
     </div>
   );
 }

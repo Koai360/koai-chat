@@ -98,9 +98,9 @@ export function AppShell({ user, onLogout }: Props) {
     window.dispatchEvent(new CustomEvent("gallery-image-hidden", { detail: { id: imageId, hidden } }));
   }, []);
 
-  // Splash screen — 2.2s
+  // Splash screen — 1.4s (balance entre brand moment y no hacer esperar)
   useEffect(() => {
-    const t = setTimeout(() => setShowSplash(false), 2200);
+    const t = setTimeout(() => setShowSplash(false), 1400);
     return () => clearTimeout(t);
   }, []);
 

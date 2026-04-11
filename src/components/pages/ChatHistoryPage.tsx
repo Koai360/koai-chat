@@ -62,6 +62,18 @@ export function ChatHistoryPage({ conversations, onSelect, onDelete, onRename }:
   // Dialog state para renombrar
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
+  // Dialog state para confirmar delete
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const deletingConvo = deletingId ? conversations.find((c) => c.id === deletingId) : null;
+
+  const confirmDelete = (id: string) => setDeletingId(id);
+  const cancelDelete = () => setDeletingId(null);
+  const executeDelete = () => {
+    if (deletingId) {
+      onDelete(deletingId);
+      setDeletingId(null);
+    }
+  };
 
   const openEdit = (id: string, currentTitle: string) => {
     setEditingId(id);
@@ -164,7 +176,7 @@ export function ChatHistoryPage({ conversations, onSelect, onDelete, onRename }:
                 key={c.id}
                 conversation={c}
                 onSelect={onSelect}
-                onDelete={onDelete}
+                onDelete={confirmDelete}
                 onEdit={openEdit}
               />
             ))}
@@ -176,7 +188,7 @@ export function ChatHistoryPage({ conversations, onSelect, onDelete, onRename }:
                 key={c.id}
                 conversation={c}
                 onSelect={onSelect}
-                onDelete={onDelete}
+                onDelete={confirmDelete}
                 onEdit={openEdit}
               />
             ))}
@@ -209,6 +221,31 @@ export function ChatHistoryPage({ conversations, onSelect, onDelete, onRename }:
             </Button>
             <Button onClick={submitEdit} disabled={!editingTitle.trim()}>
               Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de confirmación de delete */}
+      <Dialog open={deletingId !== null} onOpenChange={(open) => !open && cancelDelete()}>
+        <DialogContent className="sm:max-w-[420px] bg-bg-elevated border-border">
+          <DialogHeader>
+            <DialogTitle className="text-text">¿Eliminar conversación?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-text-muted">
+            {deletingConvo
+              ? `"${getDisplayTitle(deletingConvo)}" se eliminará permanentemente. Esta acción no se puede deshacer.`
+              : "Esta acción no se puede deshacer."}
+          </p>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="ghost" onClick={cancelDelete}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={executeDelete}
+              className="bg-danger hover:bg-danger/90 text-white"
+            >
+              Eliminar
             </Button>
           </DialogFooter>
         </DialogContent>

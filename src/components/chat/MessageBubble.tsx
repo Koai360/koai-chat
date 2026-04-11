@@ -114,7 +114,7 @@ export function MessageBubble({ message, conversationId, onImageClick, onEditIma
             </p>
           )}
         </div>
-        <span className="text-[10px] mt-1 mr-1 text-text-muted opacity-0 group-hover/msg:opacity-100 transition-opacity">
+        <span className="text-[10px] mt-1 mr-1 text-text-muted timestamp-on-hover opacity-0 group-hover/msg:opacity-100 transition-opacity">
           {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
         </span>
       </motion.div>
@@ -205,7 +205,7 @@ export function MessageBubble({ message, conversationId, onImageClick, onEditIma
           }}
         />
 
-        <span className="text-[10px] text-text-muted opacity-0 group-hover/msg:opacity-100 transition-opacity mt-0.5">
+        <span className="text-[10px] text-text-muted timestamp-on-hover opacity-0 group-hover/msg:opacity-100 transition-opacity mt-0.5">
           {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
         </span>
       </div>

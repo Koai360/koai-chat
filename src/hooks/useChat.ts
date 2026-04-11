@@ -554,7 +554,8 @@ export function useChat(userId: string | null = null) {
 
   const deleteConversation = useCallback(
     (id: string) => {
-      if (!window.confirm("¿Eliminar esta conversación?")) return;
+      // La confirmación la hace el caller (ChatHistoryPage con Dialog shadcn).
+      // Aquí solo ejecutamos la eliminación optimista + backend.
       setConversations((prev) => prev.filter((c) => c.id !== id));
       if (activeId === id) setActiveId(null);
       deleteConversationApi(id).catch((err) =>

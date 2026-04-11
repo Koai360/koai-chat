@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Download, Trash2, Loader2, Pencil, EyeOff, Eye } from "lucide-react";
+import { X, Download, Trash2, Loader2, Pencil, EyeOff, Eye, MoreVertical } from "lucide-react";
 import { getCfTransformUrl, getOriginalUrl, triggerDownload } from "@/lib/cfTransform";
 
 interface Props {
@@ -38,23 +38,26 @@ export function ImageViewer({ src, imageId, onDelete, onEdit, onHide, isHidden, 
   const [deleting, setDeleting] = useState(false);
   const [downloadOpen, setDownloadOpen] = useState(false);
   const [hiding, setHiding] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
     const handle = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         if (downloadOpen) setDownloadOpen(false);
+        else if (moreOpen) setMoreOpen(false);
         else onClose();
       }
     };
     document.addEventListener("keydown", handle);
     return () => document.removeEventListener("keydown", handle);
-  }, [onClose, downloadOpen]);
+  }, [onClose, downloadOpen, moreOpen]);
 
   // Reset state when image changes
   useEffect(() => {
     setConfirming(false);
     setDeleting(false);
     setDownloadOpen(false);
+    setMoreOpen(false);
   }, [src, imageId]);
 
   const isR2Url = src.startsWith("https://cdn.koai360.com/") || src.startsWith("https://refnipatiiyddkuxjqaf.supabase.co/");
@@ -138,6 +141,8 @@ export function ImageViewer({ src, imageId, onDelete, onEdit, onHide, isHidden, 
         className="absolute top-0 right-0 flex gap-2 p-4 z-10"
         style={{ paddingTop: "calc(1rem + env(safe-area-inset-top, 0px))" }}
       >
+        {/* ── DESKTOP (sm+): botones separados con label ── */}
+
         {/* Edit (solo para URLs R2 donde sabemos el original lossless) */}
         {isR2Url && onEdit && (
           <button
@@ -145,7 +150,7 @@ export function ImageViewer({ src, imageId, onDelete, onEdit, onHide, isHidden, 
               e.stopPropagation();
               handleEditClick();
             }}
-            className="h-10 px-3 rounded-full flex items-center gap-1.5 text-white text-xs font-medium transition-all active:scale-95 bg-[rgba(123,45,142,0.55)] hover:bg-[rgba(123,45,142,0.75)]"
+            className="hidden sm:flex h-10 px-3 rounded-full items-center gap-1.5 text-white text-xs font-medium transition-all active:scale-95 bg-[rgba(123,45,142,0.55)] hover:bg-[rgba(123,45,142,0.75)]"
             aria-label="Editar esta imagen con Kontext"
           >
             <Pencil className="h-[14px] w-[14px]" />
@@ -161,7 +166,7 @@ export function ImageViewer({ src, imageId, onDelete, onEdit, onHide, isHidden, 
               handleHideClick();
             }}
             disabled={hiding}
-            className="h-10 px-3 rounded-full flex items-center gap-1.5 text-white text-xs font-medium transition-all active:scale-95 disabled:opacity-60 bg-white/10 hover:bg-white/20"
+            className="hidden sm:flex h-10 px-3 rounded-full items-center gap-1.5 text-white text-xs font-medium transition-all active:scale-95 disabled:opacity-60 bg-white/10 hover:bg-white/20"
             aria-label={isHidden ? "Mostrar en galería" : "Ocultar de galería"}
           >
             {hiding ? (
@@ -183,7 +188,7 @@ export function ImageViewer({ src, imageId, onDelete, onEdit, onHide, isHidden, 
               handleDeleteClick();
             }}
             disabled={deleting}
-            className="h-10 px-3 rounded-full flex items-center gap-1.5 text-white text-xs font-medium transition-all active:scale-95 disabled:opacity-60"
+            className="hidden sm:flex h-10 px-3 rounded-full items-center gap-1.5 text-white text-xs font-medium transition-all active:scale-95 disabled:opacity-60"
             style={{
               background: confirming ? "rgba(220,38,38,0.95)" : "rgba(220,38,38,0.55)",
               boxShadow: confirming ? "0 0 0 2px rgba(220,38,38,0.4)" : "none",
@@ -197,6 +202,84 @@ export function ImageViewer({ src, imageId, onDelete, onEdit, onHide, isHidden, 
             )}
             <span>{confirming ? "Confirmar" : "Eliminar"}</span>
           </button>
+        )}
+
+        {/* ── MOBILE (<sm): dropdown ⋮ con Edit/Hide/Delete ── */}
+        {((isR2Url && onEdit) || (imageId && onHide) || (imageId && onDelete)) && (
+          <div className="relative sm:hidden">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setMoreOpen((o) => !o);
+                if (downloadOpen) setDownloadOpen(false);
+              }}
+              className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+              aria-label="Más opciones"
+              aria-expanded={moreOpen}
+            >
+              <MoreVertical className="h-[18px] w-[18px]" />
+            </button>
+            <AnimatePresence>
+              {moreOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -6, scale: 0.96 }}
+                  transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                  className="absolute top-12 right-0 w-44 rounded-xl overflow-hidden border border-white/15 shadow-2xl"
+                  style={{ backgroundColor: "#0f0f12" }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {isR2Url && onEdit && (
+                    <button
+                      onClick={() => {
+                        setMoreOpen(false);
+                        handleEditClick();
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-3 hover:bg-white/5 transition-colors text-left"
+                    >
+                      <Pencil className="h-4 w-4 text-[#E5A3F0]" />
+                      <span className="text-sm text-white">Editar</span>
+                    </button>
+                  )}
+                  {imageId && onHide && (
+                    <button
+                      onClick={() => {
+                        setMoreOpen(false);
+                        handleHideClick();
+                      }}
+                      disabled={hiding}
+                      className="w-full flex items-center gap-3 px-3 py-3 hover:bg-white/5 transition-colors text-left disabled:opacity-60"
+                    >
+                      {isHidden ? (
+                        <Eye className="h-4 w-4 text-white/80" />
+                      ) : (
+                        <EyeOff className="h-4 w-4 text-white/80" />
+                      )}
+                      <span className="text-sm text-white">
+                        {isHidden ? "Mostrar" : "Ocultar"}
+                      </span>
+                    </button>
+                  )}
+                  {imageId && onDelete && (
+                    <button
+                      onClick={() => {
+                        setMoreOpen(false);
+                        handleDeleteClick();
+                      }}
+                      disabled={deleting}
+                      className="w-full flex items-center gap-3 px-3 py-3 hover:bg-white/5 transition-colors text-left disabled:opacity-60 border-t border-white/10"
+                    >
+                      <Trash2 className="h-4 w-4 text-red-400" />
+                      <span className="text-sm text-red-300">
+                        {confirming ? "Confirmar eliminar" : "Eliminar"}
+                      </span>
+                    </button>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         )}
 
         {/* Download (con menú si es URL R2, fallback si legacy base64) */}

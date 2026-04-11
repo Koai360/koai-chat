@@ -15,16 +15,19 @@
       entre plataformas. Con el default, ambos OS shrinken el viewport
       consistentemente.
     -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1" />
+    <!-- maximum-scale removido: violaba WCAG 1.4.4 (Resize text).
+         El zoom-out iOS en inputs se previene con font-size:16px en ChatInput,
+         no con maximum-scale. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#0a0a0c" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Noa AI" />
     <link rel="manifest" href="/manifest.json" />
-    <title>Noa AI — Asistente Inteligente</title>
-    <meta name="description" content="Noa AI - Tu asistente de inteligencia artificial por KOAI Studios. Chatea, resume textos, genera contenido creativo y obtén respuestas al instante." />
-    <meta property="og:title" content="Noa AI — Asistente Inteligente" />
-    <meta property="og:description" content="Chatea con Noa AI. Resume textos, genera contenido creativo y obtén respuestas al instante." />
+    <title>Noa AI — Asistente interna KOAI Studios</title>
+    <meta name="description" content="Chat privado con Noa IA del equipo KOAI Studios. Generación de imágenes con Flux.2 Pro y Z-Image, edición iterativa con Kontext, y Kronos para código. 10 motores de IA en un solo lugar." />
+    <meta property="og:title" content="Noa AI — Asistente interna KOAI Studios" />
+    <meta property="og:description" content="Chat privado con Noa IA + Kronos. Flux.2 Pro, Z-Image, edición con Kontext. 10 motores en uno." />
     <meta property="og:image" content="https://chat.koai360.com/icons/koai-512.png" />
     <meta property="og:url" content="https://chat.koai360.com" />
     <meta property="og:type" content="website" />

@@ -113,7 +113,7 @@ function getGreeting(): string {
   return "Buenas noches";
 }
 
-export function EmptyState({ agent, userName, onSend, loading }: Props) {
+export function EmptyState({ agent, userName, onSend: _onSend, loading }: Props) {
   const greeting = getGreeting();
   const displayName = userName?.split(" ")[0] || (agent === "kronos" ? "Boss" : "");
   const actions = agent === "kronos" ? KRONOS_ACTIONS : KIRA_ACTIONS;
@@ -178,7 +178,32 @@ export function EmptyState({ agent, userName, onSend, loading }: Props) {
                 onClick={() => {
                   if (loading) return;
                   if (navigator.vibrate) navigator.vibrate(8);
-                  onSend(action.prompt, undefined, action.imageMode, action.imageEngine);
+                  // Las acciones con imageMode NO envían directo: solo
+                  // prellenan el input + activan modo imagen. El usuario
+                  // edita el prompt y envía cuando quiera.
+                  if (action.imageMode) {
+                    window.dispatchEvent(
+                      new CustomEvent("chat-prefill", {
+                        detail: {
+                          text: action.prompt,
+                          imageMode: true,
+                          imageEngine: action.imageEngine,
+                        },
+                      }),
+                    );
+                    return;
+                  }
+                  // Acciones sin imageMode: si hay prompt, prefill; si es vacío
+                  // (ej "Preguntar a Noa"), solo focus al input.
+                  if (action.prompt) {
+                    window.dispatchEvent(
+                      new CustomEvent("chat-prefill", {
+                        detail: { text: action.prompt },
+                      }),
+                    );
+                  } else {
+                    window.dispatchEvent(new CustomEvent("chat-focus"));
+                  }
                 }}
                 initial={{ opacity: 0, x: -8, filter: "blur(4px)" }}
                 animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}

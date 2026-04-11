@@ -58,7 +58,7 @@ export function ContentTopBar({
       >
         {(["kira", "kronos"] as const).map((opt) => {
           const isActive = agent === opt;
-          const label = opt === "kira" ? "Kira" : "Kronos";
+          const label = opt === "kira" ? "Noa" : "Kronos";
           const accent = opt === "kira" ? "#D4E94B" : "#00E5FF";
           return (
             <button

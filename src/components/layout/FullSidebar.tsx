@@ -62,7 +62,7 @@ export function FullSidebar({
             <div className="w-7 h-7 bg-[var(--foreground)] rounded-full flex items-center justify-center">
               <AIStarIcon size="sm" className="w-4 h-4" />
             </div>
-            <h2 className="text-[16px] font-medium text-text font-display">Kira</h2>
+            <h2 className="text-[16px] font-medium text-text font-display">Noa</h2>
           </div>
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" className="h-8 w-8 text-text-muted hover:text-text" onClick={onClose}>

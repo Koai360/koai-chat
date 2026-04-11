@@ -187,11 +187,12 @@ export async function streamKiraMessage(
   // - zimage/studioflux-raw: ~5-60s → 180_000ms
   // - resto: 120_000ms
   const isStudio = imageEngine === "studioflux-raw" || imageEngine === "zimage";
+  const isSdxl = imageEngine === "sdxl" || imageEngine?.startsWith("sdxl-");
   const timeoutMs = editMode
     ? 180_000
     : imageMode
       ? imageEngine === "flux2" ? 240_000
-      : isStudio ? 180_000
+      : isStudio || isSdxl ? 180_000
       : 90_000
     : 120_000;
 
@@ -396,6 +397,30 @@ export async function saveMessages(
   });
 }
 
+/**
+ * Intenta recuperar la última respuesta del servidor cuando el stream SSE
+ * se perdió (iOS background, red intermitente). Busca si el backend ya
+ * persistió un mensaje con imagen para esta conversación.
+ */
+export async function recoverLastAssistantMessage(
+  conversationId: string,
+): Promise<{ content: string; image?: string } | null> {
+  try {
+    const msgs = await fetchMessages(conversationId);
+    if (!msgs.length) return null;
+    // Buscar el último mensaje del assistant
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      const m = msgs[i];
+      if (m.role === "assistant" && (m.content || m.image)) {
+        return { content: m.content || "", image: m.image || undefined };
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export async function deleteMessages(conversationId: string, messageIds: string[]): Promise<void> {
   await fetch(`${API_URL}/api/chat/conversations/${conversationId}/messages`, {
     method: "DELETE",
@@ -463,6 +488,7 @@ export interface GalleryImage {
   content: string;
   created_at: string;
   engine?: string;
+  is_hidden?: boolean;
 }
 
 export interface GalleryPage {
@@ -474,6 +500,7 @@ export interface FetchImagesOpts {
   limit?: number;
   before?: string | null;
   signal?: AbortSignal;
+  hidden?: boolean;
 }
 
 /**
@@ -482,10 +509,11 @@ export interface FetchImagesOpts {
  * devuelve { items, next_cursor }.
  */
 export async function fetchImages(opts: FetchImagesOpts = {}): Promise<GalleryPage> {
-  const { limit = 24, before = null, signal } = opts;
+  const { limit = 24, before = null, signal, hidden = false } = opts;
   const params = new URLSearchParams();
   params.set("limit", String(limit));
   if (before) params.set("before", before);
+  if (hidden) params.set("hidden", "true");
 
   const res = await fetch(`${API_URL}/api/chat/images?${params.toString()}`, {
     headers: getHeaders(),
@@ -521,6 +549,48 @@ export async function deleteImage(messageId: string): Promise<void> {
     headers: getHeaders(),
   });
   if (!res.ok) throw new Error(`Error ${res.status}`);
+}
+
+export async function hideImage(messageId: string, hidden: boolean): Promise<void> {
+  const res = await fetch(`${API_URL}/api/chat/images/${messageId}/hide`, {
+    method: "PATCH",
+    headers: getHeaders(),
+    body: JSON.stringify({ hidden }),
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+}
+
+// --- Private Gallery PIN ---
+
+export async function fetchPrivateStatus(): Promise<{ has_pin: boolean }> {
+  const res = await fetch(`${API_URL}/api/chat/private/status`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) return { has_pin: false };
+  return res.json();
+}
+
+export async function setPrivatePin(pin: string, oldPin?: string): Promise<void> {
+  const body: Record<string, string> = { pin };
+  if (oldPin) body.old_pin = oldPin;
+  const res = await fetch(`${API_URL}/api/chat/private/set-pin`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({ detail: "Error" }));
+    throw new Error(data.detail || `Error ${res.status}`);
+  }
+}
+
+export async function verifyPrivatePin(pin: string): Promise<boolean> {
+  const res = await fetch(`${API_URL}/api/chat/private/verify-pin`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({ pin }),
+  });
+  return res.ok;
 }
 
 // --- Notifications ---

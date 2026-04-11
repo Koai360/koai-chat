@@ -28,7 +28,7 @@ self.addEventListener("push", (e) => {
   if (!e.data) return;
   try {
     const data = e.data.json();
-    const title = data.title || "Kira AI";
+    const title = data.title || "Noa AI";
     const options = {
       body: data.body || "",
       icon: "/icons/koai-192.png",

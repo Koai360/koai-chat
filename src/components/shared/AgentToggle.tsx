@@ -29,7 +29,7 @@ export function AgentToggle({ agent, onChange, disabled }: Props) {
                 : a === "kira" ? "bg-kira" : "bg-kronos",
             )}
           />
-          {a === "kira" ? "Kira" : "Kronos"}
+          {a === "kira" ? "Noa" : "Kronos"}
         </button>
       ))}
 

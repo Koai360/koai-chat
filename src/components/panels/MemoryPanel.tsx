@@ -249,7 +249,7 @@ export function MemoryPanel({ onClose }: Props) {
           <ScrollArea className="flex-1">
             {userLoading ? renderLoading() :
              userError ? renderError(userError) :
-             userMemories.length === 0 ? renderEmpty("Kira aún no ha aprendido nada sobre ti. Chatea con ella y aprenderá automáticamente.") :
+             userMemories.length === 0 ? renderEmpty("Noa aún no ha aprendido nada sobre ti. Chatea con ella y aprenderá automáticamente.") :
              (
               <AnimatePresence>
                 {userMemories.map((mem, i) => {

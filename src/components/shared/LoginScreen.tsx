@@ -158,7 +158,7 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
       >
         {/* Bot icon + text */}
         <div className="flex flex-col items-center gap-[8px] w-full">
-          <img src="/images/kira-bot-icon.svg" alt="Kira AI" className="w-[80px] h-[80px]" />
+          <img src="/images/kira-bot-icon.svg" alt="Noa AI" className="w-[80px] h-[80px]" />
           <div className="text-center w-full">
             <p
               className="text-[22px] font-semibold text-[#0D121C] leading-normal"
@@ -172,7 +172,7 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
             >
               Conversaciones inteligentes
               <br />
-              con Kira y Kronos
+              con Noa y Kronos
             </p>
           </div>
         </div>

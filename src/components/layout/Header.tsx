@@ -72,7 +72,7 @@ export function Header({
                 color: agent === "kira" ? "#000000" : "rgba(255,255,255,0.55)",
               }}
             >
-              Kira
+              Noa
             </button>
             <button
               onClick={() => !agentDisabled && onAgentChange("kronos")}

@@ -10,6 +10,7 @@ import {
   saveMessages,
   deleteMessages as deleteMessagesApi,
   assignConversationProject,
+  recoverLastAssistantMessage,
   type ServerConversation,
   type ServerMessage,
   type ThinkingLevel,
@@ -246,7 +247,9 @@ export function useChat(userId: string | null = null) {
             ? "Generando con Z-Image-Turbo (~5s)..."
             : imageEngine === "studioflux-raw"
               ? "Generando con Studio RAW (~5-30s)..."
-              : "Generando imagen..."
+              : imageEngine === "sdxl" || imageEngine?.startsWith("sdxl-")
+                ? "Generando con SDXL (~10s)..."
+                : "Generando imagen..."
         : "Pensando..."; // NUEVO: default para chat normal (antes era null → solo dots)
       setLoadingHint(initialHint);
 
@@ -275,7 +278,9 @@ export function useChat(userId: string | null = null) {
         imageMode &&
         (imageEngine === "zimage" ||
           imageEngine === "flux2" ||
-          imageEngine === "studioflux-raw");
+          imageEngine === "studioflux-raw" ||
+          imageEngine === "sdxl" ||
+          imageEngine?.startsWith("sdxl-"));
       const coldStartTimer = isModalEngine
         ? setTimeout(() => {
             setLoadingHint(
@@ -389,7 +394,32 @@ export function useChat(userId: string | null = null) {
                 console.warn("[useChat] Stream error, retrying...", streamErr);
                 await new Promise((r) => setTimeout(r, 1500));
               } else {
+                // Antes de fallar: intentar recuperar del servidor (iOS background)
+                if (convoId && (imageMode || editMode)) {
+                  console.info("[useChat] Stream lost — attempting server recovery...");
+                  setLoadingHint("Reconectando...");
+                  // Esperar un poco para que el backend termine de persistir
+                  await new Promise((r) => setTimeout(r, 3000));
+                  const recovered = await recoverLastAssistantMessage(convoId);
+                  if (recovered && (recovered.image || recovered.content)) {
+                    console.info("[useChat] Recovery OK — got message from server");
+                    assistantContent = recovered.content || "(imagen generada)";
+                    assistantImage = recovered.image;
+                    break;
+                  }
+                }
                 throw streamErr;
+              }
+            }
+          }
+          if (!assistantContent) {
+            // Último intento: recovery del servidor
+            if (convoId && (imageMode || editMode)) {
+              const recovered = await recoverLastAssistantMessage(convoId);
+              if (recovered && (recovered.image || recovered.content)) {
+                console.info("[useChat] Recovery (post-retry) OK");
+                assistantContent = recovered.content || "(imagen generada)";
+                assistantImage = recovered.image;
               }
             }
           }
@@ -524,6 +554,7 @@ export function useChat(userId: string | null = null) {
 
   const deleteConversation = useCallback(
     (id: string) => {
+      if (!window.confirm("¿Eliminar esta conversación?")) return;
       setConversations((prev) => prev.filter((c) => c.id !== id));
       if (activeId === id) setActiveId(null);
       deleteConversationApi(id).catch((err) =>

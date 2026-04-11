@@ -5,6 +5,7 @@ import { useChat } from "@/hooks/useChat";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useNavigation } from "@/hooks/useNavigation";
 import { useTheme } from "@/hooks/useTheme";
+import { usePrivateMode } from "@/hooks/usePrivateMode";
 import { transcribeAudio } from "@/lib/api";
 import { requestPushPermission } from "@/lib/push";
 import { IconRail } from "./IconRail";
@@ -56,9 +57,10 @@ export function AppShell({ user, onLogout }: Props) {
   const { notifications, unreadCount: _unreadCount, markRead, markAllRead, removeOne, removeAll } = useNotifications();
   const { currentPage, navigate } = useNavigation();
   const { theme, toggleTheme } = useTheme();
+  const { isUnlocked: isPrivateUnlocked } = usePrivateMode();
 
   const [activePanel, setActivePanel] = useState<PanelType>(null);
-  const [modalImage, setModalImage] = useState<{ src: string; id?: string } | null>(null);
+  const [modalImage, setModalImage] = useState<{ src: string; id?: string; isHidden?: boolean } | null>(null);
   // editSourceUrl: URL de imagen R2 que el usuario pidió editar (desde chat o galería).
   // Se pasa a ChatView → ChatInput, que abre el modo edit automático y envía vía image_url.
   const [editSourceUrl, setEditSourceUrl] = useState<string | null>(null);
@@ -88,6 +90,13 @@ export function AppShell({ user, onLogout }: Props) {
   }, [currentPage, navigate]);
 
   const clearEditSource = useCallback(() => setEditSourceUrl(null), []);
+
+  // Handler de hide/show desde ImageViewer (galería privada)
+  const handleViewerHide = useCallback(async (imageId: string, hidden: boolean) => {
+    const { hideImage } = await import("@/lib/api");
+    await hideImage(imageId, hidden);
+    window.dispatchEvent(new CustomEvent("gallery-image-hidden", { detail: { id: imageId, hidden } }));
+  }, []);
 
   // Splash screen — 2.2s
   useEffect(() => {
@@ -203,7 +212,8 @@ export function AppShell({ user, onLogout }: Props) {
       case "media":
         return (
           <MediaGalleryPage
-            onImageClick={(src, id) => setModalImage({ src, id })}
+            onImageClick={(src, id, isHidden) => setModalImage({ src, id, isHidden })}
+            isPrivateUnlocked={isPrivateUnlocked}
           />
         );
       case "settings":
@@ -330,8 +340,10 @@ export function AppShell({ user, onLogout }: Props) {
           <ImageViewer
             src={modalImage.src}
             imageId={modalImage.id}
+            isHidden={modalImage.isHidden}
             onDelete={modalImage.id ? handleViewerDelete : undefined}
             onEdit={handleEditImage}
+            onHide={modalImage.id ? handleViewerHide : undefined}
             onClose={() => setModalImage(null)}
           />
         )}

@@ -41,7 +41,7 @@ export function HomePage({ userName, onSend, onNavigate: _onNavigate }: Props) {
       <ChatInput
         onSend={onSend}
         onTranscribe={transcribeAudio}
-        placeholder="Pregunta algo a Kira..."
+        placeholder="Pregunta algo a Noa..."
         agent="kira"
       />
     </div>

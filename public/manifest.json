@@ -1,7 +1,7 @@
 {
-  "name": "Kira AI — KOAI Studios",
-  "short_name": "Kira AI",
-  "description": "Chat con Kira y Kronos. Generación de imagen con Z-Image-Turbo y Flux.2 Pro. Marketing, código y creatividad en un solo lugar.",
+  "name": "Noa AI — KOAI Studios",
+  "short_name": "Noa AI",
+  "description": "Chat con Noa y Kronos. Generación de imagen con Z-Image-Turbo y Flux.2 Pro. Marketing, código y creatividad en un solo lugar.",
   "lang": "es",
   "dir": "ltr",
   "start_url": "/",
@@ -28,9 +28,9 @@
   ],
   "shortcuts": [
     {
-      "name": "Nuevo chat con Kira",
-      "short_name": "Kira",
-      "description": "Iniciar una conversación con Kira",
+      "name": "Nuevo chat con Noa",
+      "short_name": "Noa",
+      "description": "Iniciar una conversación con Noa",
       "url": "/?agent=kira&new=1",
       "icons": [{ "src": "/icons/koai-192.png", "sizes": "192x192" }]
     },

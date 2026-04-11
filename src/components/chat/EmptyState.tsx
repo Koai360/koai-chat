@@ -62,7 +62,7 @@ const KIRA_ACTIONS: QuickAction[] = [
   {
     mark: "?",
     tone: "neutral",
-    verb: "Preguntar a Kira",
+    verb: "Preguntar a Noa",
     hint: "Estrategia, ideas, briefs",
     prompt: "",
   },

@@ -207,7 +207,7 @@ export function Sidebar({
       >
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h2 className="text-[16px] font-medium text-text">Kira</h2>
+            <h2 className="text-[16px] font-medium text-text">Noa</h2>
             <p className="text-[10px] text-text-muted">by KOAI Studios</p>
           </div>
           <div className="flex items-center gap-1">

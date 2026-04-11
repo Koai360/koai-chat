@@ -18,6 +18,7 @@ export type EngineValue =
   | "flux1"
   | "flux2"
   | "studioflux-raw"
+  | "sdxl"
   | "sdxl-dreamshaper"
   | "sdxl-realistic"
   | "sdxl-cyber"
@@ -38,6 +39,7 @@ export const ENGINE_OPTIONS: readonly EngineOption[] = [
   { value: "gemini",          label: "Rápida",    desc: "Gemini · gratis · ~3s",                     tier: "free",    mark: "G" },
   { value: "zimage",          label: "Z-Image",   desc: "Modal · sin filtro · $0.016 · ~5s",         tier: "value",   mark: "Z" },
   { value: "flux2",           label: "Flux.2",    desc: "Modal · 32B frontier · $0.035 · ~30s",      tier: "premium", mark: "F" },
+  { value: "sdxl",            label: "SDXL",      desc: "Noa elige el mejor SDXL · $0.006 · ~10s",  tier: "sdxl",    mark: "S" },
   // Desktop-only — advanced Flux family
   { value: "flux1",           label: "Flux.1",    desc: "Modal · 12B permisivo · $0.018 · ~25s",     tier: "value",   mark: "1", desktopOnly: true },
   { value: "studioflux-raw",  label: "Raw",       desc: "Z-Image · sin enhancer · prompt directo",   tier: "raw",     mark: "R", desktopOnly: true },
@@ -84,7 +86,7 @@ export function EngineSelector({ value, onChange }: Props) {
       <div
         role="radiogroup"
         aria-label="Motor de generación de imagen"
-        className="grid grid-cols-3 md:grid-cols-5 gap-1.5"
+        className="grid grid-cols-4 md:grid-cols-5 gap-1.5"
       >
         {ENGINE_OPTIONS.map((opt, i) => {
           const isActive = value === opt.value;

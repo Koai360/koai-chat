@@ -75,7 +75,7 @@ function compressImage(dataUrl: string, maxBytes: number): Promise<{ base64: str
 // ENGINE_OPTIONS y tipos viven en EngineSelector.tsx (single source of truth)
 // Backend dispatch correspondiente: /opt/koai-api/koai/tools/image_gen_tools.py:generate_image()
 
-export function ChatInput({ onSend, onTranscribe: _onTranscribe, disabled, placeholder = "Pregunta algo a Kira...", autoFocus, agent = "kira", editSourceUrl, onClearEditSource }: Props) {
+export function ChatInput({ onSend, onTranscribe: _onTranscribe, disabled, placeholder = "Pregunta algo a Noa...", autoFocus, agent = "kira", editSourceUrl, onClearEditSource }: Props) {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
@@ -540,7 +540,7 @@ export function ChatInput({ onSend, onTranscribe: _onTranscribe, disabled, place
 
       {/* Disclaimer — hidden on mobile to save space */}
       <p className="hidden md:block text-[11px] text-text-muted text-center mt-2">
-        Kira puede cometer errores. Verifica la información importante.
+        Noa puede cometer errores. Verifica la información importante.
       </p>
       </div>
     </div>

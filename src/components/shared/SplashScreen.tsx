@@ -43,7 +43,7 @@ export function SplashScreen() {
         transition={{ delay: 0.6, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       >
         <h1 className="text-[24px] tracking-tight mb-1 font-display">
-          <span className="gradient-text-kira">Kira</span>
+          <span className="gradient-text-kira">Noa</span>
         </h1>
       </motion.div>
 

@@ -90,14 +90,26 @@ export function getOriginalUrl(originalUrl: string | null | undefined): string {
  * Helper para descargar programáticamente (botón download con filename custom).
  * Genera un link temporal y dispara el click.
  */
-export function triggerDownload(url: string, filename?: string): void {
-  const a = document.createElement("a");
-  a.href = url;
-  if (filename) a.download = filename;
-  a.rel = "noopener";
-  // target="_blank" como fallback en Safari (algunos casos no respetan download)
-  a.target = "_blank";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+export async function triggerDownload(url: string, filename?: string): Promise<void> {
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = filename || `koai-${Date.now()}.png`;
+    a.style.position = "fixed";
+    a.style.left = "-9999px";
+    a.style.opacity = "0";
+    document.body.appendChild(a);
+    a.click();
+    // Delay cleanup para que el browser procese el click
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    }, 100);
+  } catch {
+    // Fallback: abrir en nueva pestaña en vez de navegar away
+    window.open(url, "_blank", "noopener");
+  }
 }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Download, Trash2, Loader2, Pencil } from "lucide-react";
+import { X, Download, Trash2, Loader2, Pencil, EyeOff, Eye } from "lucide-react";
 import { getCfTransformUrl, getOriginalUrl, triggerDownload } from "@/lib/cfTransform";
 
 interface Props {
@@ -11,6 +11,10 @@ interface Props {
   onDelete?: (id: string) => Promise<void>;
   /** Callback de editar — abre ChatInput en modo edit con la URL */
   onEdit?: (imageUrl: string) => void;
+  /** Callback de ocultar/mostrar — galería privada */
+  onHide?: (id: string, hidden: boolean) => Promise<void>;
+  /** Si la imagen está oculta actualmente */
+  isHidden?: boolean;
   onClose: () => void;
 }
 
@@ -29,10 +33,11 @@ const DOWNLOAD_OPTIONS: {
   { value: "original", label: "Original", hint: "PNG lossless nativo", mark: "∞", color: "#E5A3F0" },
 ];
 
-export function ImageViewer({ src, imageId, onDelete, onEdit, onClose }: Props) {
+export function ImageViewer({ src, imageId, onDelete, onEdit, onHide, isHidden, onClose }: Props) {
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [downloadOpen, setDownloadOpen] = useState(false);
+  const [hiding, setHiding] = useState(false);
 
   useEffect(() => {
     const handle = (e: KeyboardEvent) => {
@@ -59,7 +64,7 @@ export function ImageViewer({ src, imageId, onDelete, onEdit, onClose }: Props) 
   const displaySrc = isR2Url ? getCfTransformUrl(src, "fullscreen") : src;
 
   const handleDownload = useCallback(
-    (variant: DownloadVariant) => {
+    async (variant: DownloadVariant) => {
       const url =
         variant === "original"
           ? getOriginalUrl(src)
@@ -67,7 +72,7 @@ export function ImageViewer({ src, imageId, onDelete, onEdit, onClose }: Props) 
 
       const ext = variant === "original" ? "png" : "jpg";
       const filename = `koai-${Date.now()}-${variant}.${ext}`;
-      triggerDownload(url, filename);
+      await triggerDownload(url, filename);
       setDownloadOpen(false);
       if (navigator.vibrate) navigator.vibrate(10);
     },
@@ -76,17 +81,7 @@ export function ImageViewer({ src, imageId, onDelete, onEdit, onClose }: Props) 
 
   // Fallback para imágenes legacy no-URL (base64)
   const handleLegacyDownload = useCallback(async () => {
-    try {
-      const res = await fetch(src);
-      const blob = await res.blob();
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `koai-${Date.now()}.png`;
-      a.click();
-      URL.revokeObjectURL(a.href);
-    } catch {
-      window.open(src, "_blank");
-    }
+    await triggerDownload(src, `koai-${Date.now()}.png`);
   }, [src]);
 
   const handleDeleteClick = useCallback(async () => {
@@ -117,6 +112,19 @@ export function ImageViewer({ src, imageId, onDelete, onEdit, onClose }: Props) 
     onClose();
   }, [onEdit, src, onClose]);
 
+  const handleHideClick = useCallback(async () => {
+    if (!imageId || !onHide) return;
+    setHiding(true);
+    try {
+      await onHide(imageId, !isHidden);
+      if (navigator.vibrate) navigator.vibrate(10);
+      onClose();
+    } catch (err) {
+      console.error("[ImageViewer] Hide failed:", err);
+      setHiding(false);
+    }
+  }, [imageId, isHidden, onHide, onClose]);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -142,6 +150,28 @@ export function ImageViewer({ src, imageId, onDelete, onEdit, onClose }: Props) 
           >
             <Pencil className="h-[14px] w-[14px]" />
             <span>Editar</span>
+          </button>
+        )}
+
+        {/* Hide/Show (galería privada) */}
+        {imageId && onHide && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleHideClick();
+            }}
+            disabled={hiding}
+            className="h-10 px-3 rounded-full flex items-center gap-1.5 text-white text-xs font-medium transition-all active:scale-95 disabled:opacity-60 bg-white/10 hover:bg-white/20"
+            aria-label={isHidden ? "Mostrar en galería" : "Ocultar de galería"}
+          >
+            {hiding ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : isHidden ? (
+              <Eye className="h-4 w-4" />
+            ) : (
+              <EyeOff className="h-4 w-4" />
+            )}
+            <span>{isHidden ? "Mostrar" : "Ocultar"}</span>
           </button>
         )}
 

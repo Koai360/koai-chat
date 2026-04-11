@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import {
   UserCircle,
   SlidersHorizontal,
@@ -12,8 +12,15 @@ import {
   Trash2,
   Mail,
   ChevronRight,
+  EyeOff,
+  Lock,
+  Loader2,
+  Check,
+  KeyRound,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
+import { usePrivateMode } from "@/hooks/usePrivateMode";
 import type { AuthUser } from "@/hooks/useAuth";
 
 interface Props {
@@ -100,7 +107,8 @@ export function SettingsPage({ user, onLogout, theme, onToggleTheme }: Props) {
           {activeSection === "preferences" && (
             <PreferencesSection theme={theme} onToggleTheme={onToggleTheme} />
           )}
-          {activeSection !== "account" && activeSection !== "preferences" && (
+          {activeSection === "security" && <SecuritySection />}
+          {activeSection !== "account" && activeSection !== "preferences" && activeSection !== "security" && (
             <ComingSoon label={NAV_ITEMS.find((n) => n.id === activeSection)?.label || ""} />
           )}
         </div>
@@ -233,6 +241,357 @@ function PreferencesSection({
     </div>
   );
 }
+
+/* ─── Security ─── */
+
+type PinStep = "idle" | "setup" | "verify" | "change-old" | "change-new";
+
+function SecuritySection() {
+  const { hasPin, isUnlocked, unlock, lock, setPin } = usePrivateMode();
+  const [pinStep, setPinStep] = useState<PinStep>("idle");
+  const [pinValue, setPinValue] = useState("");
+  const [oldPinValue, setOldPinValue] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const resetState = useCallback(() => {
+    setPinStep("idle");
+    setPinValue("");
+    setOldPinValue("");
+    setError(null);
+    setBusy(false);
+    setSuccess(false);
+  }, []);
+
+  // Handle PIN digit input
+  const handleDigit = useCallback(
+    (index: number, value: string, setter: (v: string) => void, currentVal: string) => {
+      if (!/^\d?$/.test(value)) return;
+      const digits = currentVal.split("");
+      digits[index] = value;
+      const newVal = digits.join("");
+      setter(newVal.slice(0, 4));
+
+      // Auto-focus next
+      if (value && index < 3) {
+        inputRefs.current[index + 1]?.focus();
+      }
+    },
+    [],
+  );
+
+  const handleKeyDown = useCallback(
+    (index: number, e: React.KeyboardEvent, currentVal: string, setter: (v: string) => void) => {
+      if (e.key === "Backspace" && !currentVal[index] && index > 0) {
+        const digits = currentVal.split("");
+        digits[index - 1] = "";
+        setter(digits.join(""));
+        inputRefs.current[index - 1]?.focus();
+      }
+    },
+    [],
+  );
+
+  // Setup new PIN
+  const handleSetup = useCallback(async () => {
+    if (pinValue.length !== 4) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await setPin(pinValue);
+      setSuccess(true);
+      setTimeout(resetState, 1500);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }, [pinValue, setPin, resetState]);
+
+  // Verify PIN to unlock
+  const handleVerify = useCallback(async () => {
+    if (pinValue.length !== 4) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const ok = await unlock(pinValue);
+      if (ok) {
+        setSuccess(true);
+        setTimeout(resetState, 1000);
+      } else {
+        setError("PIN incorrecto");
+        setPinValue("");
+        inputRefs.current[0]?.focus();
+      }
+    } catch {
+      setError("Error al verificar");
+    } finally {
+      setBusy(false);
+    }
+  }, [pinValue, unlock, resetState]);
+
+  // Change PIN — step 1: verify old
+  const handleChangeOld = useCallback(async () => {
+    if (oldPinValue.length !== 4) return;
+    // Just move to next step — actual verification happens on submit
+    setPinStep("change-new");
+    setPinValue("");
+    setTimeout(() => inputRefs.current[0]?.focus(), 100);
+  }, [oldPinValue]);
+
+  // Change PIN — step 2: set new
+  const handleChangeNew = useCallback(async () => {
+    if (pinValue.length !== 4) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await setPin(pinValue, oldPinValue);
+      setSuccess(true);
+      setTimeout(resetState, 1500);
+    } catch (err) {
+      setError((err as Error).message);
+      // Go back to old PIN step
+      setPinStep("change-old");
+      setOldPinValue("");
+      setPinValue("");
+    } finally {
+      setBusy(false);
+    }
+  }, [pinValue, oldPinValue, setPin, resetState]);
+
+  // Auto-submit when 4 digits entered
+  useEffect(() => {
+    if (pinValue.length === 4 && !busy) {
+      if (pinStep === "setup") handleSetup();
+      else if (pinStep === "verify") handleVerify();
+      else if (pinStep === "change-new") handleChangeNew();
+    }
+  }, [pinValue, pinStep, busy, handleSetup, handleVerify, handleChangeNew]);
+
+  useEffect(() => {
+    if (oldPinValue.length === 4 && pinStep === "change-old" && !busy) {
+      handleChangeOld();
+    }
+  }, [oldPinValue, pinStep, busy, handleChangeOld]);
+
+  const handleToggle = useCallback(
+    (checked: boolean) => {
+      if (!checked) {
+        // Turning OFF (locking) — instant
+        lock();
+      } else {
+        // Turning ON (unlocking) — needs PIN
+        setPinStep("verify");
+        setPinValue("");
+        setError(null);
+        setTimeout(() => inputRefs.current[0]?.focus(), 100);
+      }
+    },
+    [lock],
+  );
+
+  const renderPinInput = (value: string, setter: (v: string) => void) => (
+    <div className="flex gap-3 justify-center my-4">
+      {[0, 1, 2, 3].map((i) => (
+        <input
+          key={i}
+          ref={(el) => { inputRefs.current[i] = el; }}
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={1}
+          value={value[i] || ""}
+          onChange={(e) => handleDigit(i, e.target.value, setter, value)}
+          onKeyDown={(e) => handleKeyDown(i, e, value, setter)}
+          className="w-12 h-14 text-center text-xl font-mono font-bold rounded-xl bg-bg-elevated border border-border text-text focus:border-kira focus:ring-1 focus:ring-kira/30 outline-none transition-all"
+          autoComplete="off"
+        />
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-xl font-medium text-text font-display animate-fadeUpBlur">
+        Seguridad
+      </h2>
+
+      {/* Private Gallery Card */}
+      <div className="liquid-glass rounded-2xl p-5 space-y-4">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-kira/10 flex items-center justify-center shrink-0">
+            <EyeOff className="size-5 text-kira" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-medium text-text">Galería Privada</h3>
+            <p className="text-xs text-text-muted mt-0.5">
+              Oculta imágenes de la galería principal. Solo visibles con tu PIN.
+            </p>
+          </div>
+        </div>
+
+        {!hasPin ? (
+          /* No PIN configured yet */
+          <div className="space-y-3">
+            {pinStep !== "setup" ? (
+              <button
+                onClick={() => {
+                  setPinStep("setup");
+                  setPinValue("");
+                  setTimeout(() => inputRefs.current[0]?.focus(), 100);
+                }}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-kira/10 hover:bg-kira/20 text-kira text-sm font-medium transition-colors"
+              >
+                <KeyRound className="size-4" />
+                Configurar PIN
+              </button>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs text-text-muted text-center">
+                  Crea un PIN de 4 dígitos
+                </p>
+                {renderPinInput(pinValue, setPinValue)}
+                {error && (
+                  <p className="text-xs text-danger text-center">{error}</p>
+                )}
+                {success && (
+                  <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-400">
+                    <Check className="size-3.5" />
+                    PIN configurado
+                  </div>
+                )}
+                {busy && (
+                  <div className="flex justify-center">
+                    <Loader2 className="size-4 animate-spin text-kira" />
+                  </div>
+                )}
+                <button
+                  onClick={resetState}
+                  className="text-xs text-text-muted hover:text-text mx-auto block"
+                >
+                  Cancelar
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          /* PIN exists — show toggle + change option */
+          <div className="space-y-4">
+            {/* Toggle */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Lock className="size-4 text-text-muted" />
+                <span className="text-sm text-text">
+                  {isUnlocked ? "Desbloqueada" : "Bloqueada"}
+                </span>
+              </div>
+              <Switch
+                checked={isUnlocked}
+                onCheckedChange={handleToggle}
+              />
+            </div>
+
+            {/* PIN verify dialog (inline) */}
+            {pinStep === "verify" && (
+              <div className="space-y-2 pt-2 border-t border-border">
+                <p className="text-xs text-text-muted text-center">
+                  Ingresa tu PIN para desbloquear
+                </p>
+                {renderPinInput(pinValue, setPinValue)}
+                {error && (
+                  <p className="text-xs text-danger text-center animate-shake">{error}</p>
+                )}
+                {success && (
+                  <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-400">
+                    <Check className="size-3.5" />
+                    Desbloqueada
+                  </div>
+                )}
+                {busy && (
+                  <div className="flex justify-center">
+                    <Loader2 className="size-4 animate-spin text-kira" />
+                  </div>
+                )}
+                <button
+                  onClick={resetState}
+                  className="text-xs text-text-muted hover:text-text mx-auto block"
+                >
+                  Cancelar
+                </button>
+              </div>
+            )}
+
+            {/* Change PIN */}
+            {pinStep === "idle" && (
+              <button
+                onClick={() => {
+                  setPinStep("change-old");
+                  setOldPinValue("");
+                  setPinValue("");
+                  setError(null);
+                  setTimeout(() => inputRefs.current[0]?.focus(), 100);
+                }}
+                className="text-xs text-text-muted hover:text-text transition-colors"
+              >
+                Cambiar PIN
+              </button>
+            )}
+
+            {pinStep === "change-old" && (
+              <div className="space-y-2 pt-2 border-t border-border">
+                <p className="text-xs text-text-muted text-center">
+                  Ingresa tu PIN actual
+                </p>
+                {renderPinInput(oldPinValue, setOldPinValue)}
+                {error && (
+                  <p className="text-xs text-danger text-center">{error}</p>
+                )}
+                <button
+                  onClick={resetState}
+                  className="text-xs text-text-muted hover:text-text mx-auto block"
+                >
+                  Cancelar
+                </button>
+              </div>
+            )}
+
+            {pinStep === "change-new" && (
+              <div className="space-y-2 pt-2 border-t border-border">
+                <p className="text-xs text-text-muted text-center">
+                  Ingresa tu nuevo PIN
+                </p>
+                {renderPinInput(pinValue, setPinValue)}
+                {error && (
+                  <p className="text-xs text-danger text-center">{error}</p>
+                )}
+                {success && (
+                  <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-400">
+                    <Check className="size-3.5" />
+                    PIN actualizado
+                  </div>
+                )}
+                {busy && (
+                  <div className="flex justify-center">
+                    <Loader2 className="size-4 animate-spin text-kira" />
+                  </div>
+                )}
+                <button
+                  onClick={resetState}
+                  className="text-xs text-text-muted hover:text-text mx-auto block"
+                >
+                  Cancelar
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 
 /* ─── Coming Soon ─── */
 

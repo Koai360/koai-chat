@@ -31,28 +31,21 @@
       "name": "Nuevo chat con Noa",
       "short_name": "Noa",
       "description": "Iniciar una conversación con Noa",
-      "url": "/?agent=kira&new=1",
+      "url": "/#/home",
       "icons": [{ "src": "/icons/koai-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Nuevo chat con Kronos",
-      "short_name": "Kronos",
-      "description": "Iniciar una conversación con Kronos",
-      "url": "/?agent=kronos&new=1",
-      "icons": [{ "src": "/icons/koai-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Generar imagen",
-      "short_name": "Imagen",
-      "description": "Crear imagen con Z-Image o Flux.2 Pro",
-      "url": "/?agent=kira&new=1&mode=image",
+      "name": "Ver chat",
+      "short_name": "Chats",
+      "description": "Ver historial de conversaciones",
+      "url": "/#/history",
       "icons": [{ "src": "/icons/koai-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Galería",
       "short_name": "Galería",
       "description": "Ver imágenes generadas",
-      "url": "/?view=gallery",
+      "url": "/#/media",
       "icons": [{ "src": "/icons/koai-192.png", "sizes": "192x192" }]
     }
   ],

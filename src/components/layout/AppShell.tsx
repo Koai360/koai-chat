@@ -48,13 +48,14 @@ export function AppShell({ user, onLogout }: Props) {
     loadingHint,
     streamingText,
     sendMessage,
+    stopGeneration,
     newConversation,
     deleteConversation,
     deleteMessages,
     renameConversation,
   } = useChat(user.id);
 
-  const { notifications, unreadCount: _unreadCount, markRead, markAllRead, removeOne, removeAll } = useNotifications();
+  const { notifications, unreadCount, markRead, markAllRead, removeOne, removeAll } = useNotifications();
   const { currentPage, navigate } = useNavigation();
   const { theme, toggleTheme } = useTheme();
   const { isUnlocked: isPrivateUnlocked } = usePrivateMode();
@@ -183,6 +184,7 @@ export function AppShell({ user, onLogout }: Props) {
             loadingHint={loadingHint}
             streamingText={streamingText}
             onSend={sendMessage}
+            onStop={stopGeneration}
             onTranscribe={transcribeAudio}
             onDelete={deleteConversation}
             onDeleteMessages={deleteMessages}
@@ -296,6 +298,8 @@ export function AppShell({ user, onLogout }: Props) {
               theme={theme}
               onToggleTheme={toggleTheme}
               onNavigate={navigate}
+              unreadCount={unreadCount}
+              onOpenNotifications={() => setActivePanel("notifications")}
             />
 
             <main className="flex-1 overflow-y-auto min-h-0" style={{ WebkitOverflowScrolling: "touch" }}>

@@ -592,6 +592,21 @@ export function useChat(userId: string | null = null) {
     updateConversationTitle(id, trimmed).catch(() => {});
   };
 
+  /**
+   * Cancela el stream activo (si hay). El backend seguirá generando la
+   * imagen/respuesta pero el frontend dejará de esperar. Usado por el
+   * botón "■ Detener" en ChatInput.
+   */
+  const stopGeneration = useCallback(() => {
+    if (abortRef.current) {
+      try {
+        abortRef.current.abort();
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
+
   return {
     conversations: agentConversations,
     active,
@@ -606,6 +621,7 @@ export function useChat(userId: string | null = null) {
     syncing,
     streamingText,
     sendMessage,
+    stopGeneration,
     newConversation,
     deleteConversation,
     deleteMessages,

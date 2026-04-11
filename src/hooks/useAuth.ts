@@ -42,24 +42,57 @@ export function useAuth(): AuthState {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Inicializar desde localStorage
+  // Inicializar desde localStorage + verificar con backend
   useEffect(() => {
+    let cancelled = false;
     const savedToken = localStorage.getItem(TOKEN_KEY);
     const savedUser = localStorage.getItem(USER_KEY);
 
-    if (savedToken && !isTokenExpired(savedToken) && savedUser) {
-      try {
-        setToken(savedToken);
-        setUser(JSON.parse(savedUser));
-      } catch {
-        localStorage.removeItem(TOKEN_KEY);
-        localStorage.removeItem(USER_KEY);
-      }
-    } else {
+    if (!savedToken || isTokenExpired(savedToken) || !savedUser) {
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
+      setIsLoading(false);
+      return;
     }
-    setIsLoading(false);
+
+    // Mostrar UI rápido con datos locales mientras verificamos
+    try {
+      setToken(savedToken);
+      setUser(JSON.parse(savedUser));
+    } catch {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+      setIsLoading(false);
+      return;
+    }
+
+    // Verificar con backend — si el token fue revocado server-side, logout
+    fetch(`${API_URL}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${savedToken}` },
+    })
+      .then((res) => {
+        if (cancelled) return;
+        if (res.status === 401) {
+          // Token revocado server-side
+          localStorage.removeItem(TOKEN_KEY);
+          localStorage.removeItem(USER_KEY);
+          setToken(null);
+          setUser(null);
+        }
+        // Si res.ok, todo bien — mantener state local
+        // Si res falla por red, mantener state local (modo offline)
+      })
+      .catch(() => {
+        // Network error — asumir válido y dejar que los fetches reales
+        // manejen el 401 si aplica. No romper el flow offline.
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const _saveAuth = useCallback((data: { token: string; user: AuthUser }) => {

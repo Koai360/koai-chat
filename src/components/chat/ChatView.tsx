@@ -14,6 +14,7 @@ interface Props {
   loadingHint?: string | null;
   streamingText: string;
   onSend: (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string, editMode?: boolean, imageUrl?: string) => void;
+  onStop?: () => void;
   onTranscribe: (blob: Blob) => Promise<string>;
   onDelete?: (id: string) => void;
   onDeleteMessages?: (conversationId: string, messageIds: string[]) => void;
@@ -28,7 +29,7 @@ interface Props {
   onSelectMode?: (active: boolean) => void;
 }
 
-export function ChatView({ conversation, agent, loading, loadingHint, streamingText, onSend, onTranscribe, onDelete: _onDelete, onDeleteMessages, userName, onImageClick, onEditImage, editSourceUrl, onClearEditSource, selectMode: externalSelectMode, onSelectMode }: Props) {
+export function ChatView({ conversation, agent, loading, loadingHint, streamingText, onSend, onStop, onTranscribe, onDelete: _onDelete, onDeleteMessages, userName, onImageClick, onEditImage, editSourceUrl, onClearEditSource, selectMode: externalSelectMode, onSelectMode }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
@@ -164,6 +165,8 @@ export function ChatView({ conversation, agent, loading, loadingHint, streamingT
           superior del teclado naturalmente. */}
       <ChatInput
         onSend={onSend}
+        onStop={onStop}
+        loading={loading}
         onTranscribe={onTranscribe}
         disabled={loading}
         placeholder={agent === "kira" ? "Pregunta algo a Noa..." : "Pregunta algo a Kronos..."}

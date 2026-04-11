@@ -77,25 +77,35 @@ export function SettingsPage({ user, onLogout, theme, onToggleTheme }: Props) {
         })}
       </nav>
 
-      {/* Mobile: Top tabs (horizontal scroll) */}
-      <div className="md:hidden flex overflow-x-auto no-scrollbar border-b border-border px-2 py-1.5 gap-1 shrink-0 bg-bg z-10">
-        {NAV_ITEMS.map((item) => {
-          const Icon = item.icon;
-          return (
-            <button
-              key={item.id}
-              onClick={() => setActiveSection(item.id)}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-md transition-colors whitespace-nowrap shrink-0 ${
-                activeSection === item.id
-                  ? "bg-bg-surface text-text font-medium"
-                  : "text-text-muted"
-              }`}
-            >
-              <Icon className="size-3.5" />
-              {item.label}
-            </button>
-          );
-        })}
+      {/* Mobile: Top tabs (horizontal scroll con fade indicator derecho) */}
+      <div className="md:hidden relative shrink-0 border-b border-border bg-bg z-10">
+        <div className="flex overflow-x-auto no-scrollbar px-2 py-1.5 gap-1">
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveSection(item.id)}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-md transition-colors whitespace-nowrap shrink-0 ${
+                  activeSection === item.id
+                    ? "bg-bg-surface text-text font-medium"
+                    : "text-text-muted"
+                }`}
+              >
+                <Icon className="size-3.5" />
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+        {/* Fade indicator: sugiere que hay más secciones a la derecha */}
+        <div
+          aria-hidden
+          className="absolute top-0 right-0 bottom-0 w-8 pointer-events-none"
+          style={{
+            background: "linear-gradient(to right, transparent, var(--color-bg) 80%)",
+          }}
+        />
       </div>
 
       {/* Content */}

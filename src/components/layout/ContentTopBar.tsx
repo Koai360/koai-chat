@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Plus, Bell } from "lucide-react";
 import type { Agent, ThinkingLevel } from "@/hooks/useChat";
 import type { AuthUser } from "@/hooks/useAuth";
 import type { Page } from "@/hooks/useNavigation";
@@ -17,6 +17,9 @@ interface Props {
   theme?: "dark" | "light";
   onToggleTheme?: () => void;
   onNavigate?: (page: Page) => void;
+  /** Campana de notificaciones: unread count + handler de apertura */
+  unreadCount?: number;
+  onOpenNotifications?: () => void;
 }
 
 /**
@@ -37,6 +40,8 @@ export function ContentTopBar({
   currentPage,
   user,
   onNavigate,
+  unreadCount = 0,
+  onOpenNotifications,
 }: Props) {
   // El botón "+" de nuevo chat solo tiene sentido fuera de home
   // (home YA es un chat vacío conceptualmente — crear convo desde ahí
@@ -102,6 +107,28 @@ export function ContentTopBar({
 
       {/* Right side — touch targets >= 40px */}
       <div className="flex items-center gap-1.5">
+        {/* Campana de notificaciones con badge de unread */}
+        {onOpenNotifications && (
+          <button
+            onClick={onOpenNotifications}
+            aria-label={unreadCount > 0 ? `${unreadCount} notificaciones sin leer` : "Notificaciones"}
+            className="relative w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-text-muted hover:text-text transition-colors"
+          >
+            <Bell className="w-[18px] h-[18px]" />
+            {unreadCount > 0 && (
+              <span
+                className="absolute top-1.5 right-1.5 min-w-[16px] h-[16px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center"
+                style={{
+                  backgroundColor: "#D4E94B",
+                  color: "#0a0a0c",
+                }}
+              >
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </button>
+        )}
+
         {/* New Chat button — oculto en home (home ya es un chat vacío) */}
         {showNewChatButton && (
           <button

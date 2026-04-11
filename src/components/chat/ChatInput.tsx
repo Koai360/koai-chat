@@ -14,6 +14,7 @@ import {
   Palette,
   X,
   Loader2,
+  Square,
 } from "lucide-react";
 import { EngineSelector, type EngineValue } from "./EngineSelector";
 import { VoiceRecorderOverlay } from "./VoiceRecorderOverlay";
@@ -21,6 +22,10 @@ import { useVoiceStream } from "@/hooks/useVoiceStream";
 
 interface Props {
   onSend: (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string, editMode?: boolean, imageUrl?: string) => void;
+  /** Detener generación activa (cancela stream) */
+  onStop?: () => void;
+  /** Estado de loading — cuando true el botón send se convierte en stop */
+  loading?: boolean;
   onTranscribe: (blob: Blob) => Promise<string>;
   disabled?: boolean;
   placeholder?: string;
@@ -75,7 +80,7 @@ function compressImage(dataUrl: string, maxBytes: number): Promise<{ base64: str
 // ENGINE_OPTIONS y tipos viven en EngineSelector.tsx (single source of truth)
 // Backend dispatch correspondiente: /opt/koai-api/koai/tools/image_gen_tools.py:generate_image()
 
-export function ChatInput({ onSend, onTranscribe: _onTranscribe, disabled, placeholder = "Pregunta algo a Noa...", autoFocus, agent = "kira", editSourceUrl, onClearEditSource }: Props) {
+export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe, disabled, placeholder = "Pregunta algo a Noa...", autoFocus, agent = "kira", editSourceUrl, onClearEditSource }: Props) {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
@@ -550,8 +555,28 @@ export function ChatInput({ onSend, onTranscribe: _onTranscribe, disabled, place
           </button>
         )}
 
-        {/* Send button — solo cuando hay contenido */}
-        {hasContent && (
+        {/* Stop button — visible durante loading (reemplaza send) */}
+        {loading && onStop && (
+          <motion.button
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
+            onClick={(e) => {
+              e.preventDefault();
+              if (navigator.vibrate) navigator.vibrate(12);
+              onStop();
+            }}
+            aria-label="Detener generación"
+            className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-all mb-1 bg-white text-[#0a0a0c]"
+            style={{
+              boxShadow: "0 0 12px 2px rgba(255,255,255,0.25)",
+            }}
+          >
+            <Square className="h-3 w-3 fill-current" />
+          </motion.button>
+        )}
+
+        {/* Send button — solo cuando hay contenido y NO está loading */}
+        {hasContent && !loading && (
           <motion.button
             initial={{ scale: 0.8 }}
             animate={{ scale: 1 }}

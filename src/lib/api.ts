@@ -917,3 +917,44 @@ export async function sendMessageFeedback(data: {
     console.error("[Feedback] Error:", res.status);
   }
 }
+
+// ─── Notes (Scratchpad) ───
+
+export interface Note {
+  id: string;
+  title: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function fetchNotes(): Promise<Note[]> {
+  const res = await fetch(`${API_URL}/api/notes`, { headers: getHeaders() });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+export async function createNote(title: string, content: string): Promise<Note> {
+  const res = await fetch(`${API_URL}/api/notes`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({ title, content }),
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+export async function updateNote(id: string, title: string, content: string): Promise<void> {
+  await fetch(`${API_URL}/api/notes/${id}`, {
+    method: "PATCH",
+    headers: getHeaders(),
+    body: JSON.stringify({ title, content }),
+  });
+}
+
+export async function deleteNote(id: string): Promise<void> {
+  await fetch(`${API_URL}/api/notes/${id}`, {
+    method: "DELETE",
+    headers: getHeaders(),
+  });
+}

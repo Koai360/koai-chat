@@ -87,29 +87,49 @@ export function getOriginalUrl(originalUrl: string | null | undefined): string {
 }
 
 /**
- * Helper para descargar programáticamente (botón download con filename custom).
- * Genera un link temporal y dispara el click.
+ * Helper para descargar imagen al dispositivo.
+ *
+ * Mobile (iOS/Android PWA): usa navigator.share() con File object.
+ * Esto abre el sheet nativo del OS donde el usuario puede "Guardar imagen"
+ * directo a la galería del teléfono, sin navegar fuera de la app.
+ *
+ * Desktop: usa <a download> clásico que descarga al directorio de Downloads.
  */
 export async function triggerDownload(url: string, filename?: string): Promise<void> {
+  const name = filename || `koai-${Date.now()}.png`;
+
   try {
     const res = await fetch(url);
     const blob = await res.blob();
+
+    // Mobile: usar Web Share API si soporta archivos
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile && navigator.canShare) {
+      const file = new File([blob], name, { type: blob.type || "image/png" });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file] });
+        return;
+      }
+    }
+
+    // Desktop / fallback: <a download>
     const blobUrl = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = blobUrl;
-    a.download = filename || `koai-${Date.now()}.png`;
+    a.download = name;
     a.style.position = "fixed";
     a.style.left = "-9999px";
     a.style.opacity = "0";
     document.body.appendChild(a);
     a.click();
-    // Delay cleanup para que el browser procese el click
     setTimeout(() => {
       document.body.removeChild(a);
       URL.revokeObjectURL(blobUrl);
     }, 100);
-  } catch {
-    // Fallback: abrir en nueva pestaña en vez de navegar away
+  } catch (err) {
+    // Si el usuario canceló el share sheet, no es error
+    if (err instanceof Error && err.name === "AbortError") return;
+    // Fallback final: abrir en nueva pestaña
     window.open(url, "_blank", "noopener");
   }
 }

@@ -131,7 +131,7 @@ export function SettingsPage({ user, onLogout, theme, onToggleTheme }: Props) {
         >
           ← Ajustes
         </button>
-        <div className="p-6 max-w-xl">
+        <div className="p-3 sm:p-6 max-w-xl">
           {(activeSection ?? "account") === "account" && (
             <AccountSection user={user} onLogout={onLogout} />
           )}
@@ -389,9 +389,8 @@ function StyleSection() {
         <h2 className="text-lg font-medium text-text font-display animate-fadeUpBlur">
           Estilo IA
         </h2>
-        <p className="text-[11px] text-text-muted mt-1 leading-relaxed">
-          Noa aprende de las imágenes que te gustan. Dale ⭐ a cualquier imagen del chat
-          o importa de Civitai. Con {LORA_TARGET}+ imágenes, entrenas tu LoRA custom.
+        <p className="text-[11px] text-text-muted mt-1 leading-relaxed break-words">
+          Dale ⭐ a imágenes del chat o importa de Civitai. Con {LORA_TARGET}+ entrenas tu LoRA custom.
         </p>
       </div>
 
@@ -429,8 +428,8 @@ function StyleSection() {
               value={importUrl}
               onChange={(e) => setImportUrl(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handlePreview()}
-              placeholder="https://civitai.com/images/..."
-              className="flex-1 h-10 px-3 rounded-lg bg-bg-elevated border border-border text-text text-[13px] outline-none focus:border-noa focus:ring-1 focus:ring-noa/30 transition-all placeholder:text-text-subtle"
+              placeholder="civitai.com/images/..."
+              className="flex-1 h-10 px-3 rounded-lg bg-bg-elevated border border-border text-text text-[12px] outline-none focus:border-noa focus:ring-1 focus:ring-noa/30 transition-all placeholder:text-text-subtle min-w-0"
               disabled={previewLoading}
             />
             <button

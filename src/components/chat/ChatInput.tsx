@@ -99,6 +99,8 @@ export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe
   const [slashIndex, setSlashIndex] = useState(0);
 
   const editorRef = useRef<HTMLTextAreaElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
+  const [pendingFile, setPendingFile] = useState<{ base64: string; name: string; type: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textRef = useRef(text);
   textRef.current = text;
@@ -343,6 +345,33 @@ export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe
     if (editSourceUrl && onClearEditSource) onClearEditSource();
   };
 
+  const handleDocSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { setError("Archivo muy grande (max 10MB)"); return; }
+
+    // Para archivos de texto/CSV: leer como texto y pegar en el input
+    if (file.type === "text/plain" || file.type === "text/csv" || file.name.endsWith(".txt") || file.name.endsWith(".csv")) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const content = (reader.result as string).slice(0, 50000);
+        setPendingFile({ base64: "", name: file.name, type: file.type });
+        setText((prev) => `${prev}\n\n[Archivo: ${file.name}]\n${content}`.trim());
+      };
+      reader.readAsText(file);
+    } else {
+      // Para PDFs y otros: leer como base64 para enviar al backend
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        const b64 = dataUrl.split(",")[1];
+        setPendingFile({ base64: b64, name: file.name, type: file.type });
+      };
+      reader.readAsDataURL(file);
+    }
+    e.target.value = "";
+  };
+
   const toggleRecording = () => {
     if (recording) {
       voice.stop();
@@ -380,6 +409,19 @@ export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Pending file chip */}
+      {pendingFile && (
+        <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="mx-1 mb-1.5">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-bg-surface border border-noa/20">
+            <Paperclip className="size-3.5 text-noa" />
+            <span className="text-[11px] text-text truncate max-w-[200px]">{pendingFile.name}</span>
+            <button onClick={() => setPendingFile(null)} className="text-text-muted hover:text-text">
+              <X className="size-3" />
+            </button>
+          </div>
+        </motion.div>
+      )}
 
       {/* Quick edit last generated image — chip above input */}
       {lastGeneratedImage && !imagePreview && !editSourceUrl && !editMode && !loading && (
@@ -546,8 +588,20 @@ export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe
                 <Paperclip className="h-4 w-4 text-text-muted" />
               </div>
               <div className="text-left">
-                <div className="font-medium text-xs">Fotos y archivos</div>
-                <div className="text-[10px] text-text-muted">Adjuntar imagen</div>
+                <div className="font-medium text-xs">Adjuntar imagen</div>
+                <div className="text-[10px] text-text-muted">JPG, PNG, WebP</div>
+              </div>
+            </button>
+            <button
+              onClick={() => { docInputRef.current?.click(); setPlusOpen(false); }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-text hover:bg-bg-surface transition-colors"
+            >
+              <div className="w-8 h-8 rounded-full bg-bg-surface flex items-center justify-center">
+                <Paperclip className="h-4 w-4 text-noa" />
+              </div>
+              <div className="text-left">
+                <div className="font-medium text-xs">Adjuntar archivo</div>
+                <div className="text-[10px] text-text-muted">PDF, CSV, TXT, DOC</div>
               </div>
             </button>
             <button
@@ -566,6 +620,7 @@ export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe
         </Popover>
 
         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
+        <input ref={docInputRef} type="file" accept=".pdf,.csv,.txt,.doc,.docx,.xls,.xlsx" onChange={handleDocSelect} className="hidden" />
 
         {/* Input pill */}
         <div

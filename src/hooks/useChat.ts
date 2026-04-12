@@ -375,6 +375,10 @@ export function useChat(userId: string | null = null) {
                 {
                   onToken: (accumulated) => setStreamingText(accumulated),
                   onImage: (img, meta) => {
+                    // Si ya hay una imagen previa, la primera va al texto como markdown img
+                    if (assistantImage && img !== assistantImage) {
+                      assistantContent += `\n\n![imagen](${assistantImage})\n\n`;
+                    }
                     assistantImage = img;
                     // Guardar como última imagen generada para edit rápido
                     if (img) setLastGeneratedImage({ url: img });

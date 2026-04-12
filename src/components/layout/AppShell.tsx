@@ -18,6 +18,7 @@ import { ExplorePage } from "@/components/pages/ExplorePage";
 import { MediaGalleryPage } from "@/components/pages/MediaGalleryPage";
 import { SettingsPage } from "@/components/pages/SettingsPage";
 import { NotesPage } from "@/components/pages/NotesPage";
+import { DashboardPage } from "@/components/pages/DashboardPage";
 import { ImageViewer } from "@/components/gallery/ImageViewer";
 import { NotificationsPanel } from "@/components/panels/NotificationsPanel";
 import { BriefsPanel } from "@/components/panels/BriefsPanel";
@@ -272,6 +273,8 @@ export function AppShell({ user, onLogout }: Props) {
         );
       case "notes":
         return <NotesPage />;
+      case "dashboard":
+        return <DashboardPage />;
       case "settings":
         return (
           <SettingsPage

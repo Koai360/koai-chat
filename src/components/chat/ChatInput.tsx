@@ -17,6 +17,7 @@ import {
   Square,
 } from "lucide-react";
 import { EngineSelector, type EngineValue } from "./EngineSelector";
+import { SlashCommandMenu, COMMANDS, type SlashCommand } from "./SlashCommandMenu";
 import { VoiceRecorderOverlay } from "./VoiceRecorderOverlay";
 import { useVoiceStream } from "@/hooks/useVoiceStream";
 
@@ -94,6 +95,8 @@ export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe
   // editMode: cuando hay imagen adjunta, permite elegir si la imagen se USA como
   // referencia (default, pasa al LLM) o si se EDITA con edit_image_smart (Kontext).
   const [editMode, setEditMode] = useState(false);
+  const [showSlash, setShowSlash] = useState(false);
+  const [slashIndex, setSlashIndex] = useState(0);
 
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -264,7 +267,31 @@ export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe
     if (editSourceUrl && onClearEditSource) onClearEditSource();
   };
 
+  const handleSlashSelect = useCallback((cmd: SlashCommand) => {
+    setShowSlash(false);
+    setSlashIndex(0);
+    if (cmd.action === "mode" && cmd.payload === "image") {
+      setText("");
+      setImageMode(true);
+    } else if (cmd.action === "prefill") {
+      setText(cmd.payload);
+      requestAnimationFrame(() => editorRef.current?.focus());
+    } else if (cmd.action === "navigate") {
+      setText("");
+      window.location.hash = cmd.payload;
+    }
+  }, []);
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (showSlash) {
+      const filtered = COMMANDS.filter((c) =>
+        c.command.startsWith(text.toLowerCase()) || c.label.toLowerCase().includes(text.slice(1).toLowerCase())
+      );
+      if (e.key === "ArrowDown") { e.preventDefault(); setSlashIndex((i) => Math.min(i + 1, filtered.length - 1)); return; }
+      if (e.key === "ArrowUp") { e.preventDefault(); setSlashIndex((i) => Math.max(i - 1, 0)); return; }
+      if (e.key === "Enter") { e.preventDefault(); if (filtered[slashIndex]) handleSlashSelect(filtered[slashIndex]); return; }
+      if (e.key === "Escape") { setShowSlash(false); return; }
+    }
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSubmit();
@@ -329,7 +356,17 @@ export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe
 
   return (
     <div className="shrink-0 bg-bg px-4 pt-2 pb-1 md:pb-2 relative">
-      <div className="max-w-[48rem] mx-auto w-full">
+      <div className="max-w-[48rem] mx-auto w-full relative">
+      {/* Slash command menu */}
+      <AnimatePresence>
+        {showSlash && (
+          <SlashCommandMenu
+            filter={text}
+            onSelect={handleSlashSelect}
+            selectedIndex={slashIndex}
+          />
+        )}
+      </AnimatePresence>
       {/* Error toast */}
       <AnimatePresence>
         {error && (
@@ -537,7 +574,16 @@ export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe
           <textarea
             ref={editorRef}
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value;
+              setText(v);
+              if (v.startsWith("/") && v.length <= 15) {
+                setShowSlash(true);
+                setSlashIndex(0);
+              } else {
+                setShowSlash(false);
+              }
+            }}
             onKeyDown={handleKeyDown}
             onFocus={handleFocus}
             disabled={isDisabled}

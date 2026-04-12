@@ -390,65 +390,59 @@ function StyleSection() {
   const loraReady = likesCount >= LORA_TARGET;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <div>
-        <h2 className="text-xl font-medium text-text font-display animate-fadeUpBlur">
+        <h2 className="text-lg font-medium text-text font-display animate-fadeUpBlur">
           Estilo IA
         </h2>
-        <p className="text-xs text-text-muted mt-1">
-          Noa aprende de las imágenes que te gustan. Pégale un link de Civitai o dale 👍
-          a cualquier imagen del chat. Cuando llegues a {LORA_TARGET}, entrenas tu LoRA custom.
+        <p className="text-[11px] text-text-muted mt-1 leading-relaxed">
+          Noa aprende de las imágenes que te gustan. Dale ⭐ a cualquier imagen del chat
+          o importa de Civitai. Con {LORA_TARGET}+ imágenes, entrenas tu LoRA custom.
         </p>
       </div>
 
-      {/* Progress card — compacto */}
-      <div className="liquid-glass rounded-2xl p-4 space-y-3">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-noa/10 flex items-center justify-center shrink-0">
-            <Sparkles className="size-4 text-noa" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-text-muted">
-              {loraReady
-                ? `${likesCount} imágenes · LoRA listo para entrenar 🎯`
-                : `${likesCount} / ${LORA_TARGET} · faltan ${remaining} para entrenar LoRA`}
-            </p>
-          </div>
+      {/* Progress — inline compacto */}
+      <div className="rounded-xl border border-border p-3 space-y-2">
+        <div className="flex items-center gap-2">
+          <Sparkles className="size-3.5 text-noa shrink-0" />
+          <p className="text-[11px] text-text-muted flex-1">
+            {loraReady
+              ? `${likesCount} imágenes · LoRA listo 🎯`
+              : `${likesCount}/${LORA_TARGET} — faltan ${remaining}`}
+          </p>
         </div>
-        <div className="relative h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+        <div className="relative h-1 rounded-full bg-white/[0.06] overflow-hidden">
           <div
-            className="absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out"
+            className="absolute inset-y-0 left-0 rounded-full transition-all duration-500"
             style={{
               width: `${progress}%`,
-              background: "linear-gradient(90deg, #D4E94B 0%, rgba(212,233,75,0.6) 100%)",
-              boxShadow: "0 0 10px rgba(212, 233, 75, 0.3)",
+              background: "#D4E94B",
+              boxShadow: "0 0 8px rgba(212, 233, 75, 0.3)",
             }}
           />
         </div>
       </div>
 
       {/* Import Civitai */}
-      <div className="liquid-glass rounded-2xl p-4 space-y-3">
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-text-subtle">
-            Importar de Civitai
-          </span>
-        </div>
+      <div className="rounded-xl border border-border p-3 space-y-2.5">
+        <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-text-subtle">
+          Importar de Civitai
+        </span>
         {!preview && (
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <input
               type="url"
               value={importUrl}
               onChange={(e) => setImportUrl(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handlePreview()}
               placeholder="https://civitai.com/images/..."
-              className="flex-1 h-10 px-3 rounded-lg bg-bg-elevated border border-border text-text text-sm outline-none focus:border-noa focus:ring-1 focus:ring-noa/30 transition-all placeholder:text-text-subtle"
+              className="flex-1 h-10 px-3 rounded-lg bg-bg-elevated border border-border text-text text-[13px] outline-none focus:border-noa focus:ring-1 focus:ring-noa/30 transition-all placeholder:text-text-subtle"
               disabled={previewLoading}
             />
             <button
               onClick={handlePreview}
               disabled={!importUrl.trim() || previewLoading}
-              className="h-10 px-4 rounded-lg bg-noa text-[#0a0a0c] text-sm font-medium transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+              className="h-10 px-4 rounded-lg bg-noa text-[#0a0a0c] text-[13px] font-medium transition-all active:scale-[0.98] disabled:opacity-50 shrink-0"
             >
               {previewLoading ? <Loader2 className="size-4 animate-spin" /> : "Ver preview"}
             </button>
@@ -462,7 +456,7 @@ function StyleSection() {
               <img
                 src={preview.image_url}
                 alt="Preview"
-                className="w-24 h-36 object-cover rounded-lg border border-border shrink-0"
+                className="w-20 h-28 sm:w-24 sm:h-36 object-cover rounded-lg border border-border shrink-0"
               />
               <div className="flex-1 min-w-0 space-y-1 text-[11px]">
                 <div className="flex items-center gap-1.5">
@@ -509,7 +503,7 @@ function StyleSection() {
               <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-text-subtle mb-1.5">
                 Categoría — elige a cuál pertenece
               </p>
-              <div className="grid grid-cols-3 gap-1.5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                 {STYLE_CATEGORIES.filter((c) => c.id !== "uncategorized").map((cat) => (
                   <button
                     key={cat.id}
@@ -610,7 +604,7 @@ function StyleSection() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
           {filteredLikes.map((like) => (
             <div
               key={like.id}

@@ -13,7 +13,7 @@ export function UpdateBanner({ onUpdate }: Props) {
       animate={{ y: 0, opacity: 1 }}
       className="fixed bottom-20 left-4 right-4 z-[100] safe-bottom"
     >
-      <div className="bg-kira text-bg rounded-2xl shadow-2xl shadow-kira/20 flex items-center justify-center gap-3 py-3 px-5">
+      <div className="bg-noa text-bg rounded-2xl shadow-2xl shadow-noa/20 flex items-center justify-center gap-3 py-3 px-5">
         <RefreshCw className="h-4 w-4" />
         <span className="text-sm font-semibold">Nueva versión disponible</span>
         <Button

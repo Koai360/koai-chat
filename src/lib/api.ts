@@ -13,7 +13,7 @@ function getHeaders(): Record<string, string> {
   return headers;
 }
 
-export async function sendKiraMessage(
+export async function sendNoaMessage(
   message: string,
   conversationId?: string,
   imageBase64?: string,
@@ -23,7 +23,7 @@ export async function sendKiraMessage(
 ): Promise<{ conversation_id: string; messages: Array<{ role: string; agent: string; content: string; image?: string }> }> {
   const body: Record<string, unknown> = {
     message,
-    agent: "kira",
+    agent: "noa",
     conversation_id: conversationId,
   };
   if (imageBase64) body.image_base64 = imageBase64;
@@ -56,7 +56,7 @@ export async function sendKiraMessage(
         body: JSON.stringify(body),
         signal: controller.signal,
       });
-      if (!res.ok) throw new Error(`Kira error: ${res.status}`);
+      if (!res.ok) throw new Error(`Noa error: ${res.status}`);
       return res.json();
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
@@ -149,7 +149,7 @@ export interface ImageMetadataPayload {
   cost_estimate_usd?: number;
 }
 
-export interface KiraStreamCallbacks {
+export interface NoaStreamCallbacks {
   onToken: (accumulated: string) => void;
   onImage?: (base64: string, metadata?: ImageMetadataPayload) => void;
   onAgent?: (agent: string) => void;
@@ -157,13 +157,13 @@ export interface KiraStreamCallbacks {
 
 export type ThinkingLevel = "low" | "medium" | "high";
 
-export async function streamKiraMessage(
+export async function streamNoaMessage(
   message: string,
   conversationId?: string,
   imageBase64?: string,
   imageMode?: boolean,
   imageEngine?: string,
-  callbacks: KiraStreamCallbacks = { onToken: () => {} },
+  callbacks: NoaStreamCallbacks = { onToken: () => {} },
   signal?: AbortSignal,
   thinkingLevel: ThinkingLevel = "medium",
   editMode?: boolean,
@@ -171,7 +171,7 @@ export async function streamKiraMessage(
 ): Promise<{ conversation_id: string; agent_used: string; fullText: string; image?: string; imageMetadata?: ImageMetadataPayload }> {
   const body: Record<string, unknown> = {
     message,
-    agent: "kira",
+    agent: "noa",
     conversation_id: conversationId,
     thinking_level: thinkingLevel,
   };
@@ -217,7 +217,7 @@ export async function streamKiraMessage(
       signal: controller.signal,
     });
 
-    if (!res.ok) throw new Error(`Kira stream error: ${res.status}`);
+    if (!res.ok) throw new Error(`Noa stream error: ${res.status}`);
 
     const reader = res.body?.getReader();
     if (!reader) throw new Error("No stream body");
@@ -228,7 +228,7 @@ export async function streamKiraMessage(
     let image: string | undefined;
     let imageMetadata: ImageMetadataPayload | undefined;
     let conversationIdResult = conversationId || "";
-    let agentUsed = "kira";
+    let agentUsed = "noa";
 
     while (true) {
       const { done, value } = await reader.read();

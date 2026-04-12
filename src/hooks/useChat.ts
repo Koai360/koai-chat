@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import {
-  streamKiraMessage,
+  streamNoaMessage,
   streamKronosMessage,
   fetchConversations,
   createConversation as createConvApi,
@@ -16,7 +16,7 @@ import {
   type ThinkingLevel,
 } from "../lib/api";
 
-export type Agent = "kira" | "kronos";
+export type Agent = "noa" | "kronos";
 export type { ThinkingLevel };
 
 const THINKING_LEVEL_KEY = "koai.chat.thinkingLevel";
@@ -86,7 +86,7 @@ function serverMsgToLocal(sm: ServerMessage): Message {
 export function useChat(userId: string | null = null) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [agent, setAgentState] = useState<Agent>("kira");
+  const [agent, setAgentState] = useState<Agent>("noa");
   const [thinkingLevel, setThinkingLevelState] = useState<ThinkingLevel>(loadThinkingLevel);
   const [loading, setLoading] = useState(false);
 
@@ -358,13 +358,13 @@ export function useChat(userId: string | null = null) {
 
         const MAX_STREAM_RETRIES = 1;
 
-        if (agent === "kira") {
+        if (agent === "noa") {
           for (let attempt = 0; attempt <= MAX_STREAM_RETRIES; attempt++) {
             try {
               // Crear nuevo AbortController para este stream — guardado en ref
               // para que sea cancelable desde fuera (futuro botón "Stop")
               abortRef.current = new AbortController();
-              const res = await streamKiraMessage(
+              const res = await streamNoaMessage(
                 displayText,
                 convoId || undefined,
                 imageBase64,
@@ -402,7 +402,7 @@ export function useChat(userId: string | null = null) {
               // Respuesta vacia — reintentar una vez
               if (attempt < MAX_STREAM_RETRIES) {
                 setStreamingText("");
-                console.warn("[useChat] Empty response from Kira, retrying...");
+                console.warn("[useChat] Empty response from Noa, retrying...");
                 await new Promise((r) => setTimeout(r, 1000));
               }
             } catch (streamErr) {

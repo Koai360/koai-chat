@@ -92,7 +92,7 @@ export function NotificationsPanel({ notifications, onMarkRead, onMarkAllRead, o
         </div>
         <div className="flex items-center gap-1">
           {unreadCount > 0 && (
-            <Button variant="ghost" size="sm" className="h-7 text-[11px] text-kira" onClick={onMarkAllRead}>
+            <Button variant="ghost" size="sm" className="h-7 text-[11px] text-noa" onClick={onMarkAllRead}>
               <CheckCheck className="h-3.5 w-3.5 mr-1" />
               Leer todas
             </Button>
@@ -155,7 +155,7 @@ export function NotificationsPanel({ notifications, onMarkRead, onMarkAllRead, o
                   <div className="flex items-start gap-3">
                     <div className="shrink-0 mt-1.5">
                       {!notif.read ? (
-                        <span className="block w-2 h-2 rounded-full bg-kira" />
+                        <span className="block w-2 h-2 rounded-full bg-noa" />
                       ) : (
                         <span className="block w-2 h-2" />
                       )}

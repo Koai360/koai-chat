@@ -30,7 +30,7 @@ interface Props {
   disabled?: boolean;
   placeholder?: string;
   autoFocus?: boolean;
-  agent?: "kira" | "kronos";
+  agent?: "noa" | "kronos";
   /** URL de imagen existente en R2 para edit iterativo (click "Editar" en chat/galería) */
   editSourceUrl?: string | null;
   /** Callback para limpiar la URL cuando el usuario cancela el edit */
@@ -80,7 +80,7 @@ function compressImage(dataUrl: string, maxBytes: number): Promise<{ base64: str
 // ENGINE_OPTIONS y tipos viven en EngineSelector.tsx (single source of truth)
 // Backend dispatch correspondiente: /opt/koai-api/koai/tools/image_gen_tools.py:generate_image()
 
-export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe, disabled, placeholder = "Pregunta algo a Noa...", autoFocus, agent = "kira", editSourceUrl, onClearEditSource }: Props) {
+export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe, disabled, placeholder = "Pregunta algo a Noa...", autoFocus, agent = "noa", editSourceUrl, onClearEditSource }: Props) {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);

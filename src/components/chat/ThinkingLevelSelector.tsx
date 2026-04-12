@@ -5,7 +5,7 @@ import type { ThinkingLevel } from "@/hooks/useChat";
 
 /**
  * ThinkingLevelSelector — compact popover selector for Gemini 3.1 Pro
- * thinking depth. Only applies to Kira.
+ * thinking depth. Only applies to Noa.
  *
  *   Fast      → low    — routing rápido, chitchat, preguntas simples
  *   Balanced  → medium — default, mayoría de tareas

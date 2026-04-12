@@ -11,7 +11,7 @@ interface Props {
 /**
  * Quick action — capability-aware shortcut shown in EmptyState.
  *
- * Each action represents a real Kira capability (image gen, voice, edit, etc).
+ * Each action represents a real Noa capability (image gen, voice, edit, etc).
  * Clicking pre-fills the input or directly triggers the corresponding mode.
  *
  * The "mark" is a single letter / symbol (no Lucide icons → avoids AI slop
@@ -21,7 +21,7 @@ interface Props {
 interface QuickAction {
   mark: string;
   /** Tier/color category — uses tokens from .impeccable.md */
-  tone: "kira" | "kronos" | "premium" | "neutral";
+  tone: "noa" | "kronos" | "premium" | "neutral";
   /** Action verb in Spanish */
   verb: string;
   /** What it does — short hint */
@@ -33,10 +33,10 @@ interface QuickAction {
   imageEngine?: string;
 }
 
-const KIRA_ACTIONS: QuickAction[] = [
+const NOA_ACTIONS: QuickAction[] = [
   {
     mark: "Z",
-    tone: "kira",
+    tone: "noa",
     verb: "Generar imagen rápida",
     hint: "Z-Image · sin filtro · ~5s",
     prompt: "un café latte arte sobre una mesa de madera, fotorrealista",
@@ -100,7 +100,7 @@ const KRONOS_ACTIONS: QuickAction[] = [
 ];
 
 const TONE_STYLES: Record<QuickAction["tone"], { color: string; glow: string; bg: string }> = {
-  kira:    { color: "#D4E94B", glow: "rgba(212,233,75,0.30)", bg: "rgba(212,233,75,0.06)" },
+  noa:     { color: "#D4E94B", glow: "rgba(212,233,75,0.30)", bg: "rgba(212,233,75,0.06)" },
   kronos:  { color: "#00E5FF", glow: "rgba(0,229,255,0.30)",  bg: "rgba(0,229,255,0.06)"  },
   premium: { color: "#7B2D8E", glow: "rgba(123,45,142,0.40)", bg: "rgba(123,45,142,0.08)" },
   neutral: { color: "rgba(255,255,255,0.85)", glow: "rgba(255,255,255,0.18)", bg: "rgba(255,255,255,0.04)" },
@@ -116,7 +116,7 @@ function getGreeting(): string {
 export function EmptyState({ agent, userName, onSend: _onSend, loading }: Props) {
   const greeting = getGreeting();
   const displayName = userName?.split(" ")[0] || (agent === "kronos" ? "Boss" : "");
-  const actions = agent === "kronos" ? KRONOS_ACTIONS : KIRA_ACTIONS;
+  const actions = agent === "kronos" ? KRONOS_ACTIONS : NOA_ACTIONS;
   const isKronos = agent === "kronos";
 
   return (
@@ -137,7 +137,7 @@ export function EmptyState({ agent, userName, onSend: _onSend, loading }: Props)
             {displayName ? (
               <>
                 ,{" "}
-                <span className={isKronos ? "gradient-text-kronos" : "gradient-text-kira"}>
+                <span className={isKronos ? "gradient-text-kronos" : "gradient-text-noa"}>
                   {displayName}
                 </span>
               </>

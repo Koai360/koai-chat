@@ -43,7 +43,7 @@ export function SplashScreen() {
         transition={{ delay: 0.6, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       >
         <h1 className="text-[24px] tracking-tight mb-1 font-display">
-          <span className="gradient-text-kira">Noa</span>
+          <span className="gradient-text-noa">Noa</span>
         </h1>
       </motion.div>
 
@@ -66,7 +66,7 @@ export function SplashScreen() {
         {[0, 1, 2].map((i) => (
           <motion.div
             key={i}
-            className="w-1.5 h-1.5 rounded-full bg-kira"
+            className="w-1.5 h-1.5 rounded-full bg-noa"
             animate={{ opacity: [0.2, 1, 0.2], scale: [0.8, 1.1, 0.8] }}
             transition={{ duration: 1, repeat: Infinity, delay: i * 0.15 }}
           />

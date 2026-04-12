@@ -25,7 +25,7 @@ const PRIORITY_COLORS: Record<string, string> = {
 const STATUS_COLORS: Record<string, string> = {
   pending: "bg-yellow-500/15 text-yellow-400 border-yellow-500/20",
   in_progress: "bg-blue-500/15 text-blue-400 border-blue-500/20",
-  completed: "bg-kira/15 text-kira border-kira/20",
+  completed: "bg-noa/15 text-noa border-noa/20",
   failed: "bg-red-500/15 text-red-400 border-red-500/20",
 };
 

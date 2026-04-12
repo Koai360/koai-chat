@@ -24,7 +24,7 @@ interface Props {
 
 /**
  * ContentTopBar — barra superior con:
- * - Toggle Kira ↔ Kronos (segmented control, no dropdown)
+ * - Toggle Noa ↔ Kronos (segmented control, no dropdown)
  * - Botón "Nueva conversación"
  * - Avatar usuario → Settings
  *
@@ -55,16 +55,16 @@ export function ContentTopBar({
         minHeight: "calc(56px + env(safe-area-inset-top, 0px))",
       }}
     >
-      {/* Toggle Kira ↔ Kronos — segmented control */}
+      {/* Toggle Noa ↔ Kronos — segmented control */}
       <div
         role="radiogroup"
         aria-label="Seleccionar agente"
         className="inline-flex items-center h-10 p-1 rounded-full border border-border bg-bg-surface"
       >
-        {(["kira", "kronos"] as const).map((opt) => {
+        {(["noa", "kronos"] as const).map((opt) => {
           const isActive = agent === opt;
-          const label = opt === "kira" ? "Noa" : "Kronos";
-          const accent = opt === "kira" ? "#D4E94B" : "#00E5FF";
+          const label = opt === "noa" ? "Noa" : "Kronos";
+          const accent = opt === "noa" ? "#D4E94B" : "#00E5FF";
           return (
             <button
               key={opt}
@@ -91,8 +91,8 @@ export function ContentTopBar({
         })}
       </div>
 
-      {/* Thinking level selector — only applies to Kira */}
-      {agent === "kira" && (
+      {/* Thinking level selector — only applies to Noa */}
+      {agent === "noa" && (
         <div className="ml-2">
           <ThinkingLevelSelector
             value={thinkingLevel}

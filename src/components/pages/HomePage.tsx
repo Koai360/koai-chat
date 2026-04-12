@@ -29,7 +29,7 @@ export function HomePage({ userName, onSend, onNavigate: _onNavigate }: Props) {
       <div className="flex-1 overflow-y-auto px-3 py-2 min-h-0">
         <div className="max-w-[48rem] mx-auto w-full h-full">
           <EmptyState
-            agent="kira"
+            agent="noa"
             userName={userName}
             onSend={onSend}
             loading={false}
@@ -42,7 +42,7 @@ export function HomePage({ userName, onSend, onNavigate: _onNavigate }: Props) {
         onSend={onSend}
         onTranscribe={transcribeAudio}
         placeholder="Pregunta algo a Noa..."
-        agent="kira"
+        agent="noa"
       />
     </div>
   );

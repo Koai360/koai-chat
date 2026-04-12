@@ -4,7 +4,7 @@ export function LoadingScreen() {
   return (
     <div className="h-full flex flex-col items-center justify-center bg-bg">
       <motion.img
-        src="/icons/kira-logo.svg"
+        src="/icons/noa-logo.svg"
         alt="KOAI"
         className="w-20 h-20 rounded-2xl shadow-lg"
         initial={{ opacity: 0, scale: 0.8 }}

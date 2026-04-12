@@ -38,7 +38,7 @@ const NAV_ITEMS: { page: Page; icon: typeof House; label: string }[] = [
   { page: "media", icon: Image, label: "Galería" },
 ];
 
-export function IconRail({ currentPage, onNavigate, user, onLogout, agent = "kira" }: Props) {
+export function IconRail({ currentPage, onNavigate, user, onLogout, agent = "noa" }: Props) {
   const accentColor = agent === "kronos" ? "#00E5FF" : "#D4E94B";
 
   return (

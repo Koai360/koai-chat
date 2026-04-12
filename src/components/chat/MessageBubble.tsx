@@ -215,7 +215,7 @@ export function MessageBubble({ message, conversationId, onImageClick, onEditIma
   );
 }
 
-export function StreamingBubble({ text, agent }: { text: string; agent: "kira" | "kronos" }) {
+export function StreamingBubble({ text, agent }: { text: string; agent: "noa" | "kronos" }) {
   if (!text) return null;
   const cursorColor = agent === "kronos" ? "#00E5FF" : "#D4E94B";
 

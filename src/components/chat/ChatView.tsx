@@ -171,7 +171,7 @@ export function ChatView({ conversation, agent, loading, loadingHint, streamingT
         loading={loading}
         onTranscribe={onTranscribe}
         disabled={loading}
-        placeholder={agent === "kira" ? "Pregunta algo a Noa..." : "Pregunta algo a Kronos..."}
+        placeholder={agent === "noa" ? "Pregunta algo a Noa..." : "Pregunta algo a Kronos..."}
         autoFocus={!!conversation}
         agent={agent}
         editSourceUrl={editSourceUrl}

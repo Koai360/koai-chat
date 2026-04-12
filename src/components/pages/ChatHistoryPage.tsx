@@ -268,7 +268,7 @@ function ConversationCard({
   return (
     <div
       onClick={() => onSelect(c.id)}
-      className="bg-bg-surface border border-border rounded-2xl p-3 cursor-pointer hover:border-kira/20 hover:scale-[1.01] transition-all duration-300 group relative"
+      className="bg-bg-surface border border-border rounded-2xl p-3 cursor-pointer hover:border-noa/20 hover:scale-[1.01] transition-all duration-300 group relative"
     >
       {/* Action buttons — edit + delete */}
       <div className="absolute top-2.5 right-2.5 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">

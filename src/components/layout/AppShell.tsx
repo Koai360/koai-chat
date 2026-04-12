@@ -281,7 +281,7 @@ export function AppShell({ user, onLogout }: Props) {
           <div
             className="ambient-orb w-72 h-72 opacity-[0.05]"
             style={{
-              background: "radial-gradient(circle, var(--color-kira) 0%, transparent 70%)",
+              background: "radial-gradient(circle, var(--color-noa) 0%, transparent 70%)",
               top: "-5%",
               right: "-10%",
               animation: "float 14s ease-in-out infinite",
@@ -299,7 +299,7 @@ export function AppShell({ user, onLogout }: Props) {
           <div
             className="ambient-orb w-64 h-64 opacity-[0.03]"
             style={{
-              background: "radial-gradient(circle, var(--color-kira) 0%, transparent 60%)",
+              background: "radial-gradient(circle, var(--color-noa) 0%, transparent 60%)",
               top: "40%",
               left: "50%",
               animation: "float 12s ease-in-out infinite 6s",

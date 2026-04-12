@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 interface Props {
-  agent: "kira" | "kronos";
+  agent: "noa" | "kronos";
   size?: "sm" | "md" | "lg";
   glow?: boolean;
   className?: string;
@@ -14,8 +14,8 @@ const sizes = {
 };
 
 export function AgentAvatar({ agent, size = "md", glow = false, className }: Props) {
-  const src = agent === "kronos" ? "/icons/kronos-logo.svg" : "/icons/kira-logo.svg";
-  const glowColor = agent === "kronos" ? "var(--color-kronos-glow)" : "var(--color-kira-glow)";
+  const src = agent === "kronos" ? "/icons/kronos-logo.svg" : "/icons/noa-logo.svg";
+  const glowColor = agent === "kronos" ? "var(--color-kronos-glow)" : "var(--color-noa-glow)";
 
   return (
     <img

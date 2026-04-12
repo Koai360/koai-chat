@@ -129,7 +129,7 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
       {/* Grain overlay */}
       <div className="grain pointer-events-none fixed inset-0 z-[5]" />
 
-      {/* Ambient orbs — lime Kira + purple KOAI, matching splash/app vibe */}
+      {/* Ambient orbs — lime Noa + purple KOAI, matching splash/app vibe */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         <motion.div
           className="absolute rounded-full"
@@ -195,7 +195,7 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
               className="font-display text-[32px] font-medium leading-none tracking-tight mb-1"
               style={{ letterSpacing: "-0.025em" }}
             >
-              <span className="gradient-text-kira">Noa</span>
+              <span className="gradient-text-noa">Noa</span>
               <span className="text-text-muted"> · </span>
               <span className="gradient-text-kronos">Kronos</span>
             </h1>
@@ -279,7 +279,7 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
                 autoCapitalize="none"
                 autoCorrect="off"
                 disabled={loading}
-                className="w-full h-[48px] px-4 rounded-xl bg-bg-elevated border border-border text-text text-[15px] outline-none focus:border-kira focus:ring-1 focus:ring-kira/30 transition-all placeholder:text-text-muted"
+                className="w-full h-[48px] px-4 rounded-xl bg-bg-elevated border border-border text-text text-[15px] outline-none focus:border-noa focus:ring-1 focus:ring-noa/30 transition-all placeholder:text-text-muted"
               />
               <input
                 type="password"
@@ -288,7 +288,7 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
                 placeholder="Contraseña"
                 autoComplete="current-password"
                 disabled={loading}
-                className="w-full h-[48px] px-4 rounded-xl bg-bg-elevated border border-border text-text text-[15px] outline-none focus:border-kira focus:ring-1 focus:ring-kira/30 transition-all placeholder:text-text-muted"
+                className="w-full h-[48px] px-4 rounded-xl bg-bg-elevated border border-border text-text text-[15px] outline-none focus:border-noa focus:ring-1 focus:ring-noa/30 transition-all placeholder:text-text-muted"
               />
               <button
                 type="submit"

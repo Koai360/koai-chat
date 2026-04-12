@@ -8,7 +8,7 @@ interface Props {
 }
 
 /**
- * ExplorePage — descubrir capacidades de Kira/Kronos.
+ * ExplorePage — descubrir capacidades de Noa/Kronos.
  *
  * Diseño en español, sin AI slop (no 2x2 icon-cards). Cada categoría es una
  * fila con un mark de letra/símbolo color-coded por tipo, label en español,
@@ -18,7 +18,7 @@ interface Props {
 
 interface ExploreItem {
   mark: string;
-  tone: "kira" | "kronos" | "premium" | "neutral";
+  tone: "noa" | "kronos" | "premium" | "neutral";
   title: string;
   description: string;
   prompt: string;
@@ -32,7 +32,7 @@ const SECTIONS: { heading: string; items: ExploreItem[] }[] = [
     items: [
       {
         mark: "Z",
-        tone: "kira",
+        tone: "noa",
         title: "Z-Image-Turbo",
         description: "Rápido y económico — 9 steps, ~$0.016 por imagen",
         prompt: "una taza de café latte arte sobre madera, fotorealista, luz natural suave",
@@ -64,21 +64,21 @@ const SECTIONS: { heading: string; items: ExploreItem[] }[] = [
     items: [
       {
         mark: "✺",
-        tone: "kira",
+        tone: "noa",
         title: "Copy de campaña",
         description: "Anuncios para Instagram, Meta Ads, email marketing",
         prompt: "Ayúdame a escribir un anuncio para Instagram sobre un servicio de cleaning premium en Miami",
       },
       {
         mark: "≈",
-        tone: "kira",
+        tone: "noa",
         title: "Brief estratégico",
         description: "Posicionamiento, audiencia, mensajes clave por canal",
         prompt: "Necesito un brief estratégico de marketing para una marca nueva de bebidas energéticas",
       },
       {
         mark: "❒",
-        tone: "kira",
+        tone: "noa",
         title: "Ideas para Print Factory",
         description: "Stickers, vinilos, mockups, variaciones de diseño",
         prompt: "Dame 5 ideas de stickers para una pizzería con estética retro miami",
@@ -114,7 +114,7 @@ const SECTIONS: { heading: string; items: ExploreItem[] }[] = [
 ];
 
 const TONE_STYLES: Record<ExploreItem["tone"], { color: string; glow: string; bg: string }> = {
-  kira:    { color: "#D4E94B", glow: "rgba(212,233,75,0.30)", bg: "rgba(212,233,75,0.06)" },
+  noa:     { color: "#D4E94B", glow: "rgba(212,233,75,0.30)", bg: "rgba(212,233,75,0.06)" },
   kronos:  { color: "#00E5FF", glow: "rgba(0,229,255,0.30)",  bg: "rgba(0,229,255,0.06)"  },
   premium: { color: "#7B2D8E", glow: "rgba(123,45,142,0.40)", bg: "rgba(123,45,142,0.08)" },
   neutral: { color: "rgba(255,255,255,0.85)", glow: "rgba(255,255,255,0.18)", bg: "rgba(255,255,255,0.04)" },
@@ -136,7 +136,7 @@ export function ExplorePage({ onNavigate, onStartChat }: Props) {
             style={{ letterSpacing: "-0.025em" }}
           >
             Explora{" "}
-            <span className="gradient-text-kira">capacidades</span>
+            <span className="gradient-text-noa">capacidades</span>
           </h1>
           <p
             className="font-display text-[15px] md:text-[17px] text-text-muted mt-1.5 leading-snug"

@@ -43,7 +43,7 @@ export function MobileTabBar({ currentPage, onNavigate }: Props) {
               className={`
                 flex flex-col items-center justify-center gap-1 flex-1 h-full
                 transition-colors duration-200
-                ${isActive ? "text-kira" : "text-text-subtle"}
+                ${isActive ? "text-noa" : "text-text-subtle"}
               `}
             >
               <Icon

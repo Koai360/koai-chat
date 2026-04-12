@@ -23,8 +23,8 @@ export function Switch({ checked, onCheckedChange, disabled, className = "" }: S
       aria-checked={checked}
       disabled={disabled}
       onClick={toggle}
-      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kira/50 disabled:opacity-50 disabled:cursor-not-allowed ${
-        checked ? "bg-kira" : "bg-white/10"
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-noa/50 disabled:opacity-50 disabled:cursor-not-allowed ${
+        checked ? "bg-noa" : "bg-white/10"
       } ${className}`}
     >
       <span

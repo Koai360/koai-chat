@@ -392,8 +392,8 @@ function StyleSection() {
       {/* Progress card — compacto */}
       <div className="liquid-glass rounded-2xl p-4 space-y-3">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-kira/10 flex items-center justify-center shrink-0">
-            <Sparkles className="size-4 text-kira" />
+          <div className="w-9 h-9 rounded-xl bg-noa/10 flex items-center justify-center shrink-0">
+            <Sparkles className="size-4 text-noa" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs text-text-muted">
@@ -430,13 +430,13 @@ function StyleSection() {
               onChange={(e) => setImportUrl(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handlePreview()}
               placeholder="https://civitai.com/images/..."
-              className="flex-1 h-10 px-3 rounded-lg bg-bg-elevated border border-border text-text text-sm outline-none focus:border-kira focus:ring-1 focus:ring-kira/30 transition-all placeholder:text-text-subtle"
+              className="flex-1 h-10 px-3 rounded-lg bg-bg-elevated border border-border text-text text-sm outline-none focus:border-noa focus:ring-1 focus:ring-noa/30 transition-all placeholder:text-text-subtle"
               disabled={previewLoading}
             />
             <button
               onClick={handlePreview}
               disabled={!importUrl.trim() || previewLoading}
-              className="h-10 px-4 rounded-lg bg-kira text-[#0a0a0c] text-sm font-medium transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+              className="h-10 px-4 rounded-lg bg-noa text-[#0a0a0c] text-sm font-medium transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
             >
               {previewLoading ? <Loader2 className="size-4 animate-spin" /> : "Ver preview"}
             </button>
@@ -461,7 +461,7 @@ function StyleSection() {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-text-subtle">Engine sugerido:</span>
-                  <span className="text-kira font-mono">{preview.suggested_engine}</span>
+                  <span className="text-noa font-mono">{preview.suggested_engine}</span>
                 </div>
                 {preview.params.cfg_scale !== undefined && (
                   <div className="flex items-center gap-1.5">
@@ -504,7 +504,7 @@ function StyleSection() {
                     onClick={() => setImportCategory(cat.id)}
                     className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-[11px] font-medium transition-all ${
                       importCategory === cat.id
-                        ? "bg-kira/15 border border-kira/60 text-text"
+                        ? "bg-noa/15 border border-noa/60 text-text"
                         : "bg-bg-elevated border border-border text-text-muted hover:text-text"
                     }`}
                   >
@@ -526,7 +526,7 @@ function StyleSection() {
               <button
                 onClick={handleConfirmImport}
                 disabled={importBusy}
-                className="flex-1 h-10 rounded-lg bg-kira text-[#0a0a0c] text-sm font-medium transition-all active:scale-[0.98] disabled:opacity-50"
+                className="flex-1 h-10 rounded-lg bg-noa text-[#0a0a0c] text-sm font-medium transition-all active:scale-[0.98] disabled:opacity-50"
               >
                 {importBusy ? (
                   <Loader2 className="size-4 animate-spin mx-auto" />
@@ -581,7 +581,7 @@ function StyleSection() {
       ) : error ? (
         <div className="text-center py-10 text-text-muted">
           <p className="text-sm text-danger">{error}</p>
-          <button onClick={load} className="mt-3 text-xs text-kira hover:underline">
+          <button onClick={load} className="mt-3 text-xs text-noa hover:underline">
             Reintentar
           </button>
         </div>
@@ -655,7 +655,7 @@ function TabButton({
       {label}
       {count > 0 && (
         <span
-          className={`ml-1.5 text-[10px] font-mono ${active ? "text-kira" : "text-text-subtle"}`}
+          className={`ml-1.5 text-[10px] font-mono ${active ? "text-noa" : "text-text-subtle"}`}
         >
           {count}
         </span>
@@ -828,7 +828,7 @@ function SecuritySection() {
           value={value[i] || ""}
           onChange={(e) => handleDigit(i, e.target.value, setter, value)}
           onKeyDown={(e) => handleKeyDown(i, e, value, setter)}
-          className="w-12 h-14 text-center text-xl font-mono font-bold rounded-xl bg-bg-elevated border border-border text-text focus:border-kira focus:ring-1 focus:ring-kira/30 outline-none transition-all"
+          className="w-12 h-14 text-center text-xl font-mono font-bold rounded-xl bg-bg-elevated border border-border text-text focus:border-noa focus:ring-1 focus:ring-noa/30 outline-none transition-all"
           autoComplete="off"
         />
       ))}
@@ -844,8 +844,8 @@ function SecuritySection() {
       {/* Private Gallery Card */}
       <div className="liquid-glass rounded-2xl p-5 space-y-4">
         <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl bg-kira/10 flex items-center justify-center shrink-0">
-            <EyeOff className="size-5 text-kira" />
+          <div className="w-10 h-10 rounded-xl bg-noa/10 flex items-center justify-center shrink-0">
+            <EyeOff className="size-5 text-noa" />
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-sm font-medium text-text">Galería Privada</h3>
@@ -865,7 +865,7 @@ function SecuritySection() {
                   setPinValue("");
                   setTimeout(() => inputRefs.current[0]?.focus(), 100);
                 }}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-kira/10 hover:bg-kira/20 text-kira text-sm font-medium transition-colors"
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-noa/10 hover:bg-noa/20 text-noa text-sm font-medium transition-colors"
               >
                 <KeyRound className="size-4" />
                 Configurar PIN
@@ -887,7 +887,7 @@ function SecuritySection() {
                 )}
                 {busy && (
                   <div className="flex justify-center">
-                    <Loader2 className="size-4 animate-spin text-kira" />
+                    <Loader2 className="size-4 animate-spin text-noa" />
                   </div>
                 )}
                 <button
@@ -934,7 +934,7 @@ function SecuritySection() {
                 )}
                 {busy && (
                   <div className="flex justify-center">
-                    <Loader2 className="size-4 animate-spin text-kira" />
+                    <Loader2 className="size-4 animate-spin text-noa" />
                   </div>
                 )}
                 <button
@@ -997,7 +997,7 @@ function SecuritySection() {
                 )}
                 {busy && (
                   <div className="flex justify-center">
-                    <Loader2 className="size-4 animate-spin text-kira" />
+                    <Loader2 className="size-4 animate-spin text-noa" />
                   </div>
                 )}
                 <button

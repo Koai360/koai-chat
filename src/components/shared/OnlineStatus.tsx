@@ -17,7 +17,7 @@ export function OnlineStatus() {
 
   if (online) {
     return (
-      <div className="flex items-center gap-1 text-[10px] text-kira">
+      <div className="flex items-center gap-1 text-[10px] text-noa">
         <Wifi className="w-3 h-3" />
         <span>Online</span>
       </div>

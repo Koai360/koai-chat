@@ -229,7 +229,7 @@ export function MediaGalleryPage({ onImageClick, isPrivateUnlocked = false }: Pr
             <p className="text-sm">{error}</p>
             <button
               onClick={() => loadFirstBatch(activeTab)}
-              className="mt-3 text-xs text-kira hover:underline"
+              className="mt-3 text-xs text-noa hover:underline"
             >
               Reintentar
             </button>

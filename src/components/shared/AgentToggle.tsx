@@ -2,15 +2,15 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 interface Props {
-  agent: "kira" | "kronos";
-  onChange: (agent: "kira" | "kronos") => void;
+  agent: "noa" | "kronos";
+  onChange: (agent: "noa" | "kronos") => void;
   disabled?: boolean;
 }
 
 export function AgentToggle({ agent, onChange, disabled }: Props) {
   return (
     <div className="relative flex items-center bg-bg-surface rounded-full p-1 gap-0.5">
-      {(["kira", "kronos"] as const).map((a) => (
+      {(["noa", "kronos"] as const).map((a) => (
         <button
           key={a}
           onClick={() => !disabled && onChange(a)}
@@ -25,11 +25,11 @@ export function AgentToggle({ agent, onChange, disabled }: Props) {
             className={cn(
               "w-1.5 h-1.5 rounded-full transition-colors",
               agent === a
-                ? a === "kira" ? "bg-bg" : "bg-bg"
-                : a === "kira" ? "bg-kira" : "bg-kronos",
+                ? a === "noa" ? "bg-bg" : "bg-bg"
+                : a === "noa" ? "bg-noa" : "bg-kronos",
             )}
           />
-          {a === "kira" ? "Noa" : "Kronos"}
+          {a === "noa" ? "Noa" : "Kronos"}
         </button>
       ))}
 
@@ -38,11 +38,11 @@ export function AgentToggle({ agent, onChange, disabled }: Props) {
         layoutId="agent-pill"
         className={cn(
           "absolute top-1 bottom-1 rounded-full",
-          agent === "kira" ? "bg-kira" : "bg-kronos",
+          agent === "noa" ? "bg-noa" : "bg-kronos",
         )}
         style={{
-          left: agent === "kira" ? 4 : "50%",
-          right: agent === "kira" ? "50%" : 4,
+          left: agent === "noa" ? 4 : "50%",
+          right: agent === "noa" ? "50%" : 4,
         }}
         transition={{ type: "spring", stiffness: 400, damping: 30 }}
       />

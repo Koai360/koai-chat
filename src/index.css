@@ -22,10 +22,10 @@
   --color-text-subtle: rgba(255, 255, 255, 0.4);
   --color-text-secondary: rgba(255, 255, 255, 0.55);
 
-  /* Accent — Kira (lime KOAI brand) */
-  --color-kira: #D4E94B;
-  --color-kira-soft: rgba(212, 233, 75, 0.15);
-  --color-kira-glow: rgba(212, 233, 75, 0.25);
+  /* Accent — Noa (lime KOAI brand) */
+  --color-noa: #D4E94B;
+  --color-noa-soft: rgba(212, 233, 75, 0.15);
+  --color-noa-glow: rgba(212, 233, 75, 0.25);
 
   /* Brand — Purple KOAI */
   --color-purple: #7B2D8E;
@@ -554,7 +554,7 @@ button, a, [role="button"] {
 .animate-fadeUpBlur.stagger-6 { animation-delay: 0.6s; }
 
 /* ===== GRADIENT TEXT ===== */
-.gradient-text-kira {
+.gradient-text-noa {
   background: linear-gradient(135deg, #D4E94B 0%, #A8D830 50%, #D4E94B 100%);
   background-size: 200% 200%;
   -webkit-background-clip: text;
@@ -579,7 +579,7 @@ button, a, [role="button"] {
   .cursor-dot {
     width: 8px;
     height: 8px;
-    background: var(--color-kira);
+    background: var(--color-noa);
     border-radius: 50%;
     position: fixed;
     pointer-events: none;

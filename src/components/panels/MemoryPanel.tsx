@@ -28,14 +28,14 @@ type KronosFilter = "all" | "decision" | "context" | "preference";
 const KRONOS_TYPE_CONFIG: Record<string, { icon: typeof Brain; color: string }> = {
   decision: { icon: Lightbulb, color: "text-yellow-400" },
   context: { icon: Info, color: "text-blue-400" },
-  preference: { icon: Star, color: "text-kira" },
+  preference: { icon: Star, color: "text-noa" },
 };
 
 // ─── User memory types ──────────────────────────────────────────────────────
 type UserFilter = "all" | "preference" | "context" | "fact" | "instruction";
 
 const USER_TYPE_CONFIG: Record<string, { icon: typeof Brain; color: string; label: string }> = {
-  preference: { icon: Star, color: "text-kira", label: "Preferencia" },
+  preference: { icon: Star, color: "text-noa", label: "Preferencia" },
   context: { icon: Info, color: "text-blue-400", label: "Contexto" },
   fact: { icon: Lightbulb, color: "text-yellow-400", label: "Dato" },
   instruction: { icon: AlertCircle, color: "text-orange-400", label: "Instrucción" },
@@ -194,7 +194,7 @@ export function MemoryPanel({ onClose }: Props) {
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 text-[11px] text-kira"
+            className="h-7 text-[11px] text-noa"
             onClick={() => tab === "kronos" ? setShowKronosCreate(true) : setShowUserCreate(true)}
           >
             <Plus className="h-3.5 w-3.5 mr-1" />
@@ -210,7 +210,7 @@ export function MemoryPanel({ onClose }: Props) {
       <div className="flex border-b border-border-subtle">
         <button
           className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors ${
-            tab === "user" ? "text-kira border-b-2 border-kira" : "text-text-muted hover:text-text"
+            tab === "user" ? "text-noa border-b-2 border-noa" : "text-text-muted hover:text-text"
           }`}
           onClick={() => setTab("user")}
         >
@@ -219,7 +219,7 @@ export function MemoryPanel({ onClose }: Props) {
         </button>
         <button
           className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors ${
-            tab === "kronos" ? "text-kira border-b-2 border-kira" : "text-text-muted hover:text-text"
+            tab === "kronos" ? "text-noa border-b-2 border-noa" : "text-text-muted hover:text-text"
           }`}
           onClick={() => setTab("kronos")}
         >

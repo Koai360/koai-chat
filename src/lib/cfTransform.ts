@@ -5,7 +5,7 @@
  * sin pre-computar versiones. CF cachea cada transformación única en edge.
  *
  * Arquitectura:
- *   - Origen: R2 bucket koai-media → https://cdn.koai360.com/kira/{file}.png
+ *   - Origen: R2 bucket koai-media → https://cdn.koai360.com/noa/{file}.png
  *   - CDN: CF Transformations en zone koai360.com
  *   - URL pattern: https://{host}/cdn-cgi/image/{params}/{origin_url}
  *
@@ -58,7 +58,7 @@ const ALLOWED_ORIGINS = [
  * Si la URL no está en la whitelist de orígenes permitidos, devuelve
  * la original sin transformar (evita romper la app si hay URLs legacy).
  *
- * @param originalUrl URL del asset (ej https://cdn.koai360.com/kira/xxx.png)
+ * @param originalUrl URL del asset (ej https://cdn.koai360.com/noa/xxx.png)
  * @param variant     Preset de tamaño/calidad
  * @returns URL transformada, o la original si no está en whitelist
  */

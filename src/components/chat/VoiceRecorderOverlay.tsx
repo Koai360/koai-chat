@@ -91,7 +91,7 @@ export function VoiceRecorderOverlay({
         const y = centerY - barHeight / 2;
         const w = barWidth - gap;
 
-        // Gradient verde kira con más intensidad en bars recientes (derecha)
+        // Gradient verde noa con más intensidad en bars recientes (derecha)
         const alpha = 0.4 + (dataIdx / BAR_COUNT) * 0.6;
         ctx.fillStyle = `rgba(212, 233, 75, ${Math.max(0.3, alpha)})`;
         ctx.fillRect(x, y, w, barHeight);
@@ -159,13 +159,13 @@ export function VoiceRecorderOverlay({
                 </span>
               </div>
 
-              {/* Send/Stop button — verde kira */}
+              {/* Send/Stop button — verde noa */}
               <button
                 onClick={onStop}
                 aria-label="Enviar grabación"
                 className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-colors"
                 style={{
-                  backgroundColor: "var(--color-kira)",
+                  backgroundColor: "var(--color-noa)",
                   color: "#000000",
                 }}
               >

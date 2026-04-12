@@ -12,7 +12,7 @@ interface Props {
 }
 
 function dotColor(status: string): string {
-  if (status === "active" || status === "running") return "bg-kira";
+  if (status === "active" || status === "running") return "bg-noa";
   if (status === "stopped" || status === "failed" || status === "error") return "bg-destructive";
   return "bg-text-muted";
 }
@@ -131,7 +131,7 @@ export function SystemStatusPanel({ onClose }: Props) {
               className="rounded-xl border border-border-subtle bg-bg-surface/50 p-4"
             >
               <div className="flex items-center gap-2 mb-3">
-                <Wifi className="h-4 w-4 text-kira" />
+                <Wifi className="h-4 w-4 text-noa" />
                 <h3 className="text-sm font-medium text-text">Servicios</h3>
               </div>
 
@@ -141,7 +141,7 @@ export function SystemStatusPanel({ onClose }: Props) {
                     <span className={`w-2 h-2 rounded-full shrink-0 ${dotColor(svcStatus)}`} />
                     <span className="text-xs text-text flex-1 capitalize">{name.replace(/_/g, " ")}</span>
                     <span className={`text-[11px] font-medium ${
-                      svcStatus === "active" || svcStatus === "running" ? "text-kira" : "text-destructive"
+                      svcStatus === "active" || svcStatus === "running" ? "text-noa" : "text-destructive"
                     }`}>
                       {statusLabel(svcStatus)}
                     </span>
@@ -183,7 +183,7 @@ function MetricCard({
         <div className="h-1 rounded-full bg-bg-sidebar overflow-hidden">
           <div
             className={`h-full rounded-full transition-all ${
-              percent > 80 ? "bg-destructive" : percent > 60 ? "bg-yellow-500" : "bg-kira"
+              percent > 80 ? "bg-destructive" : percent > 60 ? "bg-yellow-500" : "bg-noa"
             }`}
             style={{ width: `${Math.min(percent, 100)}%` }}
           />

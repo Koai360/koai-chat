@@ -25,11 +25,13 @@ interface Props {
   /** URL del source de edit (viene de AppShell) — se reenvía a ChatInput */
   editSourceUrl?: string | null;
   onClearEditSource?: () => void;
+  /** Última imagen generada en la conversación — para edit rápido */
+  lastGeneratedImage?: { url: string; messageId?: string } | null;
   selectMode?: boolean;
   onSelectMode?: (active: boolean) => void;
 }
 
-export function ChatView({ conversation, agent, loading, loadingHint, streamingText, onSend, onStop, onTranscribe, onDelete: _onDelete, onDeleteMessages, userName, onImageClick, onEditImage, editSourceUrl, onClearEditSource, selectMode: externalSelectMode, onSelectMode }: Props) {
+export function ChatView({ conversation, agent, loading, loadingHint, streamingText, onSend, onStop, onTranscribe, onDelete: _onDelete, onDeleteMessages, userName, onImageClick, onEditImage, editSourceUrl, onClearEditSource, lastGeneratedImage, selectMode: externalSelectMode, onSelectMode }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
@@ -176,6 +178,7 @@ export function ChatView({ conversation, agent, loading, loadingHint, streamingT
         agent={agent}
         editSourceUrl={editSourceUrl}
         onClearEditSource={onClearEditSource}
+        lastGeneratedImage={lastGeneratedImage}
       />
     </div>
   );

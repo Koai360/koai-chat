@@ -54,6 +54,7 @@ export function AppShell({ user, onLogout }: Props) {
     deleteConversation,
     deleteMessages,
     renameConversation,
+    lastGeneratedImage,
   } = useChat(user.id);
 
   const { notifications, unreadCount, markRead, markAllRead, removeOne, removeAll } = useNotifications();
@@ -92,6 +93,16 @@ export function AppShell({ user, onLogout }: Props) {
       navigate("chat");
     }
   }, [currentPage, navigate]);
+
+  // Escuchar trigger-edit desde ChatInput (botón "Editar última imagen")
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const url = (e as CustomEvent<{ url: string }>).detail?.url;
+      if (url) handleEditImage(url);
+    };
+    window.addEventListener("trigger-edit", handler);
+    return () => window.removeEventListener("trigger-edit", handler);
+  }, [handleEditImage]);
 
   const clearEditSource = useCallback(() => setEditSourceUrl(null), []);
 
@@ -232,6 +243,7 @@ export function AppShell({ user, onLogout }: Props) {
             onEditImage={handleEditImage}
             editSourceUrl={editSourceUrl}
             onClearEditSource={clearEditSource}
+            lastGeneratedImage={lastGeneratedImage}
           />
         );
       case "chatHistory":

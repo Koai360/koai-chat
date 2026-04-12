@@ -98,6 +98,8 @@ export function useChat(userId: string | null = null) {
   }, []);
   const [loadingHint, setLoadingHint] = useState<string | null>(null);
   const [streamingText, setStreamingText] = useState("");
+  // Última imagen generada en la conversación activa — para edit rápido
+  const [lastGeneratedImage, setLastGeneratedImage] = useState<{ url: string; messageId?: string } | null>(null);
   const [syncing, setSyncing] = useState(true);
   const initialLoadDone = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
@@ -374,6 +376,8 @@ export function useChat(userId: string | null = null) {
                   onToken: (accumulated) => setStreamingText(accumulated),
                   onImage: (img, meta) => {
                     assistantImage = img;
+                    // Guardar como última imagen generada para edit rápido
+                    if (img) setLastGeneratedImage({ url: img });
                     if (meta) {
                       assistantImageMetadata = {
                         engine: meta.engine,
@@ -644,5 +648,6 @@ export function useChat(userId: string | null = null) {
     deleteMessages,
     moveToProject,
     renameConversation,
+    lastGeneratedImage,
   };
 }

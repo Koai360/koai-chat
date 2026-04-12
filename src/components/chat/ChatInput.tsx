@@ -35,6 +35,8 @@ interface Props {
   editSourceUrl?: string | null;
   /** Callback para limpiar la URL cuando el usuario cancela el edit */
   onClearEditSource?: () => void;
+  /** Última imagen generada — para botón "Editar esta" rápido */
+  lastGeneratedImage?: { url: string; messageId?: string } | null;
 }
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
@@ -80,7 +82,7 @@ function compressImage(dataUrl: string, maxBytes: number): Promise<{ base64: str
 // ENGINE_OPTIONS y tipos viven en EngineSelector.tsx (single source of truth)
 // Backend dispatch correspondiente: /opt/koai-api/koai/tools/image_gen_tools.py:generate_image()
 
-export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe, disabled, placeholder = "Pregunta algo a Noa...", autoFocus, agent = "noa", editSourceUrl, onClearEditSource }: Props) {
+export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe, disabled, placeholder = "Pregunta algo a Noa...", autoFocus, agent = "noa", editSourceUrl, onClearEditSource, lastGeneratedImage }: Props) {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
@@ -341,6 +343,30 @@ export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Quick edit last generated image — chip above input */}
+      {lastGeneratedImage && !imagePreview && !editSourceUrl && !editMode && !loading && (
+        <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="mx-1 mb-1.5">
+          <button
+            onClick={() => {
+              if (navigator.vibrate) navigator.vibrate(8);
+              // Inyectar la URL como editSourceUrl via el mismo mecanismo que usa la galería
+              // onClearEditSource resetea el anterior, luego seteamos el nuevo
+              if (onClearEditSource) onClearEditSource();
+              // Pequeño delay para que el clear se procese antes del set
+              requestAnimationFrame(() => {
+                window.dispatchEvent(new CustomEvent("trigger-edit", { detail: { url: lastGeneratedImage.url } }));
+              });
+            }}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-bg-surface border border-border hover:border-noa/30 transition-all text-left group"
+          >
+            <img src={lastGeneratedImage.url} alt="" className="w-7 h-7 rounded-md object-cover shrink-0" />
+            <span className="text-[11px] text-text-muted group-hover:text-text transition-colors">
+              ✎ Editar última imagen
+            </span>
+          </button>
+        </motion.div>
+      )}
 
       {/* Image preview + mode segmented (Generar con referencia | Editar) */}
       {imagePreview && (

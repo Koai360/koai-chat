@@ -1,4 +1,4 @@
-const CACHE_NAME = "koai-chat-v16";
+const CACHE_NAME = "koai-chat-v17";
 const PRECACHE = ["/", "/manifest.json"];
 
 self.addEventListener("install", (e) => {
@@ -31,8 +31,8 @@ self.addEventListener("push", (e) => {
     const title = data.title || "Noa AI";
     const options = {
       body: data.body || "",
-      icon: "/icons/koai-192.png",
-      badge: "/icons/koai-192.png",
+      icon: "/icons/noa-192.png",
+      badge: "/icons/noa-192.png",
       data: { url: data.url || "/" },
       vibrate: [100, 50, 100],
     };

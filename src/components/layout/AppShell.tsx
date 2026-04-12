@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { AnimatePresence } from "framer-motion";
 import type { AuthUser } from "@/hooks/useAuth";
 import { useChat } from "@/hooks/useChat";
@@ -63,6 +63,8 @@ export function AppShell({ user, onLogout }: Props) {
 
   const [activePanel, setActivePanel] = useState<PanelType>(null);
   const [modalImage, setModalImage] = useState<{ src: string; id?: string; isHidden?: boolean; rating?: 1 | -1 | 0 } | null>(null);
+  // Cache de ratings en sesión — persiste likes/dislikes mientras la app esté abierta
+  const ratingsCache = useRef<Map<string, 1 | -1 | 0>>(new Map());
   // editSourceUrl: URL de imagen R2 que el usuario pidió editar (desde chat o galería).
   // Se pasa a ChatView → ChatInput, que abre el modo edit automático y envía vía image_url.
   const [editSourceUrl, setEditSourceUrl] = useState<string | null>(null);
@@ -108,6 +110,10 @@ export function AppShell({ user, onLogout }: Props) {
     } else {
       await likeImage(imageId, rating);
     }
+    // Guardar en cache local para que se muestre al re-abrir la imagen
+    ratingsCache.current.set(imageId, rating);
+    // Actualizar el modalImage actual para reflejar el cambio inmediato
+    setModalImage((prev) => prev?.id === imageId ? { ...prev, rating } : prev);
     // Notificar a SettingsPage u otros listeners del count
     window.dispatchEvent(
       new CustomEvent("image-rated", { detail: { id: imageId, rating } }),
@@ -222,7 +228,7 @@ export function AppShell({ user, onLogout }: Props) {
             onDelete={deleteConversation}
             onDeleteMessages={deleteMessages}
             userName={user.name}
-            onImageClick={(src, messageId) => setModalImage({ src, id: messageId })}
+            onImageClick={(src, messageId) => setModalImage({ src, id: messageId, rating: messageId ? ratingsCache.current.get(messageId) : undefined })}
             onEditImage={handleEditImage}
             editSourceUrl={editSourceUrl}
             onClearEditSource={clearEditSource}
@@ -247,7 +253,7 @@ export function AppShell({ user, onLogout }: Props) {
       case "media":
         return (
           <MediaGalleryPage
-            onImageClick={(src, id, isHidden) => setModalImage({ src, id, isHidden })}
+            onImageClick={(src, id, isHidden) => setModalImage({ src, id, isHidden, rating: id ? ratingsCache.current.get(id) : undefined })}
             isPrivateUnlocked={isPrivateUnlocked}
           />
         );

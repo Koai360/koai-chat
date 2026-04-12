@@ -605,10 +605,10 @@ export function ImageViewer({
               Más opciones
             </SheetTitle>
           </SheetHeader>
-          <div className="flex flex-col gap-0 -mx-6">
+          <div className="flex flex-col gap-0 mt-2">
             {moreMenuItems}
           </div>
-          <div className="px-2 pt-3 pb-1">
+          <div className="pt-3 pb-1">
             <Button
               variant="ghost"
               className="w-full text-white/70 hover:text-white hover:bg-white/5"

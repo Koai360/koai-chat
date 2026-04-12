@@ -380,7 +380,7 @@ function StyleSection() {
   };
 
   const filteredLikes = likes.filter((l) => {
-    if (l.rating !== 1) return false;
+    if (l.rating < 1) return false;
     if (activeTab === "all") return true;
     return (l.category || "uncategorized") === activeTab;
   });

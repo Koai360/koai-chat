@@ -64,6 +64,7 @@ export function IconRail({ currentPage, onNavigate, user, onLogout, agent = "noa
                 <TooltipTrigger asChild>
                   <button
                     onClick={() => onNavigate(item.page)}
+                    aria-label={item.label}
                     className={`icon-rail-item ${isActive ? "active" : ""}`}
                   >
                     <Icon className="w-5 h-5" />

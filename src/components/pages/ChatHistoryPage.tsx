@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
-import { Search, LayoutGrid, List, ImageIcon, Trash2, Pencil } from "lucide-react";
+import { Search, LayoutGrid, List, ImageIcon, Trash2, Pencil, Download } from "lucide-react";
+import { exportAsText } from "@/lib/exportChat";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -281,6 +282,16 @@ function ConversationCard({
           aria-label="Renombrar"
         >
           <Pencil className="size-3.5" />
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (c.messages.length > 0) exportAsText(getDisplayTitle(c), c.messages);
+          }}
+          className="p-1 rounded-md hover:bg-bg-elevated text-text-muted hover:text-noa"
+          aria-label="Exportar"
+        >
+          <Download className="size-3.5" />
         </button>
         <button
           onClick={(e) => {

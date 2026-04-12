@@ -68,7 +68,12 @@ const NAV_ITEMS: { id: Section; label: string; icon: typeof UserCircle }[] = [
 ];
 
 export function SettingsPage({ user, onLogout, theme, onToggleTheme }: Props) {
-  const [activeSection, setActiveSection] = useState<Section>("account");
+  const [activeSection, setActiveSection] = useState<Section | null>(null);
+  // En desktop siempre mostrar una sección; en mobile empieza sin sección (lista)
+  const [isMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
+
+  // Desktop: si no hay sección activa, default a "account"
+  const effectiveSection = activeSection ?? (isMobile ? null : "account");
 
   return (
     <div className="flex flex-col md:flex-row h-full">
@@ -81,7 +86,7 @@ export function SettingsPage({ user, onLogout, theme, onToggleTheme }: Props) {
               key={item.id}
               onClick={() => setActiveSection(item.id)}
               className={`flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-all duration-200 text-left ${
-                activeSection === item.id
+                effectiveSection === item.id
                   ? "bg-white/[0.08] text-text font-medium"
                   : "text-text-muted hover:text-text hover:bg-white/[0.03]"
               }`}
@@ -93,53 +98,60 @@ export function SettingsPage({ user, onLogout, theme, onToggleTheme }: Props) {
         })}
       </nav>
 
-      {/* Mobile: Top tabs (horizontal scroll con fade indicator derecho) */}
-      <div className="md:hidden relative shrink-0 border-b border-border bg-bg z-10">
-        <div className="flex overflow-x-auto no-scrollbar px-2 py-1.5 gap-1">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveSection(item.id)}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-md transition-colors whitespace-nowrap shrink-0 ${
-                  activeSection === item.id
-                    ? "bg-bg-surface text-text font-medium"
-                    : "text-text-muted"
-                }`}
-              >
-                <Icon className="size-3.5" />
-                {item.label}
-              </button>
-            );
-          })}
-        </div>
-        {/* Fade indicator: sugiere que hay más secciones a la derecha */}
-        <div
-          aria-hidden
-          className="absolute top-0 right-0 bottom-0 w-8 pointer-events-none"
-          style={{
-            background: "linear-gradient(to right, transparent, var(--color-bg) 80%)",
-          }}
-        />
-      </div>
+      {/* Mobile: Lista vertical de secciones (estilo iOS Settings) */}
+      {isMobile && effectiveSection === null && (
+        <ScrollArea className="flex-1">
+          <div className="px-4 pt-4 pb-2">
+            <h1 className="text-xl font-display font-medium text-text mb-4">Ajustes</h1>
+          </div>
+          <div className="px-2 pb-4 space-y-0.5">
+            {NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveSection(item.id)}
+                  className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-bg-surface transition-colors text-left"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-bg-surface flex items-center justify-center shrink-0">
+                    <Icon className="size-4 text-text-muted" />
+                  </div>
+                  <span className="flex-1 text-sm text-text">{item.label}</span>
+                  <ChevronRight className="size-4 text-text-subtle" />
+                </button>
+              );
+            })}
+          </div>
+        </ScrollArea>
+      )}
 
-      {/* Content */}
+      {/* Content — solo se muestra cuando hay sección activa */}
+      {effectiveSection !== null && (
       <ScrollArea className="flex-1 h-full">
+        {/* Mobile: botón volver */}
+        {isMobile && (
+          <button
+            onClick={() => setActiveSection(null)}
+            className="flex items-center gap-1 px-4 pt-4 pb-1 text-xs text-noa font-medium"
+          >
+            ← Ajustes
+          </button>
+        )}
         <div className="p-6 max-w-xl">
-          {activeSection === "account" && (
+          {effectiveSection === "account" && (
             <AccountSection user={user} onLogout={onLogout} />
           )}
-          {activeSection === "preferences" && (
+          {effectiveSection === "preferences" && (
             <PreferencesSection theme={theme} onToggleTheme={onToggleTheme} />
           )}
-          {activeSection === "security" && <SecuritySection />}
-          {activeSection === "style" && <StyleSection />}
-          {activeSection !== "account" && activeSection !== "preferences" && activeSection !== "security" && activeSection !== "style" && (
-            <ComingSoon label={NAV_ITEMS.find((n) => n.id === activeSection)?.label || ""} />
+          {effectiveSection === "security" && <SecuritySection />}
+          {effectiveSection === "style" && <StyleSection />}
+          {effectiveSection !== "account" && effectiveSection !== "preferences" && effectiveSection !== "security" && effectiveSection !== "style" && (
+            <ComingSoon label={NAV_ITEMS.find((n) => n.id === effectiveSection)?.label || ""} />
           )}
         </div>
       </ScrollArea>
+      )}
     </div>
   );
 }

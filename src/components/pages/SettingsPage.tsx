@@ -69,24 +69,20 @@ const NAV_ITEMS: { id: Section; label: string; icon: typeof UserCircle }[] = [
 
 export function SettingsPage({ user, onLogout, theme, onToggleTheme }: Props) {
   const [activeSection, setActiveSection] = useState<Section | null>(null);
-  // En desktop siempre mostrar una sección; en mobile empieza sin sección (lista)
-  const [isMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
-
-  // Desktop: si no hay sección activa, default a "account"
-  const effectiveSection = activeSection ?? (isMobile ? null : "account");
 
   return (
     <div className="flex flex-col md:flex-row h-full">
-      {/* Desktop: Side nav */}
+      {/* Desktop: Side nav — siempre visible en md+ */}
       <nav className="hidden md:flex flex-col w-[200px] shrink-0 liquid-glass p-3 gap-0.5">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
+          const isActive = (activeSection ?? "account") === item.id;
           return (
             <button
               key={item.id}
               onClick={() => setActiveSection(item.id)}
               className={`flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-all duration-200 text-left ${
-                effectiveSection === item.id
+                isActive
                   ? "bg-white/[0.08] text-text font-medium"
                   : "text-text-muted hover:text-text hover:bg-white/[0.03]"
               }`}
@@ -98,9 +94,9 @@ export function SettingsPage({ user, onLogout, theme, onToggleTheme }: Props) {
         })}
       </nav>
 
-      {/* Mobile: Lista vertical de secciones (estilo iOS Settings) */}
-      {isMobile && effectiveSection === null && (
-        <ScrollArea className="flex-1">
+      {/* Mobile: Lista vertical (estilo iOS Settings) — solo cuando no hay sección seleccionada */}
+      <div className={`md:hidden flex-1 ${activeSection !== null ? "hidden" : ""}`}>
+        <ScrollArea className="h-full">
           <div className="px-4 pt-4 pb-2">
             <h1 className="text-xl font-display font-medium text-text mb-4">Ajustes</h1>
           </div>
@@ -123,35 +119,33 @@ export function SettingsPage({ user, onLogout, theme, onToggleTheme }: Props) {
             })}
           </div>
         </ScrollArea>
-      )}
+      </div>
 
-      {/* Content — solo se muestra cuando hay sección activa */}
-      {effectiveSection !== null && (
-      <ScrollArea className="flex-1 h-full">
+      {/* Content — en desktop siempre visible, en mobile solo con sección seleccionada */}
+      <div className={`flex-1 h-full ${activeSection === null ? "hidden md:block" : ""}`}>
+      <ScrollArea className="h-full">
         {/* Mobile: botón volver */}
-        {isMobile && (
-          <button
-            onClick={() => setActiveSection(null)}
-            className="flex items-center gap-1 px-4 pt-4 pb-1 text-xs text-noa font-medium"
-          >
-            ← Ajustes
-          </button>
-        )}
+        <button
+          onClick={() => setActiveSection(null)}
+          className="md:hidden flex items-center gap-1 px-4 pt-4 pb-1 text-xs text-noa font-medium"
+        >
+          ← Ajustes
+        </button>
         <div className="p-6 max-w-xl">
-          {effectiveSection === "account" && (
+          {(activeSection ?? "account") === "account" && (
             <AccountSection user={user} onLogout={onLogout} />
           )}
-          {effectiveSection === "preferences" && (
+          {(activeSection ?? "account") === "preferences" && (
             <PreferencesSection theme={theme} onToggleTheme={onToggleTheme} />
           )}
-          {effectiveSection === "security" && <SecuritySection />}
-          {effectiveSection === "style" && <StyleSection />}
-          {effectiveSection !== "account" && effectiveSection !== "preferences" && effectiveSection !== "security" && effectiveSection !== "style" && (
-            <ComingSoon label={NAV_ITEMS.find((n) => n.id === effectiveSection)?.label || ""} />
+          {(activeSection ?? "account") === "security" && <SecuritySection />}
+          {(activeSection ?? "account") === "style" && <StyleSection />}
+          {activeSection && activeSection !== "account" && activeSection !== "preferences" && activeSection !== "security" && activeSection !== "style" && (
+            <ComingSoon label={NAV_ITEMS.find((n) => n.id === activeSection)?.label || ""} />
           )}
         </div>
       </ScrollArea>
-      )}
+      </div>
     </div>
   );
 }

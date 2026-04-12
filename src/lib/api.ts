@@ -651,7 +651,7 @@ export async function importCivitai(
   return res.json();
 }
 
-export async function likeImage(messageId: string, rating: 1 | -1): Promise<void> {
+export async function likeImage(messageId: string, rating: 1 | 2 | 3 | 4 | 5): Promise<void> {
   const res = await fetch(`${API_URL}/api/chat/images/${messageId}/like`, {
     method: "POST",
     headers: getHeaders(),

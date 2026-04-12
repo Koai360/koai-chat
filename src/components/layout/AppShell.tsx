@@ -62,9 +62,9 @@ export function AppShell({ user, onLogout }: Props) {
   const { isUnlocked: isPrivateUnlocked } = usePrivateMode();
 
   const [activePanel, setActivePanel] = useState<PanelType>(null);
-  const [modalImage, setModalImage] = useState<{ src: string; id?: string; isHidden?: boolean; rating?: 1 | -1 | 0 } | null>(null);
-  // Cache de ratings en sesión — persiste likes/dislikes mientras la app esté abierta
-  const ratingsCache = useRef<Map<string, 1 | -1 | 0>>(new Map());
+  const [modalImage, setModalImage] = useState<{ src: string; id?: string; isHidden?: boolean; rating?: 0 | 1 | 2 | 3 | 4 | 5 } | null>(null);
+  // Cache de ratings en sesión — persiste estrellas mientras la app esté abierta
+  const ratingsCache = useRef<Map<string, 0 | 1 | 2 | 3 | 4 | 5>>(new Map());
   // editSourceUrl: URL de imagen R2 que el usuario pidió editar (desde chat o galería).
   // Se pasa a ChatView → ChatInput, que abre el modo edit automático y envía vía image_url.
   const [editSourceUrl, setEditSourceUrl] = useState<string | null>(null);
@@ -102,8 +102,8 @@ export function AppShell({ user, onLogout }: Props) {
     window.dispatchEvent(new CustomEvent("gallery-image-hidden", { detail: { id: imageId, hidden } }));
   }, []);
 
-  // Handler de like/dislike — sistema de style preference (híbrido LoRA)
-  const handleViewerRate = useCallback(async (imageId: string, rating: 1 | -1 | 0) => {
+  // Handler de star rating — sistema de style preference (1-5 estrellas)
+  const handleViewerRate = useCallback(async (imageId: string, rating: 0 | 1 | 2 | 3 | 4 | 5) => {
     const { likeImage, unlikeImage } = await import("@/lib/api");
     if (rating === 0) {
       await unlikeImage(imageId);

@@ -9,8 +9,7 @@ import {
   Archive,
   ArchiveRestore,
   MoreHorizontal,
-  ThumbsUp,
-  ThumbsDown,
+  Star,
   Heart,
 } from "lucide-react";
 import {
@@ -42,10 +41,10 @@ interface Props {
   onHide?: (id: string, hidden: boolean) => Promise<void>;
   /** Si la imagen está oculta actualmente */
   isHidden?: boolean;
-  /** Callback de like/dislike — sistema de style preference. rating: 1|-1, o 0 para quitar. */
-  onRate?: (id: string, rating: 1 | -1 | 0) => Promise<void>;
-  /** Rating actual de la imagen (1 likeada, -1 disliked, 0/undef sin rating) */
-  currentRating?: 1 | -1 | 0;
+  /** Callback de rating — sistema de style preference. 1-5 estrellas, o 0 para quitar. */
+  onRate?: (id: string, rating: 0 | 1 | 2 | 3 | 4 | 5) => Promise<void>;
+  /** Rating actual de la imagen (1-5 estrellas, 0/undef sin rating) */
+  currentRating?: 0 | 1 | 2 | 3 | 4 | 5;
   onClose: () => void;
 }
 
@@ -85,8 +84,8 @@ export function ImageViewer({
   const [moreOpen, setMoreOpen] = useState(false); // desktop dropdown
   const [sheetOpen, setSheetOpen] = useState(false); // mobile bottom sheet
 
-  // Rate state
-  const [rating, setRating] = useState<1 | -1 | 0>(currentRating ?? 0);
+  // Rate state (1-5 estrellas, 0 = sin rating)
+  const [rating, setRating] = useState<0 | 1 | 2 | 3 | 4 | 5>(currentRating ?? 0);
   const [rateBusy, setRateBusy] = useState(false);
 
   // Double-tap to like
@@ -234,14 +233,15 @@ export function ImageViewer({
   }, [imageId, onDelete, onClose, toast]);
 
   const handleRate = useCallback(
-    async (newRating: 1 | -1) => {
+    async (newRating: 1 | 2 | 3 | 4 | 5) => {
       if (!imageId || !onRate || rateBusy) return;
       setRateBusy(true);
-      const target: 1 | -1 | 0 = rating === newRating ? 0 : newRating;
+      // Tap misma estrella = quitar rating
+      const target: 0 | 1 | 2 | 3 | 4 | 5 = rating === newRating ? 0 : newRating;
       try {
         await onRate(imageId, target);
         setRating(target);
-        if (navigator.vibrate) navigator.vibrate(target === 0 ? 5 : target === 1 ? 12 : 8);
+        if (navigator.vibrate) navigator.vibrate(target === 0 ? 5 : 10);
       } catch (err) {
         console.error("[ImageViewer] Rate failed:", err);
       } finally {
@@ -258,9 +258,9 @@ export function ImageViewer({
       if (!imageId || !onRate) return;
       const now = Date.now();
       if (now - lastTapRef.current < 300) {
-        // Double tap → like
-        if (rating !== 1) {
-          handleRate(1);
+        // Double tap → 5 estrellas
+        if (rating !== 5) {
+          handleRate(5);
         }
         setHeartBurst(true);
         setTimeout(() => setHeartBurst(false), 800);
@@ -492,103 +492,52 @@ export function ImageViewer({
           </AnimatePresence>
         </div>
 
-        {/* ── Bottom rate bar ─────────────────────────────────────── */}
+        {/* ── Bottom star rating bar ────────────────────────────── */}
         {imageId && onRate && (
           <div
-            className="absolute inset-x-0 flex items-end justify-center gap-5 z-10"
+            className="absolute inset-x-0 flex flex-col items-center gap-2 z-10"
             style={{
               bottom: "calc(1.25rem + env(safe-area-inset-bottom, 0px))",
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Dislike */}
-            <div className="flex flex-col items-center gap-1.5">
-              <button
-                onClick={() => handleRate(-1)}
-                disabled={rateBusy}
-                aria-label={rating === -1 ? "Quitar descarte" : "Descartar este estilo"}
-                className="w-13 h-13 rounded-full flex items-center justify-center transition-all active:scale-90 disabled:opacity-60"
-                style={{
-                  width: "52px",
-                  height: "52px",
-                  background:
-                    rating === -1
-                      ? "rgba(220, 38, 38, 0.95)"
-                      : "rgba(0, 0, 0, 0.65)",
-                  border:
-                    rating === -1
-                      ? "2px solid rgba(220, 38, 38, 1)"
-                      : "1.5px solid rgba(255, 255, 255, 0.15)",
-                  boxShadow:
-                    rating === -1
-                      ? "0 0 20px rgba(220, 38, 38, 0.4)"
-                      : "0 4px 12px rgba(0, 0, 0, 0.3)",
-                  backdropFilter: "blur(12px)",
-                }}
-              >
-                <ThumbsDown
-                  className="size-5"
-                  style={{
-                    color: rating === -1 ? "#fff" : "rgba(255, 255, 255, 0.85)",
-                  }}
-                />
-              </button>
-              <span className="font-mono text-[9.5px] uppercase tracking-wider text-white/60">
-                Descartar
-              </span>
-            </div>
-
-            {/* Like — más grande, acción positiva */}
-            <div className="flex flex-col items-center gap-1.5">
-              <button
-                onClick={() => handleRate(1)}
-                disabled={rateBusy}
-                aria-label={rating === 1 ? "Quitar like" : "Guardar este estilo"}
-                className="rounded-full flex items-center justify-center transition-all active:scale-90 disabled:opacity-60"
-                style={{
-                  width: "64px",
-                  height: "64px",
-                  background:
-                    rating === 1
-                      ? "rgba(212, 233, 75, 0.95)"
-                      : "rgba(0, 0, 0, 0.65)",
-                  border:
-                    rating === 1
-                      ? "2px solid rgba(212, 233, 75, 1)"
-                      : "1.5px solid rgba(255, 255, 255, 0.15)",
-                  boxShadow:
-                    rating === 1
-                      ? "0 0 28px rgba(212, 233, 75, 0.55)"
-                      : "0 4px 16px rgba(0, 0, 0, 0.35)",
-                  backdropFilter: "blur(12px)",
-                }}
-              >
-                {rateBusy ? (
-                  <Loader2
-                    className="size-6 animate-spin"
+            {/* 5 estrellas */}
+            <div
+              className="flex items-center gap-1 px-5 py-3 rounded-full"
+              style={{
+                backgroundColor: "rgba(0, 0, 0, 0.7)",
+                backdropFilter: "blur(16px)",
+                border: "1px solid rgba(255, 255, 255, 0.12)",
+                boxShadow: "0 4px 24px rgba(0, 0, 0, 0.5)",
+              }}
+            >
+              {([1, 2, 3, 4, 5] as const).map((star) => (
+                <button
+                  key={star}
+                  onClick={() => handleRate(star)}
+                  disabled={rateBusy}
+                  aria-label={`${star} estrella${star > 1 ? "s" : ""}`}
+                  className="p-1 transition-all active:scale-90 disabled:opacity-60"
+                >
+                  <Star
+                    className="size-8 transition-all duration-200"
+                    fill={star <= rating ? "#D4E94B" : "none"}
                     style={{
-                      color: rating === 1 ? "#0a0a0c" : "rgba(255, 255, 255, 0.85)",
+                      color: star <= rating ? "#D4E94B" : "rgba(255, 255, 255, 0.3)",
+                      filter: star <= rating ? "drop-shadow(0 0 6px rgba(212, 233, 75, 0.5))" : "none",
                     }}
                   />
-                ) : (
-                  <ThumbsUp
-                    className="size-7"
-                    style={{
-                      color: rating === 1 ? "#0a0a0c" : "rgba(255, 255, 255, 0.85)",
-                    }}
-                    fill={rating === 1 ? "#0a0a0c" : "none"}
-                  />
-                )}
-              </button>
-              <span
-                className="font-mono text-[9.5px] uppercase tracking-wider"
-                style={{
-                  color: rating === 1 ? "#D4E94B" : "rgba(255,255,255,0.7)",
-                }}
-              >
-                Guardar estilo
-              </span>
+                </button>
+              ))}
             </div>
+            <span
+              className="font-mono text-[9.5px] uppercase tracking-wider"
+              style={{
+                color: rating > 0 ? "#D4E94B" : "rgba(255,255,255,0.5)",
+              }}
+            >
+              {rating === 0 ? "Calificar" : rating <= 2 ? "No me gusta" : rating === 3 ? "Está bien" : rating === 4 ? "Me gusta" : "Me encanta"}
+            </span>
           </div>
         )}
       </motion.div>

@@ -37,6 +37,8 @@ interface Props {
   onDelete?: (id: string) => Promise<void>;
   /** Callback de editar — abre ChatInput en modo edit con la URL */
   onEdit?: (imageUrl: string) => void;
+  /** Callback de animar — genera video con Wan2.2 I2V */
+  onAnimate?: (imageUrl: string) => void;
   /** Callback de ocultar/mostrar — galería privada (archivar) */
   onHide?: (id: string, hidden: boolean) => Promise<void>;
   /** Si la imagen está oculta actualmente */
@@ -68,6 +70,7 @@ export function ImageViewer({
   imageId,
   onDelete,
   onEdit,
+  onAnimate,
   onHide,
   isHidden,
   onRate,
@@ -161,6 +164,15 @@ export function ImageViewer({
     onEdit(getOriginalUrl(src));
     onClose();
   }, [onEdit, src, onClose]);
+
+  const handleAnimateClick = useCallback(() => {
+    if (!onAnimate) return;
+    if (navigator.vibrate) navigator.vibrate(8);
+    setSheetOpen(false);
+    setMoreOpen(false);
+    onAnimate(getOriginalUrl(src));
+    onClose();
+  }, [onAnimate, src, onClose]);
 
   const handleHideClick = useCallback(async () => {
     if (!imageId || !onHide) return;
@@ -272,10 +284,18 @@ export function ImageViewer({
 
   // ── Render helpers ───────────────────────────────────────────────────────
 
-  const hasMoreActions = !!((isR2Url && onEdit) || (imageId && onHide) || (imageId && onDelete));
+  const hasMoreActions = !!((isR2Url && (onEdit || onAnimate)) || (imageId && onHide) || (imageId && onDelete));
 
   const moreMenuItems = (
     <>
+      {isR2Url && onAnimate && (
+        <MenuAction
+          icon={<span className="text-[#7DD3FC] text-base">▶</span>}
+          label="Animar con IA"
+          hint="Wan2.2 · image-to-video · ~2 min"
+          onClick={handleAnimateClick}
+        />
+      )}
       {isR2Url && onEdit && (
         <MenuAction
           icon={<Pencil className="size-4" style={{ color: "#E5A3F0" }} />}

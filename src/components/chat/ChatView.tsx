@@ -22,6 +22,8 @@ interface Props {
   onImageClick?: (imageSrc: string, messageId?: string) => void;
   /** Callback cuando el usuario click "Editar" en una imagen del chat */
   onEditImage?: (imageUrl: string) => void;
+  /** Callback cuando el usuario click "Animar" en una imagen del chat */
+  onAnimateImage?: (imageUrl: string) => void;
   /** URL del source de edit (viene de AppShell) — se reenvía a ChatInput */
   editSourceUrl?: string | null;
   onClearEditSource?: () => void;
@@ -31,7 +33,7 @@ interface Props {
   onSelectMode?: (active: boolean) => void;
 }
 
-export function ChatView({ conversation, agent, loading, loadingHint, streamingText, onSend, onStop, onTranscribe, onDelete: _onDelete, onDeleteMessages, userName, onImageClick, onEditImage, editSourceUrl, onClearEditSource, lastGeneratedImage, selectMode: externalSelectMode, onSelectMode }: Props) {
+export function ChatView({ conversation, agent, loading, loadingHint, streamingText, onSend, onStop, onTranscribe, onDelete: _onDelete, onDeleteMessages, userName, onImageClick, onEditImage, onAnimateImage, editSourceUrl, onClearEditSource, lastGeneratedImage, selectMode: externalSelectMode, onSelectMode }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
@@ -137,6 +139,7 @@ export function ChatView({ conversation, agent, loading, loadingHint, streamingT
                   conversationId={conversation.id}
                   onImageClick={selectMode ? undefined : onImageClick}
                   onEditImage={selectMode ? undefined : onEditImage}
+                  onAnimateImage={selectMode ? undefined : onAnimateImage}
                   isLast={!selectMode && msg.role === "assistant" && i === conversation.messages.length - 1}
                   onRegenerate={!selectMode && msg.role === "assistant" && i === conversation.messages.length - 1 && !loading
                     ? () => {

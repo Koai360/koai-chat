@@ -114,6 +114,18 @@ export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe
     }
   }, [editSourceUrl]);
 
+  // Escuchar trigger-animate: envía automáticamente un mensaje pidiendo animación
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const url = (e as CustomEvent<{ url: string }>).detail?.url;
+      if (url) {
+        onSend(`Anima esta imagen con movimiento suave y natural`, undefined, undefined, undefined, true, url);
+      }
+    };
+    window.addEventListener("trigger-animate", handler);
+    return () => window.removeEventListener("trigger-animate", handler);
+  }, [onSend]);
+
   // Escuchar eventos de prefill disparados desde EmptyState quick actions.
   // Permite que los shortcuts prellenen el input sin enviar automáticamente.
   useEffect(() => {

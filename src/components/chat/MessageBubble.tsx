@@ -14,6 +14,7 @@ interface Props {
   conversationId?: string;
   onImageClick?: (src: string, messageId?: string) => void;
   onEditImage?: (imageUrl: string) => void;
+  onAnimateImage?: (imageUrl: string) => void;
   isLast?: boolean;
   onRegenerate?: () => void;
 }
@@ -51,12 +52,14 @@ function ImageBlock({
   isUser,
   onImageClick,
   onEditImage,
+  onAnimateImage,
 }: {
   image: string;
   messageId?: string;
   isUser: boolean;
   onImageClick?: (src: string, messageId?: string) => void;
   onEditImage?: (imageUrl: string) => void;
+  onAnimateImage?: (imageUrl: string) => void;
 }) {
   const isUrl = image.startsWith("http://") || image.startsWith("https://");
   // Para URLs R2: usar CF Transform preview (1200px, format=auto) → mobile friendly
@@ -66,8 +69,9 @@ function ImageBlock({
     : `data:${image.startsWith("iVBOR") ? "image/png" : image.startsWith("R0lGOD") ? "image/gif" : image.startsWith("UklGR") ? "image/webp" : "image/jpeg"};base64,${image}`;
   // La URL que se pasa al viewer y al edit es la ORIGINAL (sin transformar)
   const originalSrc = isUrl ? image : displaySrc;
-  // Edit solo disponible para URLs R2 (no base64 legacy)
+  // Edit/animate solo disponible para URLs R2 (no base64 legacy) y mensajes de Noa
   const canEdit = isUrl && !isUser && onEditImage;
+  const canAnimate = isUrl && !isUser && onAnimateImage;
 
   return (
     <div className="relative group/img mb-2 inline-block">
@@ -79,25 +83,43 @@ function ImageBlock({
         loading="lazy"
         decoding="async"
       />
-      {canEdit && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            if (navigator.vibrate) navigator.vibrate(8);
-            onEditImage(originalSrc);
-          }}
-          className="absolute top-2 right-2 px-2.5 py-1.5 bg-black/70 backdrop-blur-sm border border-white/15 rounded-lg text-[11px] font-medium text-white opacity-0 group-hover/img:opacity-100 active:opacity-100 transition-opacity flex items-center gap-1"
-          aria-label="Editar esta imagen con Kontext"
-        >
-          <span className="text-[#E5A3F0]">✎</span>
-          Editar
-        </button>
+      {(canEdit || canAnimate) && (
+        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/img:opacity-100 active:opacity-100 transition-opacity">
+          {canAnimate && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (navigator.vibrate) navigator.vibrate(8);
+                onAnimateImage(originalSrc);
+              }}
+              className="px-2.5 py-1.5 bg-black/70 backdrop-blur-sm border border-white/15 rounded-lg text-[11px] font-medium text-white flex items-center gap-1"
+              aria-label="Animar esta imagen con Wan2.1"
+            >
+              <span className="text-[#7DD3FC]">▶</span>
+              Animar
+            </button>
+          )}
+          {canEdit && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (navigator.vibrate) navigator.vibrate(8);
+                onEditImage(originalSrc);
+              }}
+              className="px-2.5 py-1.5 bg-black/70 backdrop-blur-sm border border-white/15 rounded-lg text-[11px] font-medium text-white flex items-center gap-1"
+              aria-label="Editar esta imagen con Kontext"
+            >
+              <span className="text-[#E5A3F0]">✎</span>
+              Editar
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
 }
 
-export function MessageBubble({ message, conversationId, onImageClick, onEditImage, isLast, onRegenerate }: Props) {
+export function MessageBubble({ message, conversationId, onImageClick, onEditImage, onAnimateImage, isLast, onRegenerate }: Props) {
   const isUser = message.role === "user";
 
   if (isUser) {
@@ -109,7 +131,7 @@ export function MessageBubble({ message, conversationId, onImageClick, onEditIma
         className="flex flex-col items-end px-4 mb-3 group/msg"
       >
         <div className="max-w-[85%] md:max-w-[70%] ml-auto bg-bg-surface border border-border rounded-2xl px-4 py-3">
-          {message.image && <ImageBlock image={message.image} messageId={message.id} isUser onImageClick={onImageClick} onEditImage={onEditImage} />}
+          {message.image && <ImageBlock image={message.image} messageId={message.id} isUser onImageClick={onImageClick} onEditImage={onEditImage} onAnimateImage={onAnimateImage} />}
           {message.content && message.content !== "[Imagen]" && (
             <p className="text-[15px] leading-[1.4] text-text whitespace-pre-wrap">
               {message.content}
@@ -138,7 +160,7 @@ export function MessageBubble({ message, conversationId, onImageClick, onEditIma
       <div className="flex-1 min-w-0 flex flex-col">
         {message.image && (
           <div className="mb-2">
-            <ImageBlock image={message.image} messageId={message.id} isUser={false} onImageClick={onImageClick} onEditImage={onEditImage} />
+            <ImageBlock image={message.image} messageId={message.id} isUser={false} onImageClick={onImageClick} onEditImage={onEditImage} onAnimateImage={onAnimateImage} />
             {message.imageMetadata && (
               <div className="mt-1.5">
                 <ImageMetadataBadge

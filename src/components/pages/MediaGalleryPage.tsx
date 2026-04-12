@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ImageIcon, Loader2, EyeOff, Lock } from "lucide-react";
+import { ImageIcon, Loader2, EyeOff, Lock, CheckCircle2, Trash2, Archive, ArchiveRestore } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   fetchImages,
+  deleteImage,
+  hideImage,
   type GalleryImage,
 } from "@/lib/api";
 import { getCfTransformUrl } from "@/lib/cfTransform";
@@ -25,6 +27,9 @@ const caches: Record<GalleryTab, {
 } | null> = { all: null, private: null };
 
 export function MediaGalleryPage({ onImageClick, isPrivateUnlocked = false }: Props) {
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [batchBusy, setBatchBusy] = useState(false);
   const [activeTab, setActiveTab] = useState<GalleryTab>("all");
   const [images, setImages] = useState<GalleryImage[]>(() => {
     const c = caches[activeTab];
@@ -175,16 +180,74 @@ export function MediaGalleryPage({ onImageClick, isPrivateUnlocked = false }: Pr
 
   const isPrivate = activeTab === "private";
 
+  const toggleSelect = useCallback((id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const exitSelectMode = useCallback(() => {
+    setSelectMode(false);
+    setSelected(new Set());
+  }, []);
+
+  const handleBatchDelete = useCallback(async () => {
+    if (selected.size === 0 || batchBusy) return;
+    if (!confirm(`¿Eliminar ${selected.size} imagen${selected.size > 1 ? "es" : ""}?`)) return;
+    setBatchBusy(true);
+    try {
+      await Promise.all([...selected].map((id) => deleteImage(id)));
+      for (const id of selected) {
+        window.dispatchEvent(new CustomEvent("gallery-image-deleted", { detail: { id } }));
+      }
+      exitSelectMode();
+    } catch (err) {
+      console.error("[Gallery] Batch delete failed:", err);
+    } finally {
+      setBatchBusy(false);
+    }
+  }, [selected, batchBusy, exitSelectMode]);
+
+  const handleBatchHide = useCallback(async () => {
+    if (selected.size === 0 || batchBusy) return;
+    const hide = !isPrivate;
+    setBatchBusy(true);
+    try {
+      await Promise.all([...selected].map((id) => hideImage(id, hide)));
+      for (const id of selected) {
+        window.dispatchEvent(new CustomEvent("gallery-image-hidden", { detail: { id, hidden: hide } }));
+      }
+      exitSelectMode();
+    } catch (err) {
+      console.error("[Gallery] Batch hide failed:", err);
+    } finally {
+      setBatchBusy(false);
+    }
+  }, [selected, batchBusy, isPrivate, exitSelectMode]);
+
   return (
     <div className="flex flex-col h-full px-4 pt-4 pb-2">
       {/* Header */}
       <div className="mb-4">
-        <h1 className="text-2xl font-medium text-text font-display animate-fadeUpBlur">
-          Galería
-        </h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-medium text-text font-display animate-fadeUpBlur">
+            {selectMode ? `${selected.size} seleccionada${selected.size !== 1 ? "s" : ""}` : "Galería"}
+          </h1>
+          {images.length > 0 && (
+            <button
+              onClick={selectMode ? exitSelectMode : () => setSelectMode(true)}
+              className="text-xs font-medium text-noa hover:text-noa/80 transition-colors px-3 py-1.5 rounded-lg hover:bg-white/[0.04]"
+            >
+              {selectMode ? "Cancelar" : "Seleccionar"}
+            </button>
+          )}
+        </div>
 
         {/* Tabs — solo mostrar si hay PIN y está desbloqueado */}
-        {isPrivateUnlocked && (
+        {isPrivateUnlocked && !selectMode && (
           <div className="flex gap-1 mt-3 bg-white/[0.04] rounded-lg p-1">
             <button
               onClick={() => setActiveTab("all")}
@@ -256,41 +319,92 @@ export function MediaGalleryPage({ onImageClick, isPrivateUnlocked = false }: Pr
           </div>
         ) : (
           <>
-            <div className="columns-2 sm:columns-3 lg:columns-4 gap-3 pb-4">
-              {images.map((img) => (
-                <div
-                  key={img.id}
-                  onClick={() => onImageClick(img.image, img.id, img.is_hidden)}
-                  className="mb-3 break-inside-avoid relative rounded-2xl overflow-hidden cursor-pointer group bg-bg-surface border border-border"
-                >
-                  <img
-                    src={getCfTransformUrl(img.image, "thumb")}
-                    alt={img.content || "Imagen generada"}
-                    className="w-full h-auto object-cover"
-                    loading="lazy"
-                    decoding="async"
-                  />
+            <div className={`columns-2 sm:columns-3 md:columns-4 lg:columns-6 xl:columns-8 gap-2 ${selectMode && selected.size > 0 ? "pb-20" : "pb-4"}`}>
+              {images.map((img) => {
+                const isSelected = selected.has(img.id);
+                return (
+                  <div
+                    key={img.id}
+                    onClick={() => {
+                      if (selectMode) {
+                        toggleSelect(img.id);
+                      } else {
+                        onImageClick(img.image, img.id, img.is_hidden);
+                      }
+                    }}
+                    className={`mb-2 break-inside-avoid relative rounded-xl overflow-hidden cursor-pointer group bg-bg-surface border transition-all ${
+                      isSelected
+                        ? "border-noa ring-2 ring-noa/40 scale-[0.97]"
+                        : "border-border"
+                    }`}
+                  >
+                    <img
+                      src={getCfTransformUrl(img.image, "thumb")}
+                      alt={img.content || "Imagen generada"}
+                      className={`w-full h-auto object-cover transition-opacity ${selectMode && !isSelected ? "opacity-70" : ""}`}
+                      loading="lazy"
+                      decoding="async"
+                    />
 
-                  {/* Hidden badge for private tab */}
-                  {isPrivate && (
-                    <div className="absolute top-2 left-2">
-                      <div className="w-6 h-6 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
-                        <EyeOff className="size-3 text-white/70" />
+                    {/* Select checkbox */}
+                    {selectMode && (
+                      <div className="absolute top-1.5 right-1.5">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+                          isSelected
+                            ? "bg-noa text-[#0a0a0c]"
+                            : "bg-black/50 backdrop-blur-sm border border-white/30"
+                        }`}>
+                          {isSelected && <CheckCircle2 className="size-4" />}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Prompt caption on hover (desktop) */}
-                  {img.content && (
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-3 pt-8 pointer-events-none">
-                      <p className="text-[11px] text-white/85 line-clamp-2">
-                        {img.content}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ))}
+                    {/* Hidden badge for private tab */}
+                    {isPrivate && !selectMode && (
+                      <div className="absolute top-2 left-2">
+                        <div className="w-6 h-6 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
+                          <EyeOff className="size-3 text-white/70" />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Prompt caption on hover (desktop) */}
+                    {!selectMode && img.content && (
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-3 pt-8 pointer-events-none">
+                        <p className="text-[11px] text-white/85 line-clamp-2">
+                          {img.content}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
+
+            {/* Batch action bar */}
+            {selectMode && selected.size > 0 && (
+              <div className="fixed bottom-16 sm:bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-white/15 shadow-2xl"
+                style={{ backgroundColor: "rgba(15, 15, 18, 0.92)", backdropFilter: "blur(16px)" }}
+              >
+                <button
+                  onClick={handleBatchHide}
+                  disabled={batchBusy}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium text-white bg-white/[0.08] hover:bg-white/[0.12] transition-colors disabled:opacity-50"
+                >
+                  {isPrivate ? <ArchiveRestore className="size-3.5" /> : <Archive className="size-3.5" />}
+                  {isPrivate ? "Restaurar" : "Archivar"}
+                </button>
+                <button
+                  onClick={handleBatchDelete}
+                  disabled={batchBusy}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium text-red-300 bg-red-500/10 hover:bg-red-500/20 transition-colors disabled:opacity-50"
+                >
+                  <Trash2 className="size-3.5" />
+                  Eliminar
+                </button>
+                {batchBusy && <Loader2 className="size-4 animate-spin text-text-muted" />}
+              </div>
+            )}
 
             {hasMore && (
               <div ref={sentinelRef} className="flex items-center justify-center py-6">

@@ -131,7 +131,7 @@ export function SettingsPage({ user, onLogout, theme, onToggleTheme }: Props) {
         >
           ← Ajustes
         </button>
-        <div className="p-3 sm:p-6 max-w-xl">
+        <div className="px-4 py-3 sm:p-6 max-w-xl">
           {(activeSection ?? "account") === "account" && (
             <AccountSection user={user} onLogout={onLogout} />
           )}
@@ -389,7 +389,7 @@ function StyleSection() {
         <h2 className="text-lg font-medium text-text font-display animate-fadeUpBlur">
           Estilo IA
         </h2>
-        <p className="text-[11px] text-text-muted mt-1 leading-relaxed break-words">
+        <p className="text-xs text-text-muted mt-1.5 leading-relaxed">
           Dale ⭐ a imágenes del chat o importa de Civitai. Con {LORA_TARGET}+ entrenas tu LoRA custom.
         </p>
       </div>
@@ -422,22 +422,22 @@ function StyleSection() {
           Importar de Civitai
         </span>
         {!preview && (
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex gap-2">
             <input
               type="url"
               value={importUrl}
               onChange={(e) => setImportUrl(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handlePreview()}
               placeholder="civitai.com/images/..."
-              className="flex-1 h-10 px-3 rounded-lg bg-bg-elevated border border-border text-text text-[12px] outline-none focus:border-noa focus:ring-1 focus:ring-noa/30 transition-all placeholder:text-text-subtle min-w-0"
+              className="flex-1 h-10 px-3 rounded-lg bg-bg-elevated border border-border text-text text-xs outline-none focus:border-noa focus:ring-1 focus:ring-noa/30 transition-all placeholder:text-text-subtle min-w-0"
               disabled={previewLoading}
             />
             <button
               onClick={handlePreview}
               disabled={!importUrl.trim() || previewLoading}
-              className="h-10 px-4 rounded-lg bg-noa text-[#0a0a0c] text-[13px] font-medium transition-all active:scale-[0.98] disabled:opacity-50 shrink-0"
+              className="h-10 px-3 sm:px-4 rounded-lg bg-noa text-[#0a0a0c] text-xs font-medium transition-all active:scale-[0.98] disabled:opacity-50 shrink-0"
             >
-              {previewLoading ? <Loader2 className="size-4 animate-spin" /> : "Ver preview"}
+              {previewLoading ? <Loader2 className="size-4 animate-spin" /> : "Preview"}
             </button>
           </div>
         )}
@@ -496,18 +496,18 @@ function StyleSection() {
               <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-text-subtle mb-1.5">
                 Categoría — elige a cuál pertenece
               </p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+              <div className="grid grid-cols-3 sm:grid-cols-3 gap-1">
                 {STYLE_CATEGORIES.filter((c) => c.id !== "uncategorized").map((cat) => (
                   <button
                     key={cat.id}
                     onClick={() => setImportCategory(cat.id)}
-                    className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-[11px] font-medium transition-all ${
+                    className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-[10px] sm:text-[11px] font-medium transition-all ${
                       importCategory === cat.id
                         ? "bg-noa/15 border border-noa/60 text-text"
                         : "bg-bg-elevated border border-border text-text-muted hover:text-text"
                     }`}
                   >
-                    <span>{cat.icon}</span>
+                    <span className="shrink-0">{cat.icon}</span>
                     <span className="truncate">{cat.label}</span>
                   </button>
                 ))}
@@ -597,11 +597,11 @@ function StyleSection() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+        <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 gap-1.5">
           {filteredLikes.map((like) => (
             <div
               key={like.id}
-              className="relative aspect-square rounded-lg overflow-hidden bg-bg-surface border border-border group"
+              className="relative aspect-[3/4] rounded-lg overflow-hidden bg-bg-surface border border-border group"
             >
               {like.image_url && (
                 <img
@@ -612,13 +612,13 @@ function StyleSection() {
                 />
               )}
               {like.source === "civitai" && (
-                <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-black/70 backdrop-blur-sm text-[8px] font-mono text-white/80">
+                <div className="absolute top-1 left-1 px-1 py-0.5 rounded bg-black/70 backdrop-blur-sm text-[7px] font-mono text-white/80">
                   civitai
                 </div>
               )}
               <button
                 onClick={() => handleRemove(like.id)}
-                className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/70 backdrop-blur-sm text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center active:opacity-100"
+                className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/70 backdrop-blur-sm text-white opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center justify-center"
                 aria-label="Quitar"
               >
                 <ThumbsDown className="size-3" />

@@ -96,6 +96,17 @@ export function AppShell({ user, onLogout }: Props) {
     }
   }, [currentPage, navigate]);
 
+  const handleAnimateImage = useCallback((imageUrl: string) => {
+    setModalImage(null);
+    if (currentPage !== "chat") {
+      navigate("chat");
+    }
+    // Enviar mensaje automático pidiendo animación con la URL de la imagen
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent("trigger-animate", { detail: { url: imageUrl } }));
+    }, 100);
+  }, [currentPage, navigate]);
+
   // Escuchar trigger-edit desde ChatInput (botón "Editar última imagen")
   useEffect(() => {
     const handler = (e: Event) => {
@@ -243,6 +254,7 @@ export function AppShell({ user, onLogout }: Props) {
             userName={user.name}
             onImageClick={(src, messageId) => setModalImage({ src, id: messageId, rating: messageId ? ratingsCache.current.get(messageId) : undefined })}
             onEditImage={handleEditImage}
+            onAnimateImage={handleAnimateImage}
             editSourceUrl={editSourceUrl}
             onClearEditSource={clearEditSource}
             lastGeneratedImage={lastGeneratedImage}
@@ -406,6 +418,7 @@ export function AppShell({ user, onLogout }: Props) {
             currentRating={modalImage.rating}
             onDelete={modalImage.id ? handleViewerDelete : undefined}
             onEdit={handleEditImage}
+            onAnimate={handleAnimateImage}
             onHide={modalImage.id ? handleViewerHide : undefined}
             onRate={modalImage.id ? handleViewerRate : undefined}
             onClose={() => setModalImage(null)}

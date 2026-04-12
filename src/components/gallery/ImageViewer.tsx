@@ -86,7 +86,6 @@ export function ImageViewer({
 
   // Rate state (1-5 estrellas, 0 = sin rating)
   const [rating, setRating] = useState<0 | 1 | 2 | 3 | 4 | 5>(currentRating ?? 0);
-  const [rateBusy, setRateBusy] = useState(false);
 
   // Double-tap to like
   const lastTapRef = useRef(0);
@@ -234,21 +233,20 @@ export function ImageViewer({
 
   const handleRate = useCallback(
     async (newRating: 1 | 2 | 3 | 4 | 5) => {
-      if (!imageId || !onRate || rateBusy) return;
-      setRateBusy(true);
+      if (!imageId || !onRate) return;
       // Tap misma estrella = quitar rating
       const target: 0 | 1 | 2 | 3 | 4 | 5 = rating === newRating ? 0 : newRating;
-      try {
-        await onRate(imageId, target);
-        setRating(target);
-        if (navigator.vibrate) navigator.vibrate(target === 0 ? 5 : 10);
-      } catch (err) {
+      // Optimistic update — marcar inmediato, API en background
+      setRating(target);
+      if (navigator.vibrate) navigator.vibrate(target === 0 ? 5 : 10);
+      // API call en background (no bloquea UI)
+      onRate(imageId, target).catch((err) => {
         console.error("[ImageViewer] Rate failed:", err);
-      } finally {
-        setRateBusy(false);
-      }
+        // Revertir si falla
+        setRating(rating);
+      });
     },
-    [imageId, onRate, rating, rateBusy],
+    [imageId, onRate, rating],
   );
 
   // Double-tap detection on main image
@@ -515,7 +513,7 @@ export function ImageViewer({
                 <button
                   key={star}
                   onClick={() => handleRate(star)}
-                  disabled={rateBusy}
+                  disabled={false}
                   aria-label={`${star} estrella${star > 1 ? "s" : ""}`}
                   className="p-1 transition-all active:scale-90 disabled:opacity-60"
                 >

@@ -66,8 +66,9 @@ export function AppShell({ user, onLogout }: Props) {
 
   const [activePanel, setActivePanel] = useState<PanelType>(null);
   const [modalImage, setModalImage] = useState<{ src: string; id?: string; isHidden?: boolean; rating?: 0 | 1 | 2 | 3 | 4 | 5 } | null>(null);
-  // Cache de ratings en sesión — persiste estrellas mientras la app esté abierta
+  // Cache de ratings — se pre-carga del backend al montar y se actualiza en cada rate
   const ratingsCache = useRef<Map<string, 0 | 1 | 2 | 3 | 4 | 5>>(new Map());
+  const ratingsCacheLoaded = useRef(false);
   // editSourceUrl: URL de imagen R2 que el usuario pidió editar (desde chat o galería).
   // Se pasa a ChatView → ChatInput, que abre el modo edit automático y envía vía image_url.
   const [editSourceUrl, setEditSourceUrl] = useState<string | null>(null);
@@ -116,6 +117,22 @@ export function AppShell({ user, onLogout }: Props) {
     window.addEventListener("trigger-edit", handler);
     return () => window.removeEventListener("trigger-edit", handler);
   }, [handleEditImage]);
+
+  // Pre-cargar ratings del backend al montar (una sola vez)
+  useEffect(() => {
+    if (ratingsCacheLoaded.current) return;
+    ratingsCacheLoaded.current = true;
+    import("@/lib/api").then(({ fetchRatingsMap }) => {
+      fetchRatingsMap().then((map) => {
+        for (const [id, rating] of Object.entries(map)) {
+          ratingsCache.current.set(id, rating as 0 | 1 | 2 | 3 | 4 | 5);
+        }
+        if (Object.keys(map).length > 0) {
+          console.log(`[AppShell] Pre-loaded ${Object.keys(map).length} ratings`);
+        }
+      });
+    });
+  }, []);
 
   const clearEditSource = useCallback(() => setEditSourceUrl(null), []);
 

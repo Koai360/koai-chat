@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { ImageIcon, Loader2, EyeOff, Lock, CheckCircle2, Trash2, Archive, ArchiveRestore } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -26,7 +26,27 @@ const caches: Record<GalleryTab, {
   ts: number;
 } | null> = { all: null, private: null };
 
+function useColumnCount() {
+  const [cols, setCols] = useState(3);
+  useEffect(() => {
+    const update = () => {
+      const w = window.innerWidth;
+      if (w >= 1536) setCols(12);
+      else if (w >= 1280) setCols(10);
+      else if (w >= 1024) setCols(8);
+      else if (w >= 768) setCols(5);
+      else if (w >= 640) setCols(4);
+      else setCols(3);
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+  return cols;
+}
+
 export function MediaGalleryPage({ onImageClick, isPrivateUnlocked = false }: Props) {
+  const columnCount = useColumnCount();
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [batchBusy, setBatchBusy] = useState(false);
@@ -319,67 +339,16 @@ export function MediaGalleryPage({ onImageClick, isPrivateUnlocked = false }: Pr
           </div>
         ) : (
           <>
-            <div className={`columns-2 sm:columns-3 md:columns-4 lg:columns-6 xl:columns-8 gap-2 ${selectMode && selected.size > 0 ? "pb-20" : "pb-4"}`}>
-              {images.map((img) => {
-                const isSelected = selected.has(img.id);
-                return (
-                  <div
-                    key={img.id}
-                    onClick={() => {
-                      if (selectMode) {
-                        toggleSelect(img.id);
-                      } else {
-                        onImageClick(img.image, img.id, img.is_hidden);
-                      }
-                    }}
-                    className={`mb-2 break-inside-avoid relative rounded-xl overflow-hidden cursor-pointer group bg-bg-surface border transition-all ${
-                      isSelected
-                        ? "border-noa ring-2 ring-noa/40 scale-[0.97]"
-                        : "border-border"
-                    }`}
-                  >
-                    <img
-                      src={getCfTransformUrl(img.image, "thumb")}
-                      alt={img.content || "Imagen generada"}
-                      className={`w-full h-auto object-cover transition-opacity ${selectMode && !isSelected ? "opacity-70" : ""}`}
-                      loading="lazy"
-                      decoding="async"
-                    />
-
-                    {/* Select checkbox */}
-                    {selectMode && (
-                      <div className="absolute top-1.5 right-1.5">
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
-                          isSelected
-                            ? "bg-noa text-[#0a0a0c]"
-                            : "bg-black/50 backdrop-blur-sm border border-white/30"
-                        }`}>
-                          {isSelected && <CheckCircle2 className="size-4" />}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Hidden badge for private tab */}
-                    {isPrivate && !selectMode && (
-                      <div className="absolute top-2 left-2">
-                        <div className="w-6 h-6 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
-                          <EyeOff className="size-3 text-white/70" />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Prompt caption on hover (desktop) */}
-                    {!selectMode && img.content && (
-                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-3 pt-8 pointer-events-none">
-                        <p className="text-[11px] text-white/85 line-clamp-2">
-                          {img.content}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+            <MasonryGrid
+              images={images}
+              columnCount={columnCount}
+              selectMode={selectMode}
+              selected={selected}
+              isPrivate={isPrivate}
+              onToggleSelect={toggleSelect}
+              onImageClick={onImageClick}
+              paddingBottom={selectMode && selected.size > 0}
+            />
 
             {/* Batch action bar */}
             {selectMode && selected.size > 0 && (
@@ -424,6 +393,105 @@ export function MediaGalleryPage({ onImageClick, isPrivateUnlocked = false }: Pr
           </>
         )}
       </ScrollArea>
+    </div>
+  );
+}
+
+/* ─── Masonry Grid (Pinterest-style, no reflow) ─── */
+
+function MasonryGrid({
+  images,
+  columnCount,
+  selectMode,
+  selected,
+  isPrivate,
+  onToggleSelect,
+  onImageClick,
+  paddingBottom,
+}: {
+  images: GalleryImage[];
+  columnCount: number;
+  selectMode: boolean;
+  selected: Set<string>;
+  isPrivate: boolean;
+  onToggleSelect: (id: string) => void;
+  onImageClick: (src: string, imageId?: string, isHidden?: boolean) => void;
+  paddingBottom: boolean;
+}) {
+  // Distribuir imágenes en columnas round-robin (mantiene orden estable)
+  const columns = useMemo(() => {
+    const cols: GalleryImage[][] = Array.from({ length: columnCount }, () => []);
+    images.forEach((img, i) => {
+      cols[i % columnCount].push(img);
+    });
+    return cols;
+  }, [images, columnCount]);
+
+  return (
+    <div className={`flex gap-1.5 ${paddingBottom ? "pb-20" : "pb-4"}`}>
+      {columns.map((col, colIdx) => (
+        <div key={colIdx} className="flex-1 flex flex-col gap-1.5 min-w-0">
+          {col.map((img) => {
+            const isSelected = selected.has(img.id);
+            return (
+              <div
+                key={img.id}
+                onClick={() => {
+                  if (selectMode) onToggleSelect(img.id);
+                  else onImageClick(img.image, img.id, img.is_hidden);
+                }}
+                className={`relative rounded-xl overflow-hidden cursor-pointer group bg-bg-surface border transition-all ${
+                  isSelected
+                    ? "border-noa ring-2 ring-noa/40 scale-[0.97]"
+                    : "border-border"
+                }`}
+              >
+                <img
+                  src={getCfTransformUrl(img.image, "thumb")}
+                  alt={img.content || "Imagen generada"}
+                  className={`w-full h-auto object-cover block transition-opacity ${selectMode && !isSelected ? "opacity-70" : ""}`}
+                  loading="lazy"
+                  decoding="async"
+                />
+
+                {selectMode && (
+                  <div className="absolute top-1.5 right-1.5">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+                      isSelected
+                        ? "bg-noa text-[#0a0a0c]"
+                        : "bg-black/50 backdrop-blur-sm border border-white/30"
+                    }`}>
+                      {isSelected && <CheckCircle2 className="size-4" />}
+                    </div>
+                  </div>
+                )}
+
+                {isPrivate && !selectMode && (
+                  <div className="absolute top-2 left-2">
+                    <div className="w-6 h-6 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
+                      <EyeOff className="size-3 text-white/70" />
+                    </div>
+                  </div>
+                )}
+
+                {!selectMode && img.engine && (
+                  <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-sm text-[7px] font-mono text-white/70 pointer-events-none">
+                    {img.engine.replace("studioflux-", "").replace("sdxl-", "")}
+                  </div>
+                )}
+
+                {!selectMode && img.content && (
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-3 pt-8 pointer-events-none">
+                    <p className="text-[11px] text-white/85 line-clamp-2">
+                      {img.content}
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ))}
     </div>
   );
 }

@@ -388,7 +388,7 @@ export async function fetchMessages(conversationId: string): Promise<ServerMessa
 
 export async function saveMessages(
   conversationId: string,
-  messages: Array<{ role: string; agent: string; content: string; image?: string }>,
+  messages: Array<{ role: string; agent: string; content: string; image?: string; engine?: string }>,
 ): Promise<void> {
   await fetch(`${API_URL}/api/chat/conversations/${conversationId}/messages`, {
     method: "POST",
@@ -691,6 +691,19 @@ export async function fetchImageLikes(
   );
   if (!res.ok) throw new Error(`Error ${res.status}`);
   return res.json();
+}
+
+/** Cargar mapa de ratings {message_id: rating} para pre-poblar cache. */
+export async function fetchRatingsMap(): Promise<Record<string, number>> {
+  try {
+    const res = await fetch(`${API_URL}/api/chat/images/likes/ratings`, {
+      headers: getHeaders(),
+    });
+    if (!res.ok) return {};
+    return res.json();
+  } catch {
+    return {};
+  }
 }
 
 // --- Private Gallery PIN ---

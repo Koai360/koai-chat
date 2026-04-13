@@ -122,8 +122,8 @@ export function SettingsPage({ user, onLogout, theme, onToggleTheme }: Props) {
       </div>
 
       {/* Content — en desktop siempre visible, en mobile solo con sección seleccionada */}
-      <div className={`flex-1 h-full ${activeSection === null ? "hidden md:block" : ""}`}>
-      <ScrollArea className="h-full">
+      <div className={`flex-1 h-full min-w-0 overflow-hidden ${activeSection === null ? "hidden md:block" : ""}`}>
+      <ScrollArea className="h-full [&>div]:!overflow-x-hidden">
         {/* Mobile: botón volver */}
         <button
           onClick={() => setActiveSection(null)}
@@ -131,7 +131,7 @@ export function SettingsPage({ user, onLogout, theme, onToggleTheme }: Props) {
         >
           ← Ajustes
         </button>
-        <div className="px-4 py-3 sm:p-6 max-w-xl">
+        <div className="px-4 py-3 sm:p-6 max-w-[calc(100vw-2rem)] sm:max-w-xl">
           {(activeSection ?? "account") === "account" && (
             <AccountSection user={user} onLogout={onLogout} />
           )}
@@ -380,31 +380,21 @@ function StyleSection() {
   });
 
   const progress = Math.min(100, Math.round((likesCount / LORA_TARGET) * 100));
-  const remaining = Math.max(0, LORA_TARGET - likesCount);
   const loraReady = likesCount >= LORA_TARGET;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
+      {/* Header + progress inline */}
       <div>
-        <h2 className="text-lg font-medium text-text font-display animate-fadeUpBlur">
-          Estilo IA
-        </h2>
-        <p className="text-xs text-text-muted mt-1.5 leading-relaxed">
-          Dale ⭐ a imágenes del chat o importa de Civitai. Con {LORA_TARGET}+ entrenas tu LoRA custom.
-        </p>
-      </div>
-
-      {/* Progress — inline compacto */}
-      <div className="rounded-xl border border-border p-3 space-y-2">
-        <div className="flex items-center gap-2">
-          <Sparkles className="size-3.5 text-noa shrink-0" />
-          <p className="text-[11px] text-text-muted flex-1">
-            {loraReady
-              ? `${likesCount} imágenes · LoRA listo 🎯`
-              : `${likesCount}/${LORA_TARGET} — faltan ${remaining}`}
-          </p>
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-lg font-medium text-text font-display animate-fadeUpBlur">
+            Estilo IA
+          </h2>
+          <span className="text-[10px] font-mono text-text-muted">
+            {loraReady ? `${likesCount} · LoRA listo` : `${likesCount}/${LORA_TARGET}`}
+          </span>
         </div>
-        <div className="relative h-1 rounded-full bg-white/[0.06] overflow-hidden">
+        <div className="relative h-1 mt-2 rounded-full bg-white/[0.06] overflow-hidden">
           <div
             className="absolute inset-y-0 left-0 rounded-full transition-all duration-500"
             style={{
@@ -417,8 +407,8 @@ function StyleSection() {
       </div>
 
       {/* Import Civitai */}
-      <div className="rounded-xl border border-border p-3 space-y-2.5">
-        <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-text-subtle">
+      <div className="rounded-lg border border-border p-2.5 space-y-2">
+        <span className="font-mono text-[8px] uppercase tracking-[0.12em] text-text-subtle">
           Importar de Civitai
         </span>
         {!preview && (
@@ -429,15 +419,15 @@ function StyleSection() {
               onChange={(e) => setImportUrl(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handlePreview()}
               placeholder="civitai.com/images/..."
-              className="flex-1 h-10 px-3 rounded-lg bg-bg-elevated border border-border text-text text-xs outline-none focus:border-noa focus:ring-1 focus:ring-noa/30 transition-all placeholder:text-text-subtle min-w-0"
+              className="flex-1 h-9 px-2.5 rounded-lg bg-bg-elevated border border-border text-text text-[11px] outline-none focus:border-noa focus:ring-1 focus:ring-noa/30 transition-all placeholder:text-text-subtle min-w-0"
               disabled={previewLoading}
             />
             <button
               onClick={handlePreview}
               disabled={!importUrl.trim() || previewLoading}
-              className="h-10 px-3 sm:px-4 rounded-lg bg-noa text-[#0a0a0c] text-xs font-medium transition-all active:scale-[0.98] disabled:opacity-50 shrink-0"
+              className="h-9 px-3 rounded-lg bg-noa text-[#0a0a0c] text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-50 shrink-0"
             >
-              {previewLoading ? <Loader2 className="size-4 animate-spin" /> : "Preview"}
+              {previewLoading ? <Loader2 className="size-3.5 animate-spin" /> : "Preview"}
             </button>
           </div>
         )}
@@ -549,7 +539,7 @@ function StyleSection() {
 
       {/* Tabs por categoría */}
       <div>
-        <div className="flex gap-1 overflow-x-auto no-scrollbar pb-2">
+        <div className="flex gap-0.5 overflow-x-auto no-scrollbar pb-1.5">
           <TabButton
             active={activeTab === "all"}
             onClick={() => setActiveTab("all")}
@@ -597,11 +587,11 @@ function StyleSection() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 gap-1.5">
+        <div className="grid grid-cols-4 sm:grid-cols-4 lg:grid-cols-5 gap-1">
           {filteredLikes.map((like) => (
             <div
               key={like.id}
-              className="relative aspect-[3/4] rounded-lg overflow-hidden bg-bg-surface border border-border group"
+              className="relative aspect-square rounded-lg overflow-hidden bg-bg-surface border border-border group"
             >
               {like.image_url && (
                 <img
@@ -618,10 +608,10 @@ function StyleSection() {
               )}
               <button
                 onClick={() => handleRemove(like.id)}
-                className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/70 backdrop-blur-sm text-white opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/70 backdrop-blur-sm text-white opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center justify-center"
                 aria-label="Quitar"
               >
-                <ThumbsDown className="size-3" />
+                <ThumbsDown className="size-2.5" />
               </button>
             </div>
           ))}

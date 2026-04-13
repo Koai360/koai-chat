@@ -515,7 +515,7 @@ export function useChat(userId: string | null = null) {
         if (convoId) {
           saveMessages(convoId, [
             { role: "user", agent, content: displayText, image: imageBase64 },
-            { role: "assistant", agent, content: assistantContent, image: assistantImage },
+            { role: "assistant", agent, content: assistantContent, image: assistantImage, engine: assistantImageMetadata?.engine },
           ]).catch((err) => console.error("[useChat] Failed to save messages:", err));
         }
       } catch (err) {

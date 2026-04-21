@@ -234,14 +234,19 @@ export function AppShell({ user, onLogout }: Props) {
     navigate("chat");
   }, [newConversation, navigate, currentPage, active]);
 
-  // Handle send from HomePage — create convo, navigate to chat, send
+  // Handle send from HomePage — navegar primero, luego enviar.
+  // sendMessage crea la convo internamente (sync setActiveId antes del await).
+  // React 18 batchea navigate + el setActiveId optimista de sendMessage en un
+  // solo render, así que el useEffect de "bounce a home" no dispara.
+  // NO hacer await newConversation() aquí — bloquea ~300-1000ms (roundtrip)
+  // y además hace que sendMessage use una closure con activeId stale y cree
+  // una SEGUNDA conversación.
   const handleHomeSend = useCallback(
-    async (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string, editMode?: boolean, imageUrl?: string) => {
-      await newConversation();
+    (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string, editMode?: boolean, imageUrl?: string) => {
       navigate("chat");
       sendMessage(text, imageBase64, imageMode, imageEngine, editMode, imageUrl);
     },
-    [newConversation, navigate, sendMessage]
+    [navigate, sendMessage]
   );
 
   // Redirect a home si estás en "chat" sin convo activa
@@ -258,7 +263,10 @@ export function AppShell({ user, onLogout }: Props) {
         return (
           <HomePage
             userName={user.name}
+            agent={agent}
+            loading={loading}
             onSend={handleHomeSend}
+            onStop={stopGeneration}
             onNavigate={navigate}
           />
         );

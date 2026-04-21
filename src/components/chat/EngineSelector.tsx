@@ -39,7 +39,7 @@ export const ENGINE_OPTIONS: readonly EngineOption[] = [
   { value: "gemini",          label: "Rápida",    desc: "Gemini · gratis · ~3s",                     tier: "free",    mark: "G" },
   { value: "zimage",          label: "Z-Image",   desc: "Modal · sin filtro · $0.016 · ~5s",         tier: "value",   mark: "Z" },
   { value: "flux2",           label: "Flux.2",    desc: "Modal · 32B frontier · $0.035 · ~30s",      tier: "premium", mark: "F" },
-  { value: "sdxl",            label: "SDXL",      desc: "Noa elige el mejor SDXL · $0.006 · ~10s",  tier: "sdxl",    mark: "S" },
+  { value: "sdxl",            label: "SDXL",      desc: "Auto · Noa elige el mejor SDXL según prompt · $0.006",  tier: "sdxl",    mark: "S" },
   // Desktop-only — advanced Flux family
   { value: "flux1",           label: "Flux.1",    desc: "Modal · 12B permisivo · $0.018 · ~25s",     tier: "value",   mark: "1", desktopOnly: true },
   { value: "studioflux-raw",  label: "Raw",       desc: "Z-Image · sin enhancer · prompt directo",   tier: "raw",     mark: "R", desktopOnly: true },
@@ -56,14 +56,31 @@ interface Props {
   onChange: (value: EngineValue) => void;
 }
 
-const TIER_COLOR: Record<EngineOption["tier"], { mark: string; glow: string; bg: string }> = {
-  free:    { mark: "rgba(255,255,255,0.85)", glow: "rgba(255,255,255,0.18)", bg: "rgba(255,255,255,0.04)" },
-  value:   { mark: "#D4E94B",                glow: "rgba(212,233,75,0.35)",  bg: "rgba(212,233,75,0.06)"  },
-  premium: { mark: "#7B2D8E",                glow: "rgba(123,45,142,0.40)",  bg: "rgba(123,45,142,0.08)"  },
-  raw:     { mark: "#E8704A",                glow: "rgba(232,112,74,0.35)",  bg: "rgba(232,112,74,0.06)"  },
-  sdxl:    { mark: "#4A9EFF",                glow: "rgba(74,158,255,0.35)",  bg: "rgba(74,158,255,0.06)"  },
-  anime:   { mark: "#F06BA8",                glow: "rgba(240,107,168,0.35)", bg: "rgba(240,107,168,0.06)" },
+// Tiers visuales consolidados a 3: fast (white/neutral), balanced (lime), premium (purple).
+// Los 6 tiers del backend (free/value/premium/raw/sdxl/anime) se mapean aquí:
+// - free → fast (rápido, gratis)
+// - value, sdxl, raw → balanced (lime, el "default" workhorse)
+// - premium, anime → premium (purple, decisión deliberada)
+// Las letras mark únicas (Z, F, S, P, I, D, V, C, R, G) mantienen diferenciación de producto.
+type VisualTier = "fast" | "balanced" | "premium";
+const TIER_TO_VISUAL: Record<EngineOption["tier"], VisualTier> = {
+  free: "fast",
+  value: "balanced",
+  raw: "balanced",
+  sdxl: "balanced",
+  premium: "premium",
+  anime: "premium",
 };
+const VISUAL_COLOR: Record<VisualTier, { mark: string; glow: string; bg: string }> = {
+  fast:     { mark: "rgba(255,255,255,0.92)", glow: "rgba(255,255,255,0.20)", bg: "rgba(255,255,255,0.05)" },
+  balanced: { mark: "#D4E94B",                glow: "rgba(212,233,75,0.38)",  bg: "rgba(212,233,75,0.07)"  },
+  premium:  { mark: "#B678C7",                glow: "rgba(123,45,142,0.45)",  bg: "rgba(123,45,142,0.10)"  },
+};
+// Back-compat: TIER_COLOR usa el mapping visual consolidado.
+const TIER_COLOR: Record<EngineOption["tier"], { mark: string; glow: string; bg: string }> =
+  Object.fromEntries(
+    (Object.keys(TIER_TO_VISUAL) as EngineOption["tier"][]).map((t) => [t, VISUAL_COLOR[TIER_TO_VISUAL[t]]])
+  ) as Record<EngineOption["tier"], { mark: string; glow: string; bg: string }>;
 
 export function EngineSelector({ value, onChange }: Props) {
   const active = ENGINE_OPTIONS.find((o) => o.value === value);
@@ -71,22 +88,22 @@ export function EngineSelector({ value, onChange }: Props) {
 
   return (
     <div className="w-full">
-      {/* Header — minimalista, mono */}
+      {/* Header — minimalista, mono. Cuenta solo engines visibles por breakpoint */}
       <div className="px-1 mb-1.5 flex items-baseline justify-between">
         <span className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-text-subtle">
           Motor
         </span>
         <span className="font-mono text-[9px] tracking-tight text-text-subtle">
-          {ENGINE_OPTIONS.length} disponibles
+          <span className="md:hidden">{ENGINE_OPTIONS.filter(o => !o.desktopOnly).length} motores</span>
+          <span className="hidden md:inline">{ENGINE_OPTIONS.length} disponibles</span>
         </span>
       </div>
 
-      {/* Grid 3 cols en mobile, 5 cols en desktop (2 filas de 5 = 10 engines).
-          Los engines con desktopOnly=true solo se muestran en md+ */}
+      {/* Grid: 2 cols mobile (4 engines primarios legibles), 5 cols desktop (10 total). */}
       <div
         role="radiogroup"
         aria-label="Motor de generación de imagen"
-        className="grid grid-cols-4 md:grid-cols-5 gap-1.5"
+        className="grid grid-cols-2 md:grid-cols-5 gap-1.5"
       >
         {ENGINE_OPTIONS.map((opt, i) => {
           const isActive = value === opt.value;
@@ -99,7 +116,7 @@ export function EngineSelector({ value, onChange }: Props) {
               aria-checked={isActive}
               aria-label={`${opt.label} — ${opt.desc}`}
               onClick={() => {
-                if (navigator.vibrate) navigator.vibrate(8);
+                if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(8);
                 onChange(opt.value);
               }}
               initial={{ opacity: 0, y: 6 }}
@@ -113,9 +130,9 @@ export function EngineSelector({ value, onChange }: Props) {
               className={`
                 relative
                 rounded-xl
-                py-2 px-1
-                flex-col items-center justify-center gap-0.5
-                min-h-[58px]
+                py-2.5 px-2 md:py-2 md:px-1
+                flex-col items-center justify-center gap-1 md:gap-0.5
+                min-h-[72px] md:min-h-[58px]
                 transition-[border-color,box-shadow,background] duration-300
                 ${desktopOnly ? "hidden md:flex" : "flex"}
                 ${isActive ? "" : "hover:bg-bg-surface"}
@@ -129,9 +146,8 @@ export function EngineSelector({ value, onChange }: Props) {
             >
               {/* Mark — letter, color-coded */}
               <span
-                className="font-display font-bold leading-none select-none"
+                className="font-display font-bold leading-none select-none text-[22px] md:text-[20px]"
                 style={{
-                  fontSize: "20px",
                   color: colors.mark,
                   letterSpacing: "-0.04em",
                   textShadow: isActive ? `0 0 14px ${colors.glow}` : "none",
@@ -141,9 +157,9 @@ export function EngineSelector({ value, onChange }: Props) {
                 {opt.mark}
               </span>
 
-              {/* Label — small, truncated */}
+              {/* Label — legible en mobile (12px), compact en desktop (10px) */}
               <span
-                className="font-display text-[10px] font-medium leading-tight truncate w-full text-center px-0.5"
+                className="font-display text-[12px] md:text-[10px] font-medium leading-tight truncate w-full text-center px-0.5"
                 style={{
                   letterSpacing: "-0.01em",
                   color: isActive ? colors.mark : "rgba(255,255,255,0.7)",

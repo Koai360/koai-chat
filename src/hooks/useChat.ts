@@ -98,6 +98,8 @@ export function useChat(userId: string | null = null) {
   }, []);
   const [loadingHint, setLoadingHint] = useState<string | null>(null);
   const [streamingText, setStreamingText] = useState("");
+  // ADK memory usage (0.0-1.0) — cuánto del contexto de Gemini se ha llenado
+  const [memoryUsage, setMemoryUsage] = useState(0);
   // Última imagen generada en la conversación activa — para edit rápido
   const [lastGeneratedImage, setLastGeneratedImage] = useState<{ url: string; messageId?: string } | null>(null);
   const [syncing, setSyncing] = useState(true);
@@ -192,6 +194,7 @@ export function useChat(userId: string | null = null) {
     };
     setConversations((prev) => [optimistic, ...prev]);
     setActiveId(tempId);
+    setMemoryUsage(0);
 
     try {
       const serverConvo = await createConvApi(agent, "Nueva conversación");
@@ -398,6 +401,7 @@ export function useChat(userId: string | null = null) {
               );
               assistantContent = res.fullText || "";
               assistantImage = assistantImage || (res.image ?? undefined);
+              if (typeof res.memory_usage === "number") setMemoryUsage(res.memory_usage);
               // Si callback no recibió metadata pero el return sí, usarla
               if (!assistantImageMetadata && res.imageMetadata) {
                 assistantImageMetadata = {
@@ -653,5 +657,6 @@ export function useChat(userId: string | null = null) {
     moveToProject,
     renameConversation,
     lastGeneratedImage,
+    memoryUsage,
   };
 }

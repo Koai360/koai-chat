@@ -57,6 +57,7 @@ export function AppShell({ user, onLogout }: Props) {
     deleteMessages,
     renameConversation,
     lastGeneratedImage,
+    memoryUsage,
   } = useChat(user.id);
 
   const { notifications, unreadCount, markRead, markAllRead, removeOne, removeAll } = useNotifications();
@@ -161,9 +162,21 @@ export function AppShell({ user, onLogout }: Props) {
     );
   }, []);
 
-  // Splash screen — 1.4s (balance entre brand moment y no hacer esperar)
+  // Splash screen — 1.4s primer load, 600ms en cargas subsecuentes.
+  // Respeta prefers-reduced-motion: salta el splash por completo.
   useEffect(() => {
-    const t = setTimeout(() => setShowSplash(false), 1400);
+    const reduced = typeof window !== "undefined"
+      && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) {
+      setShowSplash(false);
+      return;
+    }
+    const seen = typeof localStorage !== "undefined" && localStorage.getItem("noa_splash_seen");
+    const duration = seen ? 600 : 1400;
+    const t = setTimeout(() => {
+      setShowSplash(false);
+      try { localStorage.setItem("noa_splash_seen", "1"); } catch { /* noop */ }
+    }, duration);
     return () => clearTimeout(t);
   }, []);
 
@@ -275,6 +288,7 @@ export function AppShell({ user, onLogout }: Props) {
             editSourceUrl={editSourceUrl}
             onClearEditSource={clearEditSource}
             lastGeneratedImage={lastGeneratedImage}
+            memoryUsage={memoryUsage}
           />
         );
       case "chatHistory":
@@ -329,33 +343,18 @@ export function AppShell({ user, onLogout }: Props) {
         {/* Grain overlay */}
         <div className="grain pointer-events-none fixed inset-0 z-[5]" />
 
-        {/* Ambient orbs */}
-        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-          <div
-            className="ambient-orb w-72 h-72 opacity-[0.05]"
-            style={{
-              background: "radial-gradient(circle, var(--color-noa) 0%, transparent 70%)",
-              top: "-5%",
-              right: "-10%",
-              animation: "float 14s ease-in-out infinite",
-            }}
-          />
+        {/* Ambient orb — un solo orb sutil que cambia de color según el agente
+            activo. Pausa cuando la PWA está en background (data-page-hidden).
+            Se oculta en mobile para preservar batería. */}
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden hidden md:block">
           <div
             className="ambient-orb w-96 h-96 opacity-[0.04]"
             style={{
-              background: "radial-gradient(circle, var(--color-kronos) 0%, transparent 70%)",
-              bottom: "-15%",
-              left: "-10%",
-              animation: "float 18s ease-in-out infinite 3s",
-            }}
-          />
-          <div
-            className="ambient-orb w-64 h-64 opacity-[0.03]"
-            style={{
-              background: "radial-gradient(circle, var(--color-noa) 0%, transparent 60%)",
-              top: "40%",
-              left: "50%",
-              animation: "float 12s ease-in-out infinite 6s",
+              background: `radial-gradient(circle, ${agent === "kronos" ? "var(--color-kronos)" : "var(--color-noa)"} 0%, transparent 70%)`,
+              top: "-10%",
+              right: "-15%",
+              animation: "float 18s ease-in-out infinite",
+              transition: "background 0.6s ease",
             }}
           />
         </div>
@@ -387,6 +386,7 @@ export function AppShell({ user, onLogout }: Props) {
               onNavigate={navigate}
               unreadCount={unreadCount}
               onOpenNotifications={() => setActivePanel("notifications")}
+              memoryUsage={memoryUsage}
             />
 
             <main className="flex-1 overflow-y-auto min-h-0" style={{ WebkitOverflowScrolling: "touch" }}>

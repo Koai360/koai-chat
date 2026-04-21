@@ -118,19 +118,21 @@ export function VoiceRecorderOverlay({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 10 }}
           transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          className="absolute inset-x-0 bottom-0 z-50 px-4 pt-3 pb-2"
+          className="absolute inset-x-0 bottom-0 z-[60] px-4 pt-3 pb-2"
           style={{
             background: "linear-gradient(to top, rgba(10,10,12,0.98) 70%, rgba(10,10,12,0.8) 100%)",
             backdropFilter: "blur(12px)",
           }}
         >
           <div className="max-w-[48rem] mx-auto w-full">
-            {/* Partial text (lo que va transcribiendo) */}
+            {/* Partial text (lo que va transcribiendo) — info crítica durante
+                grabación, debe ser legible. */}
             {partialText && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="mb-2 px-3 py-1.5 text-[13px] text-text-muted font-medium italic line-clamp-2"
+                className="mb-2 px-3 py-1.5 text-[13.5px] text-text font-medium line-clamp-2"
+                style={{ opacity: 0.9 }}
               >
                 {partialText}
               </motion.div>

@@ -59,13 +59,6 @@ const NOA_ACTIONS: QuickAction[] = [
     hint: "Kontext Pro · cambio de ropa, fondos, look",
     prompt: "Adjunta una imagen y dime qué quieres cambiar (ej: \"cámbiale el vestido por uno rojo\").",
   },
-  {
-    mark: "?",
-    tone: "neutral",
-    verb: "Preguntar a Noa",
-    hint: "Estrategia, ideas, briefs",
-    prompt: "",
-  },
 ];
 
 const KRONOS_ACTIONS: QuickAction[] = [
@@ -88,14 +81,7 @@ const KRONOS_ACTIONS: QuickAction[] = [
     tone: "kronos",
     verb: "Deploy / ops",
     hint: "Servidor, CI/CD, debug",
-    prompt: "",
-  },
-  {
-    mark: "?",
-    tone: "neutral",
-    verb: "Preguntar a Kronos",
-    hint: "Cualquier cosa técnica",
-    prompt: "",
+    prompt: "Estado del servidor: ",
   },
 ];
 
@@ -120,18 +106,18 @@ export function EmptyState({ agent, userName, onSend: _onSend, loading }: Props)
   const isKronos = agent === "kronos";
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center px-6 pb-20 md:pb-24">
-      <div className="w-full max-w-xl">
-        {/* Greeting — left-aligned, asymmetric (not centered). Sin AIStarIcon (eliminado por diseño) */}
+    <div className="flex-1 flex flex-col items-start justify-center px-6 py-6">
+      <div className="w-full max-w-[420px] md:max-w-[480px]">
+        {/* Greeting — editorial magazine tone: peso, letterspacing tight, full-size gradient en el nombre */}
         <motion.div
           initial={{ y: 16, opacity: 0, filter: "blur(6px)" }}
           animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
           transition={{ delay: 0.1, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          className="mb-1"
+          className="mb-2"
         >
           <h2
-            className="font-display text-[28px] md:text-[36px] font-medium text-text leading-[1.05]"
-            style={{ letterSpacing: "-0.025em" }}
+            className="font-display text-[32px] md:text-[44px] font-medium text-text leading-[1.02]"
+            style={{ letterSpacing: "-0.03em" }}
           >
             {greeting}
             {displayName ? (
@@ -145,19 +131,19 @@ export function EmptyState({ agent, userName, onSend: _onSend, loading }: Props)
           </h2>
         </motion.div>
 
-        {/* Subline */}
+        {/* Subline — más humilde, leading-snug para respirar bajo el greeting grande */}
         <motion.p
           initial={{ y: 12, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.2, duration: 0.5 }}
-          className="font-display text-[18px] md:text-[20px] text-text-muted leading-tight mb-7"
-          style={{ letterSpacing: "-0.015em" }}
+          className="font-display text-[16px] md:text-[18px] text-text-muted leading-snug mb-8"
+          style={{ letterSpacing: "-0.012em" }}
         >
           ¿Por dónde empezamos hoy?
         </motion.p>
 
-        {/* Quick actions — vertical list, NOT a 2x2 grid (avoids icon-card-grid AI slop) */}
-        <div className="space-y-1.5">
+        {/* Quick actions — vertical list editorial (no cards cuadradas) */}
+        <div className="space-y-1">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -177,7 +163,7 @@ export function EmptyState({ agent, userName, onSend: _onSend, loading }: Props)
                 disabled={loading}
                 onClick={() => {
                   if (loading) return;
-                  if (navigator.vibrate) navigator.vibrate(8);
+                  if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(8);
                   // Las acciones con imageMode NO envían directo: solo
                   // prellenan el input + activan modo imagen. El usuario
                   // edita el prompt y envía cuando quiera.
@@ -193,17 +179,12 @@ export function EmptyState({ agent, userName, onSend: _onSend, loading }: Props)
                     );
                     return;
                   }
-                  // Acciones sin imageMode: si hay prompt, prefill; si es vacío
-                  // (ej "Preguntar a Noa"), solo focus al input.
-                  if (action.prompt) {
-                    window.dispatchEvent(
-                      new CustomEvent("chat-prefill", {
-                        detail: { text: action.prompt },
-                      }),
-                    );
-                  } else {
-                    window.dispatchEvent(new CustomEvent("chat-focus"));
-                  }
+                  // Acciones sin imageMode: siempre tienen prompt concreto.
+                  window.dispatchEvent(
+                    new CustomEvent("chat-prefill", {
+                      detail: { text: action.prompt },
+                    }),
+                  );
                 }}
                 initial={{ opacity: 0, x: -8, filter: "blur(4px)" }}
                 animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
@@ -227,19 +208,19 @@ export function EmptyState({ agent, userName, onSend: _onSend, loading }: Props)
                   hover:border-border
                 "
               >
-                {/* Mark — large letter/symbol, color-coded */}
+                {/* Mark — letter/símbolo grande, color-coded, más presencia */}
                 <span
                   className="
                     shrink-0
-                    w-9 h-9
-                    rounded-lg
+                    w-11 h-11
+                    rounded-xl
                     flex items-center justify-center
                     font-display font-bold
                     transition-all duration-300
                     group-hover:scale-105
                   "
                   style={{
-                    fontSize: "16px",
+                    fontSize: "20px",
                     color: tone.color,
                     background: tone.bg,
                     boxShadow: `inset 0 0 0 1px ${tone.glow}`,
@@ -252,7 +233,7 @@ export function EmptyState({ agent, userName, onSend: _onSend, loading }: Props)
                 {/* Verb + hint */}
                 <div className="flex-1 min-w-0">
                   <div
-                    className="font-display text-[14px] font-medium text-text truncate"
+                    className="font-display text-[15px] font-medium text-text truncate"
                     style={{ letterSpacing: "-0.012em" }}
                   >
                     {action.verb}
@@ -261,7 +242,7 @@ export function EmptyState({ agent, userName, onSend: _onSend, loading }: Props)
                     className="font-mono text-[10.5px] truncate"
                     style={{
                       color: "rgba(255,255,255,0.40)",
-                      marginTop: "1px",
+                      marginTop: "2px",
                     }}
                   >
                     {action.hint}

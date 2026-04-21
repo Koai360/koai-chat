@@ -7,7 +7,12 @@ interface Props {
   loadingHint?: string | null;
 }
 
-export function TypingIndicator({ agent: _agent, loadingHint }: Props) {
+export function TypingIndicator({ agent, loadingHint }: Props) {
+  // Identidad del agente: Noa lime / Kronos cyan. Los dots pulsantes
+  // reflejan quién está "pensando" — no son gris genérico.
+  const accentColor = agent === "kronos" ? "#00E5FF" : "#D4E94B";
+  const glowColor = agent === "kronos" ? "rgba(0,229,255,0.45)" : "rgba(212,233,75,0.45)";
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -19,17 +24,23 @@ export function TypingIndicator({ agent: _agent, loadingHint }: Props) {
         <AIStarIcon size="sm" />
       </div>
 
-      <div className="flex items-center gap-1 h-7">
+      <div className="flex items-center gap-1.5 h-7">
         {loadingHint ? (
           <span className="text-xs text-text-muted">{loadingHint}</span>
         ) : (
           [0, 1, 2].map((i) => (
             <motion.div
               key={i}
-              className="w-1.5 h-1.5 rounded-full bg-text-muted"
+              className="w-1.5 h-1.5 rounded-full"
+              style={{ backgroundColor: accentColor }}
               animate={{
-                opacity: [0.3, 1, 0.3],
-                scale: [0.8, 1, 0.8],
+                opacity: [0.4, 1, 0.4],
+                scale: [0.85, 1.05, 0.85],
+                boxShadow: [
+                  `0 0 0px ${glowColor}`,
+                  `0 0 6px ${glowColor}`,
+                  `0 0 0px ${glowColor}`,
+                ],
               }}
               transition={{
                 duration: 1.2,

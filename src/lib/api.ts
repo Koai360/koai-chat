@@ -168,7 +168,7 @@ export async function streamNoaMessage(
   thinkingLevel: ThinkingLevel = "medium",
   editMode?: boolean,
   imageUrl?: string,
-): Promise<{ conversation_id: string; agent_used: string; fullText: string; image?: string; imageMetadata?: ImageMetadataPayload }> {
+): Promise<{ conversation_id: string; agent_used: string; fullText: string; image?: string; imageMetadata?: ImageMetadataPayload; memory_usage?: number }> {
   const body: Record<string, unknown> = {
     message,
     agent: "noa",
@@ -229,6 +229,7 @@ export async function streamNoaMessage(
     let imageMetadata: ImageMetadataPayload | undefined;
     let conversationIdResult = conversationId || "";
     let agentUsed = "noa";
+    let memoryUsage: number | undefined;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -261,6 +262,7 @@ export async function streamNoaMessage(
             } else if (currentEvent === "done") {
               conversationIdResult = parsed.conversation_id || conversationIdResult;
               agentUsed = parsed.agent_used || agentUsed;
+              if (typeof parsed.memory_usage === "number") memoryUsage = parsed.memory_usage;
             } else if (currentEvent === "error") {
               throw new Error(parsed.error || "Error del servidor");
             }
@@ -273,7 +275,7 @@ export async function streamNoaMessage(
       }
     }
 
-    return { conversation_id: conversationIdResult, agent_used: agentUsed, fullText, image, imageMetadata };
+    return { conversation_id: conversationIdResult, agent_used: agentUsed, fullText, image, imageMetadata, memory_usage: memoryUsage };
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {
       throw new Error(imageMode

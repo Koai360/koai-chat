@@ -17,6 +17,35 @@ interface Props {
   onAnimateImage?: (imageUrl: string) => void;
   isLast?: boolean;
   onRegenerate?: () => void;
+  /** True si es el primer mensaje de ESTE agente en el thread (run de consecutivos).
+      Controla si se muestra AIStarIcon completo (brand moment) o un dot lime/cyan
+      como continuación. Reduce ruido visual en threads largos. */
+  isFirstOfAgentRun?: boolean;
+  /** True si el siguiente mensaje tiene imagen o code block (ritmo vertical variable). */
+  hasDenseFollowing?: boolean;
+}
+
+/**
+ * AgentMark — avatar del assistant. Estrella completa (brand moment) en el primer
+ * mensaje de un run del mismo agente, dot colored en los siguientes.
+ */
+function AgentMark({ agent, isFirst }: { agent?: "noa" | "kronos"; isFirst: boolean }) {
+  if (isFirst) {
+    return <AIStarIcon size="sm" />;
+  }
+  const color = agent === "kronos" ? "#00E5FF" : "#D4E94B";
+  const glow = agent === "kronos" ? "rgba(0,229,255,0.35)" : "rgba(212,233,75,0.35)";
+  return (
+    <div className="w-6 h-6 flex items-center justify-center">
+      <div
+        className="w-2 h-2 rounded-full"
+        style={{
+          backgroundColor: color,
+          boxShadow: `0 0 6px ${glow}`,
+        }}
+      />
+    </div>
+  );
 }
 
 function CodeBlock({ children, className }: { children: string; className?: string }) {
@@ -31,17 +60,24 @@ function CodeBlock({ children, className }: { children: string; className?: stri
   }, [code]);
 
   return (
-    <div className="relative group/code my-2">
-      <div className="flex items-center justify-between px-3 py-1.5 rounded-t-lg border border-b-0 bg-bg-sidebar border-border">
-        <span className="text-[10px] font-mono text-text-muted uppercase">{lang || "code"}</span>
+    <div
+      className="relative group/code my-2 rounded-lg overflow-hidden"
+      style={{
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04), 0 1px 0 rgba(0,0,0,0.25)",
+      }}
+    >
+      <div
+        className="flex items-center justify-between px-3 py-1.5 bg-bg-sidebar border-b border-border"
+      >
+        <span className="text-[10px] font-mono text-text-muted uppercase tracking-wider">{lang || "code"}</span>
         <button
           onClick={handleCopy}
-          className="text-[10px] text-text-muted hover:text-text px-2 py-0.5 rounded transition-colors"
+          className="text-[11px] text-text-muted hover:text-text px-2 py-0.5 rounded transition-colors"
         >
           {copied ? "Copiado" : "Copiar"}
         </button>
       </div>
-      <code className={`${className} !rounded-t-none !mt-0 !border-t-0`}>{children}</code>
+      <code className={`${className} !rounded-none !mt-0 !border-0 block`}>{children}</code>
     </div>
   );
 }
@@ -89,7 +125,7 @@ function ImageBlock({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                if (navigator.vibrate) navigator.vibrate(8);
+                if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(8);
                 onAnimateImage(originalSrc);
               }}
               className="px-2.5 py-1.5 bg-black/70 backdrop-blur-sm border border-white/15 rounded-lg text-[11px] font-medium text-white flex items-center gap-1"
@@ -103,7 +139,7 @@ function ImageBlock({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                if (navigator.vibrate) navigator.vibrate(8);
+                if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(8);
                 onEditImage(originalSrc);
               }}
               className="px-2.5 py-1.5 bg-black/70 backdrop-blur-sm border border-white/15 rounded-lg text-[11px] font-medium text-white flex items-center gap-1"
@@ -119,8 +155,14 @@ function ImageBlock({
   );
 }
 
-export function MessageBubble({ message, conversationId, onImageClick, onEditImage, onAnimateImage, isLast, onRegenerate }: Props) {
+export function MessageBubble({ message, conversationId, onImageClick, onEditImage, onAnimateImage, isLast, onRegenerate, isFirstOfAgentRun = true, hasDenseFollowing = false }: Props) {
   const isUser = message.role === "user";
+  // Ritmo vertical: respiración extra tras mensajes densos (code/imagen) o cuando
+  // el siguiente mensaje tiene contenido denso.
+  const hasImage = !!message.image;
+  const hasCode = typeof message.content === "string" && message.content.includes("```");
+  const needsBreath = hasImage || hasCode || hasDenseFollowing;
+  const marginBottom = needsBreath ? "mb-5" : "mb-3";
 
   if (isUser) {
     return (
@@ -128,19 +170,30 @@ export function MessageBubble({ message, conversationId, onImageClick, onEditIma
         initial={{ opacity: 0, y: 20, filter: "blur(4px)" }}
         animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
         transition={{ duration: 0.3 }}
-        className="flex flex-col items-end px-4 mb-3 group/msg"
+        className={`flex flex-col items-end px-4 ${marginBottom} group/msg`}
       >
-        <div className="max-w-[85%] md:max-w-[70%] ml-auto bg-bg-surface border border-border rounded-2xl px-4 py-3">
+        {/* Mark + timestamp arriba — transcript style, no bubble */}
+        <div className="flex items-center gap-1.5 mb-1 mr-1">
+          <span className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-text-subtle">
+            Tú
+          </span>
+          <span className="font-mono text-[10px] text-text-subtle tabular-nums timestamp-on-hover opacity-50 group-hover/msg:opacity-90 transition-opacity">
+            {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          </span>
+        </div>
+        <div
+          className="max-w-[85%] md:max-w-[70%] ml-auto px-4 py-3 rounded-2xl bg-bg-surface/60"
+          style={{
+            borderRight: "2px solid rgba(212, 233, 75, 0.25)",
+          }}
+        >
           {message.image && <ImageBlock image={message.image} messageId={message.id} isUser onImageClick={onImageClick} onEditImage={onEditImage} onAnimateImage={onAnimateImage} />}
           {message.content && message.content !== "[Imagen]" && (
-            <p className="text-[15px] leading-[1.4] text-text whitespace-pre-wrap">
+            <p className="text-[15px] leading-[1.45] text-text whitespace-pre-wrap">
               {message.content}
             </p>
           )}
         </div>
-        <span className="text-[10px] mt-1 mr-1 text-text-muted timestamp-on-hover opacity-0 group-hover/msg:opacity-100 transition-opacity">
-          {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-        </span>
       </motion.div>
     );
   }
@@ -150,11 +203,11 @@ export function MessageBubble({ message, conversationId, onImageClick, onEditIma
       initial={{ opacity: 0, y: 20, filter: "blur(4px)" }}
       animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       transition={{ duration: 0.35 }}
-      className="flex items-start gap-3 px-4 mb-3 group/msg"
+      className={`flex items-start gap-3 px-4 ${marginBottom} group/msg`}
     >
-      {/* AI Star Icon */}
+      {/* Agent mark — estrella completa primera vez, dot en continuación */}
       <div className="flex-shrink-0 mt-0.5">
-        <AIStarIcon size="sm" />
+        <AgentMark agent={message.agent} isFirst={isFirstOfAgentRun} />
       </div>
 
       <div className="flex-1 min-w-0 flex flex-col">
@@ -173,7 +226,7 @@ export function MessageBubble({ message, conversationId, onImageClick, onEditIma
           </div>
         )}
         <div
-          className="text-[15px] leading-[1.55] prose prose-sm prose-invert max-w-none
+          className="text-[16px] leading-[1.6] prose prose-sm prose-invert max-w-none
             [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:mb-2 [&>ol]:mb-2
             [&_pre]:rounded-b-lg text-text border-l-2 pl-3"
           style={{
@@ -189,9 +242,22 @@ export function MessageBubble({ message, conversationId, onImageClick, onEditIma
                 const isBlock = className?.startsWith("hljs") || className?.startsWith("language-");
                 if (isBlock) return <CodeBlock className={className}>{String(children)}</CodeBlock>;
                 return (
-                  <code className="px-1.5 py-0.5 rounded text-[13px] font-mono bg-bg-surface">
+                  <code className="px-1.5 py-0.5 rounded text-[14px] font-mono bg-bg-surface">
                     {children}
                   </code>
+                );
+              },
+              img({ src }) {
+                if (!src) return null;
+                return (
+                  <ImageBlock
+                    image={src}
+                    messageId={message.id}
+                    isUser={false}
+                    onImageClick={onImageClick}
+                    onEditImage={onEditImage}
+                    onAnimateImage={onAnimateImage}
+                  />
                 );
               },
             }}
@@ -229,7 +295,7 @@ export function MessageBubble({ message, conversationId, onImageClick, onEditIma
           }}
         />
 
-        <span className="text-[10px] text-text-muted timestamp-on-hover opacity-0 group-hover/msg:opacity-100 transition-opacity mt-0.5">
+        <span className="text-[11px] text-text-muted timestamp-on-hover opacity-0 group-hover/msg:opacity-100 transition-opacity mt-0.5">
           {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
         </span>
       </div>
@@ -239,8 +305,16 @@ export function MessageBubble({ message, conversationId, onImageClick, onEditIma
 
 export function StreamingBubble({ text, agent }: { text: string; agent: "noa" | "kronos" }) {
   if (!text) return null;
-  const cursorColor = agent === "kronos" ? "#00E5FF" : "#D4E94B";
+  const borderColor = agent === "kronos" ? "rgba(0, 229, 255, 0.25)" : "rgba(197, 227, 74, 0.25)";
+  // R13: gradient signature purple→lime (Noa) o purple→cyan (Kronos) en el cursor
+  // de streaming — brand moment durante "Noa está escribiendo".
+  const cursorGradient = agent === "kronos"
+    ? "linear-gradient(180deg, #7B2D8E 0%, #00E5FF 100%)"
+    : "linear-gradient(180deg, #7B2D8E 0%, #D4E94B 100%)";
+  const cursorGlow = agent === "kronos" ? "rgba(0,229,255,0.5)" : "rgba(212,233,75,0.5)";
 
+  // Mismo wrapper / border / padding que MessageBubble assistant para que no
+  // haya "salto" visual al terminar el stream (solo gana MessageActions).
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -251,14 +325,19 @@ export function StreamingBubble({ text, agent }: { text: string; agent: "noa" | 
       <div className="flex-shrink-0 mt-0.5">
         <AIStarIcon size="sm" />
       </div>
-      <div className="flex-1 min-w-0">
-        <div className="text-[15px] leading-[1.55] prose prose-sm prose-invert max-w-none text-text">
+      <div className="flex-1 min-w-0 flex flex-col">
+        <div
+          className="text-[16px] leading-[1.6] prose prose-sm prose-invert max-w-none
+            [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:mb-2 [&>ol]:mb-2
+            [&_pre]:rounded-b-lg text-text border-l-2 pl-3"
+          style={{ borderLeftColor: borderColor }}
+        >
           <ReactMarkdown rehypePlugins={[rehypeHighlight]}>{text}</ReactMarkdown>
           <span
-            className="inline-block w-[3px] h-4 animate-pulse ml-0.5 -mb-0.5 rounded-sm"
+            className="inline-block w-[4px] h-[18px] animate-pulse ml-0.5 -mb-0.5 rounded-[2px] align-middle"
             style={{
-              backgroundColor: cursorColor,
-              boxShadow: `0 0 8px ${cursorColor}80`,
+              background: cursorGradient,
+              boxShadow: `0 0 10px ${cursorGlow}`,
             }}
           />
         </div>

@@ -60,12 +60,12 @@ export function ThinkingLevelSelector({ value, onChange, disabled }: Props) {
         type="button"
         disabled={disabled}
         onClick={() => {
-          if (navigator.vibrate) navigator.vibrate(6);
+          if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(6);
           setOpen((o) => !o);
         }}
         aria-label={`Thinking level: ${active.label}`}
         aria-expanded={open}
-        className="flex items-center gap-1.5 h-8 px-2.5 rounded-full text-[12px] font-medium transition-colors disabled:opacity-40"
+        className="flex items-center gap-1.5 h-8 px-2 sm:px-2.5 rounded-full text-[12px] font-medium transition-colors disabled:opacity-40"
         style={{
           backgroundColor: "rgba(255,255,255,0.06)",
           border: "1px solid rgba(255,255,255,0.12)",
@@ -73,7 +73,7 @@ export function ThinkingLevelSelector({ value, onChange, disabled }: Props) {
         }}
       >
         <ActiveIcon className="w-3.5 h-3.5" strokeWidth={2.25} />
-        <span className="leading-none">{active.label}</span>
+        <span className="leading-none hidden sm:inline">{active.label}</span>
         <ChevronDown
           className="w-3 h-3 transition-transform"
           style={{ transform: open ? "rotate(180deg)" : "rotate(0)", color: "rgba(255,255,255,0.5)" }}
@@ -104,7 +104,7 @@ export function ThinkingLevelSelector({ value, onChange, disabled }: Props) {
                   role="menuitemradio"
                   aria-checked={isActive}
                   onClick={() => {
-                    if (navigator.vibrate) navigator.vibrate(8);
+                    if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(8);
                     onChange(opt.value);
                     setOpen(false);
                   }}

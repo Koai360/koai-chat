@@ -31,9 +31,11 @@ interface Props {
   lastGeneratedImage?: { url: string; messageId?: string } | null;
   selectMode?: boolean;
   onSelectMode?: (active: boolean) => void;
+  /** ADK memory usage ratio (0.0-1.0) */
+  memoryUsage?: number;
 }
 
-export function ChatView({ conversation, agent, loading, loadingHint, streamingText, onSend, onStop, onTranscribe, onDelete: _onDelete, onDeleteMessages, userName, onImageClick, onEditImage, onAnimateImage, editSourceUrl, onClearEditSource, lastGeneratedImage, selectMode: externalSelectMode, onSelectMode }: Props) {
+export function ChatView({ conversation, agent, loading, loadingHint, streamingText, onSend, onStop, onTranscribe, onDelete: _onDelete, onDeleteMessages, userName, onImageClick, onEditImage, onAnimateImage, editSourceUrl, onClearEditSource, lastGeneratedImage, selectMode: externalSelectMode, onSelectMode, memoryUsage }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
@@ -141,10 +143,35 @@ export function ChatView({ conversation, agent, loading, loadingHint, streamingT
                   onEditImage={selectMode ? undefined : onEditImage}
                   onAnimateImage={selectMode ? undefined : onAnimateImage}
                   isLast={!selectMode && msg.role === "assistant" && i === conversation.messages.length - 1}
-                  onRegenerate={!selectMode && msg.role === "assistant" && i === conversation.messages.length - 1 && !loading
+                  isFirstOfAgentRun={
+                    msg.role === "assistant" && (
+                      i === 0 ||
+                      conversation.messages[i - 1].role !== "assistant" ||
+                      conversation.messages[i - 1].agent !== msg.agent
+                    )
+                  }
+                  hasDenseFollowing={
+                    i < conversation.messages.length - 1 && (
+                      !!conversation.messages[i + 1].image ||
+                      (typeof conversation.messages[i + 1].content === "string" &&
+                        conversation.messages[i + 1].content.includes("```"))
+                    )
+                  }
+                  onRegenerate={!selectMode && msg.role === "assistant" && !loading
                     ? () => {
-                        const lastUserMsg = [...conversation.messages].reverse().find((m) => m.role === "user");
-                        if (lastUserMsg) onSend(lastUserMsg.content);
+                        // Regenerate: encuentra el user message previo, trunca desde
+                        // ese user hasta el final, y re-envía. Así no duplicamos el
+                        // user message y el historial queda limpio si el user
+                        // regenera una respuesta antigua.
+                        const prevUser = conversation.messages[i - 1];
+                        if (!prevUser || prevUser.role !== "user") return;
+                        const idsToRemove = conversation.messages
+                          .slice(i - 1)
+                          .map((m) => m.id);
+                        if (onDeleteMessages) {
+                          onDeleteMessages(conversation.id, idsToRemove);
+                        }
+                        onSend(prevUser.content);
                       }
                     : undefined
                   }
@@ -182,6 +209,7 @@ export function ChatView({ conversation, agent, loading, loadingHint, streamingT
         editSourceUrl={editSourceUrl}
         onClearEditSource={onClearEditSource}
         lastGeneratedImage={lastGeneratedImage}
+        memoryUsage={memoryUsage}
       />
     </div>
   );

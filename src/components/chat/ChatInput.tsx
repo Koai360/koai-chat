@@ -38,10 +38,16 @@ interface Props {
   onClearEditSource?: () => void;
   /** Última imagen generada — para botón "Editar esta" rápido */
   lastGeneratedImage?: { url: string; messageId?: string } | null;
+  /** ADK memory usage ratio (0.0-1.0) — indicador visual de contexto */
+  memoryUsage?: number;
 }
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 const MAX_BASE64_SIZE = 2 * 1024 * 1024; // 2MB max base64 para enviar al backend
+
+function haptic(ms = 8) {
+  if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(ms);
+}
 
 function compressImage(dataUrl: string, maxBytes: number): Promise<{ base64: string; preview: string }> {
   return new Promise((resolve) => {
@@ -83,7 +89,7 @@ function compressImage(dataUrl: string, maxBytes: number): Promise<{ base64: str
 // ENGINE_OPTIONS y tipos viven en EngineSelector.tsx (single source of truth)
 // Backend dispatch correspondiente: /opt/koai-api/koai/tools/image_gen_tools.py:generate_image()
 
-export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe, disabled, placeholder = "Pregunta algo a Noa...", autoFocus, agent = "noa", editSourceUrl, onClearEditSource, lastGeneratedImage }: Props) {
+export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe, disabled, placeholder = "Pregunta algo a Noa...", autoFocus, agent = "noa", editSourceUrl, onClearEditSource, lastGeneratedImage, memoryUsage: _memoryUsage = 0 }: Props) {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
@@ -250,7 +256,8 @@ export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe
 
   useEffect(() => {
     if (error) {
-      const t = setTimeout(() => setError(null), 3000);
+      // 5s en vez de 3s — errores de upload requieren tiempo para leer y reaccionar.
+      const t = setTimeout(() => setError(null), 5000);
       return () => clearTimeout(t);
     }
   }, [error]);
@@ -264,7 +271,7 @@ export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe
     if ((!text.trim() && !hasImage) || disabled) return;
     if (editMode && !text.trim()) return;  // edit siempre requiere instrucción
     if (editMode && !hasImage) return;
-    if (navigator.vibrate) navigator.vibrate(10);
+    haptic(10);
     onSend(
       text,
       imageBase64 || undefined,
@@ -320,33 +327,47 @@ export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe
       img.src = dataUrl;
     });
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const processImageFile = async (file: File) => {
     if (file.size > MAX_IMAGE_SIZE) { setError("Imagen muy grande (max 5MB)"); return; }
     const originalSize = file.size;
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const dataUrl = reader.result as string;
-      const raw64 = dataUrl.split(",")[1];
-      if (!raw64 || raw64.length < 100) { setError("Imagen corrupta, intenta otra"); return; }
-      // Comprimir si excede 2MB
-      if (raw64.length > MAX_BASE64_SIZE) {
-        const { base64, preview } = await compressImage(dataUrl, MAX_BASE64_SIZE);
-        setImagePreview(preview);
-        setImageBase64(base64);
-        const dims = await readImageDimensions(preview);
-        // base64 length * 0.75 ≈ bytes
-        setImageMeta({ size: Math.round(base64.length * 0.75), width: dims.width, height: dims.height });
-      } else {
-        setImagePreview(dataUrl);
-        setImageBase64(raw64);
-        const dims = await readImageDimensions(dataUrl);
-        setImageMeta({ size: originalSize, width: dims.width, height: dims.height });
-      }
-    };
-    reader.readAsDataURL(file);
+    const dataUrl: string = await new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result as string);
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+    const raw64 = dataUrl.split(",")[1];
+    if (!raw64 || raw64.length < 100) { setError("Imagen corrupta, intenta otra"); return; }
+    if (raw64.length > MAX_BASE64_SIZE) {
+      const { base64, preview } = await compressImage(dataUrl, MAX_BASE64_SIZE);
+      setImagePreview(preview);
+      setImageBase64(base64);
+      const dims = await readImageDimensions(preview);
+      setImageMeta({ size: Math.round(base64.length * 0.75), width: dims.width, height: dims.height });
+    } else {
+      setImagePreview(dataUrl);
+      setImageBase64(raw64);
+      const dims = await readImageDimensions(dataUrl);
+      setImageMeta({ size: originalSize, width: dims.width, height: dims.height });
+    }
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) void processImageFile(file);
     e.target.value = "";
+  };
+
+  const openCamera = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.capture = "environment";
+    input.onchange = (ev) => {
+      const file = (ev.target as HTMLInputElement).files?.[0];
+      if (file) void processImageFile(file);
+    };
+    input.click();
   };
 
   const clearImage = () => {
@@ -408,16 +429,23 @@ export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe
           />
         )}
       </AnimatePresence>
-      {/* Error toast */}
+      {/* Error toast — dismiss manual con X, 5s fallback */}
       <AnimatePresence>
         {error && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
-            className="mx-1 mb-1 px-3 py-1.5 bg-danger-soft border border-danger/20 rounded-xl text-xs text-danger text-center"
+            className="mx-1 mb-1 px-3 py-1.5 bg-danger-soft border border-danger/20 rounded-xl text-xs text-danger flex items-center justify-center gap-2"
           >
-            {error}
+            <span className="flex-1 text-center">{error}</span>
+            <button
+              onClick={() => setError(null)}
+              aria-label="Cerrar aviso"
+              className="shrink-0 text-danger/70 hover:text-danger transition-colors"
+            >
+              <X className="h-3 w-3" />
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -440,7 +468,7 @@ export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe
         <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="mx-1 mb-1.5">
           <button
             onClick={() => {
-              if (navigator.vibrate) navigator.vibrate(8);
+              haptic(8);
               // Inyectar la URL como editSourceUrl via el mismo mecanismo que usa la galería
               // onClearEditSource resetea el anterior, luego seteamos el nuevo
               if (onClearEditSource) onClearEditSource();
@@ -493,7 +521,7 @@ export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe
               <button
                 role="radio"
                 aria-checked={!editMode}
-                onClick={() => { if (navigator.vibrate) navigator.vibrate(6); setEditMode(false); }}
+                onClick={() => { haptic(6); setEditMode(false); }}
                 className={`
                   text-[11px] font-medium py-2 px-2 rounded-lg border transition-all duration-200
                   ${!editMode
@@ -506,7 +534,7 @@ export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe
               <button
                 role="radio"
                 aria-checked={editMode}
-                onClick={() => { if (navigator.vibrate) navigator.vibrate(6); setEditMode(true); }}
+                onClick={() => { haptic(6); setEditMode(true); }}
                 className={`
                   text-[11px] font-medium py-2 px-2 rounded-lg border transition-all duration-200
                   ${editMode
@@ -571,16 +599,21 @@ export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe
         )}
       </AnimatePresence>
 
-      {/* Input row */}
-      <div className="flex items-end gap-1.5">
-        {/* Plus menu */}
+      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
+      <input ref={docInputRef} type="file" accept=".pdf,.csv,.txt,.doc,.docx,.xls,.xlsx" onChange={handleDocSelect} className="hidden" />
+
+      {/* Input — pill único fluido: Plus abs-left, textarea con padding, Mic+Send abs-right.
+          Altura mínima 52px (10+40+2). El textarea crece hasta 120px, los botones quedan
+          anclados al fondo (bottom-1) para que el multi-line no los desplace. */}
+      <div className="relative flex items-end min-h-[52px] liquid-glass-strong transition-all duration-300 rounded-2xl">
+        {/* Plus menu — absolute left, dentro del pill */}
         <Popover open={plusOpen} onOpenChange={setPlusOpen}>
           <PopoverTrigger asChild>
             <button
               disabled={isDisabled}
               aria-label="Adjuntar archivo"
-              className={`shrink-0 w-[38px] h-[44px] flex items-center justify-center active:scale-90 disabled:opacity-40 transition-all duration-200 ${
-                plusOpen ? "text-text rotate-45" : "text-text-muted"
+              className={`absolute left-1 bottom-1 z-10 w-10 h-10 rounded-full flex items-center justify-center active:scale-90 disabled:opacity-40 transition-all duration-200 ${
+                plusOpen ? "text-text rotate-45 bg-bg-surface" : "text-text-muted hover:text-text"
               }`}
             >
               <Plus className="h-5 w-5" />
@@ -602,6 +635,18 @@ export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe
               <div className="text-left">
                 <div className="font-medium text-xs">Adjuntar imagen</div>
                 <div className="text-[10px] text-text-muted">JPG, PNG, WebP</div>
+              </div>
+            </button>
+            <button
+              onClick={() => { openCamera(); setPlusOpen(false); }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-text hover:bg-bg-surface transition-colors"
+            >
+              <div className="w-8 h-8 rounded-full bg-bg-surface flex items-center justify-center">
+                <Camera className="h-4 w-4 text-text-muted" />
+              </div>
+              <div className="text-left">
+                <div className="font-medium text-xs">Tomar foto</div>
+                <div className="text-[10px] text-text-muted">Cámara trasera del dispositivo</div>
               </div>
             </button>
             <button
@@ -631,143 +676,99 @@ export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe
           </PopoverContent>
         </Popover>
 
-        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
-        <input ref={docInputRef} type="file" accept=".pdf,.csv,.txt,.doc,.docx,.xls,.xlsx" onChange={handleDocSelect} className="hidden" />
+        <textarea
+          ref={editorRef}
+          value={text}
+          onChange={(e) => {
+            const v = e.target.value;
+            setText(v);
+            // Slash menu: solo mientras escribes el comando.
+            // Se cierra al meter un espacio (ya escribiste el comando, ahora args)
+            // o cuando pasas de 15 chars (mensaje normal que empieza con "/").
+            if (v.startsWith("/") && v.length <= 15 && !v.includes(" ")) {
+              setShowSlash(true);
+              setSlashIndex(0);
+            } else {
+              setShowSlash(false);
+            }
+          }}
+          onKeyDown={handleKeyDown}
+          onFocus={handleFocus}
+          disabled={isDisabled}
+          rows={1}
+          aria-label="Escribe tu mensaje"
+          placeholder={transcribing ? "Transcribiendo..." : editMode ? "Qué cambiar en la imagen..." : imageMode ? "Describe la imagen..." : placeholder}
+          spellCheck={false}
+          autoCorrect="off"
+          autoCapitalize="sentences"
+          autoComplete="off"
+          inputMode="text"
+          enterKeyHint="send"
+          style={{ fontSize: "var(--text-input, 16px)" }}
+          className="w-full py-[14px] pl-[52px] pr-[96px] leading-[22px] max-h-[120px] overflow-y-auto text-text bg-transparent border-none outline-none resize-none placeholder:text-text-muted disabled:opacity-60"
+        />
 
-        {/* Input pill */}
-        <div
-          className="flex-1 flex items-end min-h-[44px] overflow-hidden liquid-glass-strong transition-all duration-300 rounded-lg"
-        >
-          <textarea
-            ref={editorRef}
-            value={text}
-            onChange={(e) => {
-              const v = e.target.value;
-              setText(v);
-              if (v.startsWith("/") && v.length <= 15) {
-                setShowSlash(true);
-                setSlashIndex(0);
-              } else {
-                setShowSlash(false);
-              }
-            }}
-            onKeyDown={handleKeyDown}
-            onFocus={handleFocus}
-            disabled={isDisabled}
-            rows={1}
-            aria-label="Escribe tu mensaje"
-            placeholder={transcribing ? "Transcribiendo..." : editMode ? "Qué cambiar en la imagen..." : imageMode ? "Describe la imagen..." : placeholder}
-            // NOTA: la barra ^/v/✓ de iOS (Form Assistant / accessory view)
-            // NO se puede ocultar desde una PWA web — es parte nativa del
-            // teclado iOS y aparece para cualquier input/textarea.
-            // Solo Apple la puede desactivar. Los attrs de abajo desactivan
-            // autocorrect/suggestions/spellcheck pero NO la barra en sí.
-            spellCheck={false}
-            autoCorrect="off"
-            autoCapitalize="sentences"
-            autoComplete="off"
-            inputMode="text"
-            enterKeyHint="send"
-            style={{ fontSize: "var(--text-input, 16px)" }}
-            className="flex-1 py-[11px] pl-4 leading-[22px] max-h-[120px] overflow-y-auto text-text bg-transparent border-none outline-none resize-none placeholder:text-text-muted disabled:opacity-60"
-          />
-          {/* Camera button */}
-          <button
-            onClick={() => {
-              const input = document.createElement("input");
-              input.type = "file"; input.accept = "image/*"; input.capture = "environment";
-              input.onchange = (ev) => {
-                const file = (ev.target as HTMLInputElement).files?.[0];
-                if (!file) return;
-                if (file.size > MAX_IMAGE_SIZE) { setError("Imagen muy grande (max 5MB)"); return; }
-                const originalSize = file.size;
-                const reader = new FileReader();
-                reader.onload = async () => {
-                  const dataUrl = reader.result as string;
-                  const raw64 = dataUrl.split(",")[1];
-                  if (!raw64 || raw64.length < 100) { setError("Imagen corrupta, intenta otra"); return; }
-                  if (raw64.length > MAX_BASE64_SIZE) {
-                    const { base64, preview } = await compressImage(dataUrl, MAX_BASE64_SIZE);
-                    setImagePreview(preview);
-                    setImageBase64(base64);
-                    const dims = await readImageDimensions(preview);
-                    setImageMeta({ size: Math.round(base64.length * 0.75), width: dims.width, height: dims.height });
-                  } else {
-                    setImagePreview(dataUrl);
-                    setImageBase64(raw64);
-                    const dims = await readImageDimensions(dataUrl);
-                    setImageMeta({ size: originalSize, width: dims.width, height: dims.height });
-                  }
-                };
-                reader.readAsDataURL(file);
-              };
-              input.click();
-            }}
-            disabled={isDisabled}
-            aria-label="Tomar foto"
-            className="shrink-0 w-10 h-[44px] flex items-center justify-center text-text-muted active:scale-90 disabled:opacity-40"
-          >
-            <Camera className="h-5 w-5" />
-          </button>
+        {/* Right action cluster — Mic, Stop, Send. Anclados bottom-right para que
+            no se desplacen cuando el textarea crece multi-line. */}
+        <div className="absolute right-1 bottom-1 z-10 flex items-center gap-0.5">
+          {!recording && !loading && !hasContent && (
+            <button
+              onClick={toggleRecording}
+              disabled={isDisabled}
+              aria-label="Entrada de voz"
+              className="w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-90 disabled:opacity-50 text-text-muted hover:text-text"
+            >
+              {transcribing ? (
+                <Loader2 className="h-[18px] w-[18px] animate-spin text-text-muted" />
+              ) : (
+                <Mic className="h-[18px] w-[18px]" />
+              )}
+            </button>
+          )}
+
+          {/* Stop button — visible durante loading (reemplaza send) */}
+          {loading && onStop && (
+            <motion.button
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              onClick={(e) => {
+                e.preventDefault();
+                haptic(12);
+                onStop();
+              }}
+              aria-label="Detener generación"
+              className="w-10 h-10 rounded-xl flex items-center justify-center active:scale-90 transition-all bg-white text-[#0a0a0c]"
+              style={{
+                boxShadow: "0 0 12px 2px rgba(255,255,255,0.25)",
+              }}
+            >
+              <Square className="h-3.5 w-3.5 fill-current" />
+            </motion.button>
+          )}
+
+          {/* Send button — rounded-xl (R12), color por agente, glow */}
+          {hasContent && !loading && (
+            <motion.button
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              onClick={handleSubmit}
+              disabled={isDisabled}
+              aria-label="Enviar mensaje"
+              className="w-10 h-10 rounded-xl flex items-center justify-center active:scale-90 disabled:opacity-50 transition-all"
+              style={{
+                backgroundColor: agent === "kronos" ? "#00E5FF" : "#D4E94B",
+                color: "#0a0a0c",
+                boxShadow: `0 0 12px 2px ${agent === "kronos" ? "rgba(0,229,255,0.3)" : "rgba(197,227,74,0.3)"}`,
+              }}
+            >
+              <ArrowUp className="h-[18px] w-[18px]" />
+            </motion.button>
+          )}
         </div>
-
-        {/* Mic button — siempre disponible (salvo mientras graba, que el
-            overlay maneja los controles). Cuando ya hay texto, el mic
-            permite seguir dictando y el texto nuevo se concatena al existente. */}
-        {!recording && (
-          <button
-            onClick={toggleRecording}
-            disabled={isDisabled}
-            aria-label={hasContent ? "Añadir por voz" : "Entrada de voz"}
-            className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 mb-0.5 disabled:opacity-50 text-text-muted hover:text-text"
-          >
-            {transcribing ? (
-              <Loader2 className="h-4 w-4 animate-spin text-text-muted" />
-            ) : (
-              <Mic className="h-4 w-4" />
-            )}
-          </button>
-        )}
-
-        {/* Stop button — visible durante loading (reemplaza send) */}
-        {loading && onStop && (
-          <motion.button
-            initial={{ scale: 0.8 }}
-            animate={{ scale: 1 }}
-            onClick={(e) => {
-              e.preventDefault();
-              if (navigator.vibrate) navigator.vibrate(12);
-              onStop();
-            }}
-            aria-label="Detener generación"
-            className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-all mb-1 bg-white text-[#0a0a0c]"
-            style={{
-              boxShadow: "0 0 12px 2px rgba(255,255,255,0.25)",
-            }}
-          >
-            <Square className="h-3 w-3 fill-current" />
-          </motion.button>
-        )}
-
-        {/* Send button — solo cuando hay contenido y NO está loading */}
-        {hasContent && !loading && (
-          <motion.button
-            initial={{ scale: 0.8 }}
-            animate={{ scale: 1 }}
-            onClick={handleSubmit}
-            disabled={isDisabled}
-            aria-label="Enviar mensaje"
-            className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center active:scale-90 disabled:opacity-50 transition-all mb-1"
-            style={{
-              backgroundColor: agent === "kronos" ? "#00E5FF" : "#D4E94B",
-              color: "#0a0a0c",
-              boxShadow: `0 0 12px 2px ${agent === "kronos" ? "rgba(0,229,255,0.3)" : "rgba(197,227,74,0.3)"}`,
-            }}
-          >
-            <ArrowUp className="h-4 w-4" />
-          </motion.button>
-        )}
       </div>
+
+      {/* Memory indicator movido al TopBar (chip junto a ThinkingLevel) para
+          agrupar "estado del agente" en un solo lugar y mantener el input limpio. */}
 
       {/* Disclaimer — hidden on mobile to save space */}
       <p className="hidden md:block text-[11px] text-text-muted text-center mt-2">

@@ -973,3 +973,52 @@ export async function deleteNote(id: string): Promise<void> {
     headers: getHeaders(),
   });
 }
+
+// ─── Memory Palace ───
+
+export interface Memory {
+  id: string;
+  entity_type: string;
+  content: string;
+  source: string | null;
+  metadata: Record<string, unknown> | null;
+  relevance_score: number | null;
+  hit_count: number | null;
+  last_hit_at: string | null;
+  created_at: string;
+}
+
+export interface MemoryPalaceResponse {
+  memories: Memory[];
+  stats: {
+    total: number;
+    by_type: Record<string, number>;
+    total_hits: number;
+  };
+}
+
+export async function fetchMemoryPalace(
+  entityType?: string,
+): Promise<MemoryPalaceResponse> {
+  const qs = entityType ? `?entity_type=${encodeURIComponent(entityType)}` : "";
+  const res = await fetch(`${API_URL}/api/memory/palace${qs}`, { headers: getHeaders() });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+export async function deletePalaceMemory(id: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/memory/${id}`, {
+    method: "DELETE",
+    headers: getHeaders(),
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+}
+
+export async function editPalaceMemory(id: string, content: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/memory/${id}`, {
+    method: "PATCH",
+    headers: getHeaders(),
+    body: JSON.stringify({ content }),
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+}

@@ -3,6 +3,7 @@ import {
   MessageSquare,
   Compass,
   Image as ImageIcon,
+  Brain,
 } from "lucide-react";
 import type { Page } from "@/hooks/useNavigation";
 import type { AuthUser } from "@/hooks/useAuth";
@@ -36,6 +37,7 @@ const NAV_ITEMS: { page: Page; icon: typeof House; label: string }[] = [
   { page: "chatHistory", icon: MessageSquare, label: "Chat" },
   { page: "explore", icon: Compass, label: "Explorar" },
   { page: "media", icon: ImageIcon, label: "Galería" },
+  { page: "memory", icon: Brain, label: "Memoria" },
 ];
 
 export function IconRail({ currentPage, onNavigate, user, onLogout, agent = "noa" }: Props) {

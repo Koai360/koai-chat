@@ -1022,3 +1022,139 @@ export async function editPalaceMemory(id: string, content: string): Promise<voi
   });
   if (!res.ok) throw new Error(`Error ${res.status}`);
 }
+
+// ─── Kira Learnings Review ───
+
+export interface KiraLearning {
+  id: number;
+  category: string;
+  lesson: string;
+  context: string | null;
+  status: "pending" | "approved" | "rejected";
+  source_message: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  review_note: string | null;
+  created_at: string;
+}
+
+export interface KiraLearningsResponse {
+  learnings: KiraLearning[];
+  counts: { pending: number; approved: number; rejected: number };
+}
+
+export async function fetchKiraLearnings(
+  status: "pending" | "approved" | "rejected" | "all" = "pending",
+): Promise<KiraLearningsResponse> {
+  const res = await fetch(`${API_URL}/api/kira/learnings?status=${status}`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+export async function approveKiraLearning(id: number): Promise<void> {
+  const res = await fetch(`${API_URL}/api/kira/learnings/${id}/approve`, {
+    method: "POST",
+    headers: getHeaders(),
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+}
+
+export async function rejectKiraLearning(id: number, note?: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/kira/learnings/${id}/reject`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({ note: note || "" }),
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+}
+
+export async function editKiraLearning(id: number, lesson: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/kira/learnings/${id}`, {
+    method: "PATCH",
+    headers: getHeaders(),
+    body: JSON.stringify({ lesson }),
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+}
+
+// ─── KB Manager (Sales Examples + Methodology) ───
+
+export interface SalesExample {
+  id: string;
+  content: string;
+  source: string | null;
+  metadata: Record<string, unknown> | null;
+  hit_count: number | null;
+  last_hit_at: string | null;
+  active: boolean;
+  created_at: string;
+}
+
+export interface SalesMethodology {
+  id: string;
+  content: string;
+  metadata: Record<string, unknown> | null;
+  hit_count: number | null;
+  last_hit_at: string | null;
+  active: boolean;
+  created_at: string;
+}
+
+export async function fetchSalesExamples(opts: {
+  product?: string;
+  outcome?: string;
+  active_only?: boolean;
+  limit?: number;
+  offset?: number;
+} = {}): Promise<{ examples: SalesExample[]; total: number; limit: number; offset: number }> {
+  const params = new URLSearchParams();
+  if (opts.product) params.set("product", opts.product);
+  if (opts.outcome) params.set("outcome", opts.outcome);
+  if (opts.active_only !== undefined) params.set("active_only", String(opts.active_only));
+  if (opts.limit) params.set("limit", String(opts.limit));
+  if (opts.offset) params.set("offset", String(opts.offset));
+  const res = await fetch(`${API_URL}/api/kb/examples?${params.toString()}`, { headers: getHeaders() });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+export async function fetchSalesMethodology(opts: {
+  author?: string;
+  active_only?: boolean;
+  limit?: number;
+  offset?: number;
+} = {}): Promise<{ methodology: SalesMethodology[]; total: number; limit: number; offset: number }> {
+  const params = new URLSearchParams();
+  if (opts.author) params.set("author", opts.author);
+  if (opts.active_only !== undefined) params.set("active_only", String(opts.active_only));
+  if (opts.limit) params.set("limit", String(opts.limit));
+  if (opts.offset) params.set("offset", String(opts.offset));
+  const res = await fetch(`${API_URL}/api/kb/methodology?${params.toString()}`, { headers: getHeaders() });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+export async function toggleKbActive(id: string): Promise<{ ok: boolean; active: boolean }> {
+  const res = await fetch(`${API_URL}/api/kb/${id}/toggle`, {
+    method: "POST",
+    headers: getHeaders(),
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+export interface KbStats {
+  examples_total: number;
+  examples_active: number;
+  examples_enriched: number;
+  methodology_total: number;
+  learnings_pending: number;
+}
+
+export async function fetchKbStats(): Promise<KbStats> {
+  const res = await fetch(`${API_URL}/api/kb/stats`, { headers: getHeaders() });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}

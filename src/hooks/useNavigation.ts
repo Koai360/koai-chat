@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 
-export type Page = "home" | "chat" | "chatHistory" | "explore" | "media" | "notes" | "memory" | "dashboard" | "settings";
+export type Page = "home" | "chat" | "chatHistory" | "explore" | "media" | "notes" | "memory" | "kb" | "dashboard" | "settings";
 
 const HASH_MAP: Record<string, Page> = {
   "": "home",
@@ -12,6 +12,7 @@ const HASH_MAP: Record<string, Page> = {
   "#/media": "media",
   "#/notes": "notes",
   "#/memory": "memory",
+  "#/kb": "kb",
   "#/dashboard": "dashboard",
   "#/settings": "settings",
 };
@@ -24,6 +25,7 @@ const PAGE_HASH: Record<Page, string> = {
   media: "#/media",
   notes: "#/notes",
   memory: "#/memory",
+  kb: "#/kb",
   dashboard: "#/dashboard",
   settings: "#/settings",
 };

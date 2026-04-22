@@ -4,6 +4,7 @@ import {
   Compass,
   Image as ImageIcon,
   Brain,
+  BookOpen,
 } from "lucide-react";
 import type { Page } from "@/hooks/useNavigation";
 import type { AuthUser } from "@/hooks/useAuth";
@@ -38,6 +39,7 @@ const NAV_ITEMS: { page: Page; icon: typeof House; label: string }[] = [
   { page: "explore", icon: Compass, label: "Explorar" },
   { page: "media", icon: ImageIcon, label: "Galería" },
   { page: "memory", icon: Brain, label: "Memoria" },
+  { page: "kb", icon: BookOpen, label: "KB Manager" },
 ];
 
 export function IconRail({ currentPage, onNavigate, user, onLogout, agent = "noa" }: Props) {

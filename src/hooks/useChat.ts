@@ -107,6 +107,10 @@ export function useChat(userId: string | null = null) {
   const abortRef = useRef<AbortController | null>(null);
   // Track qué convo IDs ya pedimos al backend, para no re-fetchar en loop
   const fetchedMessagesRef = useRef<Set<string>>(new Set());
+  // Track de generación en vuelo — para recuperar la respuesta cuando la PWA
+  // vuelve del background y el SSE quedó zombie (iOS suspende JS al fondo).
+  const inFlightConvoIdRef = useRef<string | null>(null);
+  const inFlightRecoveredRef = useRef(false);
 
   const active = conversations.find((c) => c.id === activeId) || null;
 
@@ -166,6 +170,73 @@ export function useChat(userId: string | null = null) {
         fetchedMessagesRef.current.delete(activeId);
       });
   }, [activeId]);
+
+  // Resume recovery: cuando la PWA vuelve a foreground / online / focus y hay
+  // una generación en vuelo, intenta rescatar la respuesta del backend (que ya
+  // persistió antes del done). Cubre el caso de iOS/Android suspendiendo el JS
+  // al apagar pantalla o salir de la app durante una gen.
+  useEffect(() => {
+    if (!userId) return;
+
+    const tryRecover = async () => {
+      const convoId = inFlightConvoIdRef.current;
+      if (!convoId || inFlightRecoveredRef.current) return;
+      // Esperar a que el backend termine de persistir (chat.py:1188 hace
+      // save_message ANTES del done event)
+      await new Promise((r) => setTimeout(r, 1500));
+      // Si entretanto el stream se reanudó normalmente, abortar
+      if (!inFlightConvoIdRef.current || inFlightRecoveredRef.current) return;
+
+      try {
+        const recovered = await recoverLastAssistantMessage(convoId);
+        if (!recovered || (!recovered.content && !recovered.image)) return;
+        if (inFlightRecoveredRef.current) return;
+
+        inFlightRecoveredRef.current = true;
+        const msg: Message = {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          agent,
+          content: recovered.content || "(respuesta generada)",
+          timestamp: Date.now(),
+          image: recovered.image,
+        };
+        setConversations((prev) => {
+          const target = prev.find((c) => c.id === convoId);
+          if (!target) return prev;
+          // Evitar duplicado si ya existe un assistant con el mismo content
+          const lastMsg = target.messages[target.messages.length - 1];
+          if (lastMsg?.role === "assistant" && lastMsg.content === msg.content) return prev;
+          return prev.map((c) =>
+            c.id === convoId ? { ...c, messages: [...c.messages, msg] } : c,
+          );
+        });
+        // Cancelar el stream zombie y limpiar UI
+        if (abortRef.current) {
+          try { abortRef.current.abort(); } catch { /* ignore */ }
+        }
+        setLoading(false);
+        setLoadingHint(null);
+        setStreamingText("");
+      } catch (err) {
+        console.warn("[useChat] resume recovery failed:", err);
+      }
+    };
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void tryRecover();
+    };
+    const onOnline = () => { void tryRecover(); };
+
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("focus", onOnline);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("focus", onOnline);
+    };
+  }, [userId, agent]);
 
   // When agent changes, switch to the most recent conversation of that agent
   const setAgent = useCallback(
@@ -247,6 +318,10 @@ export function useChat(userId: string | null = null) {
       }
 
       setLoading(true);
+      // Marcar gen en vuelo para que el resume listener pueda recuperar si la
+      // PWA es suspendida (iOS/Android background).
+      inFlightConvoIdRef.current = convoId;
+      inFlightRecoveredRef.current = false;
       // Hint inicial — mensaje según modo + engine.
       const initialHint = editMode
         ? "Editando con Flux Kontext Pro (~8s, fallback Modal si filtra)..."
@@ -489,31 +564,37 @@ export function useChat(userId: string | null = null) {
           setStreamingText("");
         }
 
-        const assistantMsg: Message = {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          agent,
-          content: assistantContent,
-          timestamp: Date.now(),
-          image: assistantImage,
-          imageMetadata: assistantImageMetadata,
-        };
+        // Si el resume listener ya inyectó el mensaje (PWA volvió de background
+        // y rescató la respuesta del backend), no duplicar.
+        if (inFlightRecoveredRef.current) {
+          messageAdded = true;
+        } else {
+          const assistantMsg: Message = {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            agent,
+            content: assistantContent,
+            timestamp: Date.now(),
+            image: assistantImage,
+            imageMetadata: assistantImageMetadata,
+          };
 
-        setConversations((prev) => {
-          // Phase D fix: verificar que la convo target exista, sino warn
-          const targetExists = prev.some((c) => c.id === convoId);
-          if (!targetExists) {
-            console.error("[useChat] Convo gone when adding assistant msg", {
-              convoId,
-              prevIds: prev.map((c) => c.id),
-            });
-            return prev;
-          }
-          return prev.map((c) =>
-            c.id === convoId ? { ...c, messages: [...c.messages, assistantMsg] } : c,
-          );
-        });
-        messageAdded = true;
+          setConversations((prev) => {
+            // Phase D fix: verificar que la convo target exista, sino warn
+            const targetExists = prev.some((c) => c.id === convoId);
+            if (!targetExists) {
+              console.error("[useChat] Convo gone when adding assistant msg", {
+                convoId,
+                prevIds: prev.map((c) => c.id),
+              });
+              return prev;
+            }
+            return prev.map((c) =>
+              c.id === convoId ? { ...c, messages: [...c.messages, assistantMsg] } : c,
+            );
+          });
+          messageAdded = true;
+        }
 
         // Persist both messages to server
         if (convoId) {
@@ -523,25 +604,32 @@ export function useChat(userId: string | null = null) {
           ]).catch((err) => console.error("[useChat] Failed to save messages:", err));
         }
       } catch (err) {
-        const errorMsg: Message = {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          agent,
-          content: `Error: ${err instanceof Error ? err.message : "desconocido"}`,
-          timestamp: Date.now(),
-        };
-        setConversations((prev) =>
-          prev.map((c) =>
-            c.id === convoId ? { ...c, messages: [...c.messages, errorMsg] } : c,
-          ),
-        );
-        messageAdded = true;
-        setStreamingText("");
+        // Si el resume listener ya rescató la respuesta del backend, ignorar
+        // el error del stream zombie (probablemente AbortError del listener).
+        if (inFlightRecoveredRef.current) {
+          messageAdded = true;
+          setStreamingText("");
+        } else {
+          const errorMsg: Message = {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            agent,
+            content: `Error: ${err instanceof Error ? err.message : "desconocido"}`,
+            timestamp: Date.now(),
+          };
+          setConversations((prev) =>
+            prev.map((c) =>
+              c.id === convoId ? { ...c, messages: [...c.messages, errorMsg] } : c,
+            ),
+          );
+          messageAdded = true;
+          setStreamingText("");
+        }
       } finally {
         // Phase D fix: safety net — si por alguna razón el try/catch terminó sin agregar
         // mensaje (silent fail), añadir uno de emergencia para que el user no se quede
         // con el spinner desaparecido y sin ninguna respuesta.
-        if (!messageAdded) {
+        if (!messageAdded && !inFlightRecoveredRef.current) {
           console.error("[useChat] Silent fail detected — no message added!", { convoId, activeId });
           const safetyMsg: Message = {
             id: crypto.randomUUID(),
@@ -560,6 +648,8 @@ export function useChat(userId: string | null = null) {
         if (rotateTimer) clearInterval(rotateTimer); // Phase C cleanup
         setLoading(false);
         setLoadingHint(null);
+        // Limpiar tracking de gen en vuelo — desactiva el resume listener
+        inFlightConvoIdRef.current = null;
         if (wakeLock) { wakeLock.release().catch(() => {}); }
         if (noSleepVideo) { noSleepVideo.pause(); noSleepVideo.remove(); }
       }

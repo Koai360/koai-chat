@@ -21,6 +21,7 @@ import { NotesPage } from "@/components/pages/NotesPage";
 import { MemoryPalacePage } from "@/components/pages/MemoryPalacePage";
 import { KbManagerPage } from "@/components/pages/KbManagerPage";
 import { DashboardPage } from "@/components/pages/DashboardPage";
+import { TranslatePage } from "@/components/pages/TranslatePage";
 import { ImageViewer } from "@/components/gallery/ImageViewer";
 import { NotificationsPanel } from "@/components/panels/NotificationsPanel";
 import { BriefsPanel } from "@/components/panels/BriefsPanel";
@@ -332,6 +333,8 @@ export function AppShell({ user, onLogout }: Props) {
         return <KbManagerPage />;
       case "dashboard":
         return <DashboardPage />;
+      case "translate":
+        return <TranslatePage />;
       case "settings":
         return (
           <SettingsPage

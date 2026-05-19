@@ -1,4 +1,4 @@
-import { House, MessageSquare, BarChart3, Image as ImageIcon, Settings } from "lucide-react";
+import { House, MessageSquare, Languages, Image as ImageIcon, Settings } from "lucide-react";
 import type { Page } from "@/hooks/useNavigation";
 
 interface Props {
@@ -9,7 +9,7 @@ interface Props {
 const TABS: { page: Page; icon: typeof House; label: string }[] = [
   { page: "home", icon: House, label: "Inicio" },
   { page: "chatHistory", icon: MessageSquare, label: "Chat" },
-  { page: "dashboard", icon: BarChart3, label: "Dashboard" },
+  { page: "translate", icon: Languages, label: "Traducir" },
   { page: "media", icon: ImageIcon, label: "Galería" },
   { page: "settings", icon: Settings, label: "Ajustes" },
 ];

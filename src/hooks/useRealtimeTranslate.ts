@@ -205,16 +205,22 @@ export function useRealtimeTranslate({
       pc.addTransceiver("audio", { direction: "sendrecv" });
 
       pc.ontrack = (ev) => {
+        console.log("[translate] ontrack:", ev.track.kind, "streams=", ev.streams.length);
         const el = audioElementRef.current;
         if (el) {
           el.srcObject = ev.streams[0];
-          // Forzar play: en Safari iOS autoPlay puede no kickear automático
-          // dentro del callback async; el gesture inicial (click Iniciar) lo permite.
           el.play().catch((e) => console.warn("[translate] audio.play() rejected:", e));
         } else {
           console.warn("[translate] ontrack fired but audioElementRef.current is null");
         }
         meterCleanupRef.current = attachLevelMeter(ev.streams[0], setAudioLevel);
+      };
+
+      pc.onconnectionstatechange = () => {
+        console.log("[translate] pc state:", pc.connectionState);
+      };
+      pc.oniceconnectionstatechange = () => {
+        console.log("[translate] ice state:", pc.iceConnectionState);
       };
 
       const ms = await navigator.mediaDevices.getUserMedia({
@@ -231,18 +237,25 @@ export function useRealtimeTranslate({
       const dc = pc.createDataChannel("oai-events");
       dcRef.current = dc;
       dc.addEventListener("open", () => {
+        console.log("[translate] datachannel open");
         setState("idle");
       });
       dc.addEventListener("message", (ev) => {
         try {
           const event = JSON.parse(ev.data);
+          // Log resumido para diagnostico — todo tipo de evento que llega
+          console.log("[translate] evt:", event.type, event);
           handleEvent(event);
-        } catch {
-          /* noop */
+        } catch (err) {
+          console.warn("[translate] parse error:", err, ev.data);
         }
       });
       dc.addEventListener("close", () => {
+        console.log("[translate] datachannel closed");
         setState((s) => (s === "error" ? s : "disconnected"));
+      });
+      dc.addEventListener("error", (e) => {
+        console.error("[translate] datachannel error:", e);
       });
 
       // 4. SDP exchange

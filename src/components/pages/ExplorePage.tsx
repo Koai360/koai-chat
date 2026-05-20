@@ -8,7 +8,7 @@ interface Props {
 }
 
 /**
- * ExplorePage — descubrir capacidades de Noa/Kronos.
+ * ExplorePage — descubrir capacidades de Noa.
  *
  * Diseño en español, sin AI slop (no 2x2 icon-cards). Cada categoría es una
  * fila con un mark de letra/símbolo color-coded por tipo, label en español,
@@ -18,7 +18,7 @@ interface Props {
 
 interface ExploreItem {
   mark: string;
-  tone: "noa" | "kronos" | "premium" | "neutral";
+  tone: "noa" | "premium" | "neutral";
   title: string;
   description: string;
   prompt: string;
@@ -85,37 +85,10 @@ const SECTIONS: { heading: string; items: ExploreItem[] }[] = [
       },
     ],
   },
-  {
-    heading: "Código y técnica (Kronos)",
-    items: [
-      {
-        mark: "</",
-        tone: "kronos",
-        title: "Revisión de código",
-        description: "Bugs, refactor, mejoras, code review",
-        prompt: "Cambia a Kronos. Necesito que revises un componente React.",
-      },
-      {
-        mark: "⌘",
-        tone: "kronos",
-        title: "Arquitectura de sistemas",
-        description: "Diseño de schemas, APIs, infraestructura, deploy",
-        prompt: "Cambia a Kronos. Necesito diseñar la arquitectura de un nuevo módulo.",
-      },
-      {
-        mark: "↑",
-        tone: "kronos",
-        title: "Deploy y operaciones",
-        description: "VPS, Cloudflare, GitHub Actions, debugging producción",
-        prompt: "Cambia a Kronos. Tengo un problema en producción que no entiendo.",
-      },
-    ],
-  },
 ];
 
 const TONE_STYLES: Record<ExploreItem["tone"], { color: string; glow: string; bg: string }> = {
   noa:     { color: "#D4E94B", glow: "rgba(212,233,75,0.30)", bg: "rgba(212,233,75,0.06)" },
-  kronos:  { color: "#00E5FF", glow: "rgba(0,229,255,0.30)",  bg: "rgba(0,229,255,0.06)"  },
   premium: { color: "#7B2D8E", glow: "rgba(123,45,142,0.40)", bg: "rgba(123,45,142,0.08)" },
   neutral: { color: "rgba(255,255,255,0.85)", glow: "rgba(255,255,255,0.18)", bg: "rgba(255,255,255,0.04)" },
 };

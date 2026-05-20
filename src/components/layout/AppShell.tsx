@@ -24,9 +24,6 @@ import { DashboardPage } from "@/components/pages/DashboardPage";
 import { TranslatePage } from "@/components/pages/TranslatePage";
 import { ImageViewer } from "@/components/gallery/ImageViewer";
 import { NotificationsPanel } from "@/components/panels/NotificationsPanel";
-import { BriefsPanel } from "@/components/panels/BriefsPanel";
-import { MemoryPanel } from "@/components/panels/MemoryPanel";
-import { SystemStatusPanel } from "@/components/panels/SystemStatusPanel";
 import { UpdateBanner } from "@/components/shared/UpdateBanner";
 import { PushToast } from "@/components/shared/PushToast";
 import { SplashScreen } from "@/components/shared/SplashScreen";
@@ -34,7 +31,7 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ToastProvider } from "@/components/ui/toast";
 
-type PanelType = "notifications" | "briefs" | "memory" | "systemStatus" | null;
+type PanelType = "notifications" | null;
 
 interface Props {
   user: AuthUser;
@@ -47,7 +44,6 @@ export function AppShell({ user, onLogout }: Props) {
     active,
     setActiveId,
     agent,
-    setAgent,
     thinkingLevel,
     setThinkingLevel,
     loading,
@@ -266,7 +262,6 @@ export function AppShell({ user, onLogout }: Props) {
         return (
           <HomePage
             userName={user.name}
-            agent={agent}
             loading={loading}
             onSend={handleHomeSend}
             onStop={stopGeneration}
@@ -367,7 +362,7 @@ export function AppShell({ user, onLogout }: Props) {
           <div
             className="ambient-orb w-96 h-96 opacity-[0.04]"
             style={{
-              background: `radial-gradient(circle, ${agent === "kronos" ? "var(--color-kronos)" : "var(--color-noa)"} 0%, transparent 70%)`,
+              background: `radial-gradient(circle, var(--color-noa) 0%, transparent 70%)`,
               top: "-10%",
               right: "-15%",
               animation: "float 18s ease-in-out infinite",
@@ -384,15 +379,12 @@ export function AppShell({ user, onLogout }: Props) {
             onNavigate={navigate}
             user={user}
             onLogout={onLogout}
-            agent={agent}
           />
 
           {/* Content column */}
           <div className="flex-1 flex flex-col min-w-0 min-h-0 relative z-10">
             <ContentTopBar
-              agent={agent}
-              onAgentChange={setAgent}
-              agentDisabled={loading}
+              disabled={loading}
               thinkingLevel={thinkingLevel}
               onThinkingLevelChange={setThinkingLevel}
               onNewConversation={handleNewConvo}
@@ -430,15 +422,6 @@ export function AppShell({ user, onLogout }: Props) {
                 onDeleteAll={removeAll}
                 onClose={() => setActivePanel(null)}
               />
-            )}
-            {activePanel === "briefs" && (
-              <BriefsPanel onClose={() => setActivePanel(null)} />
-            )}
-            {activePanel === "memory" && (
-              <MemoryPanel onClose={() => setActivePanel(null)} />
-            )}
-            {activePanel === "systemStatus" && (
-              <SystemStatusPanel onClose={() => setActivePanel(null)} />
             )}
           </SheetContent>
         </Sheet>

@@ -1,8 +1,6 @@
 import { motion } from "framer-motion";
-import type { Agent } from "@/hooks/useChat";
 
 interface Props {
-  agent: Agent;
   userName?: string;
   onSend: (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string, editMode?: boolean, imageUrl?: string) => void;
   loading: boolean;
@@ -21,7 +19,7 @@ interface Props {
 interface QuickAction {
   mark: string;
   /** Tier/color category — uses tokens from .impeccable.md */
-  tone: "noa" | "kronos" | "premium" | "neutral";
+  tone: "noa" | "premium" | "neutral";
   /** Action verb in Spanish */
   verb: string;
   /** What it does — short hint */
@@ -61,33 +59,8 @@ const NOA_ACTIONS: QuickAction[] = [
   },
 ];
 
-const KRONOS_ACTIONS: QuickAction[] = [
-  {
-    mark: "</",
-    tone: "kronos",
-    verb: "Revisar código",
-    hint: "Bug, refactor, review",
-    prompt: "Revisa este código y dime qué mejorar:\n\n",
-  },
-  {
-    mark: "⌘",
-    tone: "kronos",
-    verb: "Diseñar arquitectura",
-    hint: "Sistemas, schemas, infra",
-    prompt: "Necesito diseñar la arquitectura para",
-  },
-  {
-    mark: "↑",
-    tone: "kronos",
-    verb: "Deploy / ops",
-    hint: "Servidor, CI/CD, debug",
-    prompt: "Estado del servidor: ",
-  },
-];
-
 const TONE_STYLES: Record<QuickAction["tone"], { color: string; glow: string; bg: string }> = {
   noa:     { color: "#D4E94B", glow: "rgba(212,233,75,0.30)", bg: "rgba(212,233,75,0.06)" },
-  kronos:  { color: "#00E5FF", glow: "rgba(0,229,255,0.30)",  bg: "rgba(0,229,255,0.06)"  },
   premium: { color: "#7B2D8E", glow: "rgba(123,45,142,0.40)", bg: "rgba(123,45,142,0.08)" },
   neutral: { color: "rgba(255,255,255,0.85)", glow: "rgba(255,255,255,0.18)", bg: "rgba(255,255,255,0.04)" },
 };
@@ -99,11 +72,10 @@ function getGreeting(): string {
   return "Buenas noches";
 }
 
-export function EmptyState({ agent, userName, onSend: _onSend, loading }: Props) {
+export function EmptyState({ userName, onSend: _onSend, loading }: Props) {
   const greeting = getGreeting();
-  const displayName = userName?.split(" ")[0] || (agent === "kronos" ? "Boss" : "");
-  const actions = agent === "kronos" ? KRONOS_ACTIONS : NOA_ACTIONS;
-  const isKronos = agent === "kronos";
+  const displayName = userName?.split(" ")[0] || "";
+  const actions = NOA_ACTIONS;
 
   return (
     <div className="flex-1 flex flex-col items-start justify-center px-6 py-6">
@@ -123,7 +95,7 @@ export function EmptyState({ agent, userName, onSend: _onSend, loading }: Props)
             {displayName ? (
               <>
                 ,{" "}
-                <span className={isKronos ? "gradient-text-kronos" : "gradient-text-noa"}>
+                <span className="gradient-text-noa">
                   {displayName}
                 </span>
               </>

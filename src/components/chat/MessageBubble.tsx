@@ -29,12 +29,12 @@ interface Props {
  * AgentMark — avatar del assistant. Estrella completa (brand moment) en el primer
  * mensaje de un run del mismo agente, dot colored en los siguientes.
  */
-function AgentMark({ agent, isFirst }: { agent?: "noa" | "kronos"; isFirst: boolean }) {
+function AgentMark({ agent: _agent, isFirst }: { agent?: "noa"; isFirst: boolean }) {
   if (isFirst) {
     return <AIStarIcon size="sm" />;
   }
-  const color = agent === "kronos" ? "#00E5FF" : "#D4E94B";
-  const glow = agent === "kronos" ? "rgba(0,229,255,0.35)" : "rgba(212,233,75,0.35)";
+  const color = "#D4E94B";
+  const glow = "rgba(212,233,75,0.35)";
   return (
     <div className="w-6 h-6 flex items-center justify-center">
       <div
@@ -230,9 +230,7 @@ export function MessageBubble({ message, conversationId, onImageClick, onEditIma
             [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:mb-2 [&>ol]:mb-2
             [&_pre]:rounded-b-lg text-text border-l-2 pl-3"
           style={{
-            borderLeftColor: message.agent === "kronos"
-              ? "rgba(0, 229, 255, 0.25)"
-              : "rgba(197, 227, 74, 0.25)",
+            borderLeftColor: "rgba(197, 227, 74, 0.25)",
           }}
         >
           <ReactMarkdown
@@ -303,15 +301,13 @@ export function MessageBubble({ message, conversationId, onImageClick, onEditIma
   );
 }
 
-export function StreamingBubble({ text, agent }: { text: string; agent: "noa" | "kronos" }) {
+export function StreamingBubble({ text, agent: _agent }: { text: string; agent: "noa" }) {
   if (!text) return null;
-  const borderColor = agent === "kronos" ? "rgba(0, 229, 255, 0.25)" : "rgba(197, 227, 74, 0.25)";
-  // R13: gradient signature purple→lime (Noa) o purple→cyan (Kronos) en el cursor
-  // de streaming — brand moment durante "Noa está escribiendo".
-  const cursorGradient = agent === "kronos"
-    ? "linear-gradient(180deg, #7B2D8E 0%, #00E5FF 100%)"
-    : "linear-gradient(180deg, #7B2D8E 0%, #D4E94B 100%)";
-  const cursorGlow = agent === "kronos" ? "rgba(0,229,255,0.5)" : "rgba(212,233,75,0.5)";
+  const borderColor = "rgba(197, 227, 74, 0.25)";
+  // R13: gradient signature purple→lime en el cursor de streaming —
+  // brand moment durante "Noa está escribiendo".
+  const cursorGradient = "linear-gradient(180deg, #7B2D8E 0%, #D4E94B 100%)";
+  const cursorGlow = "rgba(212,233,75,0.5)";
 
   // Mismo wrapper / border / padding que MessageBubble assistant para que no
   // haya "salto" visual al terminar el stream (solo gana MessageActions).

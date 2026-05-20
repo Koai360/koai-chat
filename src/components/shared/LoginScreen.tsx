@@ -196,8 +196,6 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
               style={{ letterSpacing: "-0.025em" }}
             >
               <span className="gradient-text-noa">Noa</span>
-              <span className="text-text-muted"> · </span>
-              <span className="gradient-text-kronos">Kronos</span>
             </h1>
             <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-text-subtle">
               by KOAI Studios
@@ -218,7 +216,7 @@ export function LoginScreen({ onLogin, onGoogleLogin }: Props) {
               Bienvenido al equipo
             </h2>
             <p className="text-[13px] text-text-muted leading-snug max-w-[300px] mx-auto">
-              Chat privado con Noa y Kronos. Generación de imágenes, código y estrategia en un solo lugar.
+              Tu asistente personal KOAI. Chat, imágenes y traducción en un solo lugar.
             </p>
           </motion.div>
 

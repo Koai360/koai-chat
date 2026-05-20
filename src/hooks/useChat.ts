@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import {
   streamNoaMessage,
-  streamKronosMessage,
   fetchConversations,
   createConversation as createConvApi,
   deleteConversationApi,
@@ -16,7 +15,7 @@ import {
   type ThinkingLevel,
 } from "../lib/api";
 
-export type Agent = "noa" | "kronos";
+export type Agent = "noa";
 export type { ThinkingLevel };
 
 const THINKING_LEVEL_KEY = "koai.chat.thinkingLevel";
@@ -86,7 +85,7 @@ function serverMsgToLocal(sm: ServerMessage): Message {
 export function useChat(userId: string | null = null) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [agent, setAgentState] = useState<Agent>("noa");
+  const agent: Agent = "noa";
   const [thinkingLevel, setThinkingLevelState] = useState<ThinkingLevel>(loadThinkingLevel);
   const [loading, setLoading] = useState(false);
 
@@ -237,20 +236,6 @@ export function useChat(userId: string | null = null) {
       window.removeEventListener("focus", onOnline);
     };
   }, [userId, agent]);
-
-  // When agent changes, switch to the most recent conversation of that agent
-  const setAgent = useCallback(
-    (newAgent: Agent) => {
-      setAgentState(newAgent);
-      const agentConvos = conversations.filter((c) => c.agent === newAgent);
-      if (agentConvos.length > 0) {
-        setActiveId(agentConvos[0].id);
-      } else {
-        setActiveId(null);
-      }
-    },
-    [conversations],
-  );
 
   const newConversation = useCallback(async () => {
     // Optimistic update — crear la convo inmediatamente en state antes de
@@ -438,131 +423,107 @@ export function useChat(userId: string | null = null) {
 
         const MAX_STREAM_RETRIES = 1;
 
-        if (agent === "noa") {
-          for (let attempt = 0; attempt <= MAX_STREAM_RETRIES; attempt++) {
-            try {
-              // Crear nuevo AbortController para este stream — guardado en ref
-              // para que sea cancelable desde fuera (futuro botón "Stop")
-              abortRef.current = new AbortController();
-              const res = await streamNoaMessage(
-                displayText,
-                convoId || undefined,
-                imageBase64,
-                imageMode,
-                imageEngine,
-                {
-                  onToken: (accumulated) => setStreamingText(accumulated),
-                  onImage: (img, meta) => {
-                    // Si ya hay una imagen previa, la primera va al texto como markdown img
-                    if (assistantImage && img !== assistantImage) {
-                      assistantContent += `\n\n![imagen](${assistantImage})\n\n`;
-                    }
-                    assistantImage = img;
-                    // Guardar como última imagen generada para edit rápido
-                    if (img) setLastGeneratedImage({ url: img });
-                    if (meta) {
-                      assistantImageMetadata = {
-                        engine: meta.engine,
-                        generationTimeMs: meta.generation_time_ms,
-                        costEstimateUsd: meta.cost_estimate_usd,
-                      };
-                    }
-                  },
-                },
-                abortRef.current.signal,
-                thinkingLevel,
-                editMode,
-                imageUrl,
-              );
-              assistantContent = res.fullText || "";
-              assistantImage = assistantImage || (res.image ?? undefined);
-              if (typeof res.memory_usage === "number") setMemoryUsage(res.memory_usage);
-              // Si callback no recibió metadata pero el return sí, usarla
-              if (!assistantImageMetadata && res.imageMetadata) {
-                assistantImageMetadata = {
-                  engine: res.imageMetadata.engine,
-                  generationTimeMs: res.imageMetadata.generation_time_ms,
-                  costEstimateUsd: res.imageMetadata.cost_estimate_usd,
-                };
-              }
-              if (assistantContent) break;
-              // Respuesta vacia — reintentar una vez
-              if (attempt < MAX_STREAM_RETRIES) {
-                setStreamingText("");
-                console.warn("[useChat] Empty response from Noa, retrying...");
-                await new Promise((r) => setTimeout(r, 1000));
-              }
-            } catch (streamErr) {
-              if (attempt < MAX_STREAM_RETRIES) {
-                setStreamingText("");
-                console.warn("[useChat] Stream error, retrying...", streamErr);
-                await new Promise((r) => setTimeout(r, 1500));
-              } else {
-                // Antes de fallar: intentar recuperar del servidor (iOS background)
-                if (convoId && (imageMode || editMode)) {
-                  console.info("[useChat] Stream lost — attempting server recovery...");
-                  setLoadingHint("Reconectando...");
-                  // Esperar un poco para que el backend termine de persistir
-                  await new Promise((r) => setTimeout(r, 3000));
-                  const recovered = await recoverLastAssistantMessage(convoId);
-                  if (recovered && (recovered.image || recovered.content)) {
-                    console.info("[useChat] Recovery OK — got message from server");
-                    assistantContent = recovered.content || "(imagen generada)";
-                    assistantImage = recovered.image;
-                    break;
-                  }
-                }
-                throw streamErr;
-              }
-            }
-          }
-          if (!assistantContent) {
-            // Último intento: recovery del servidor
-            if (convoId && (imageMode || editMode)) {
-              const recovered = await recoverLastAssistantMessage(convoId);
-              if (recovered && (recovered.image || recovered.content)) {
-                console.info("[useChat] Recovery (post-retry) OK");
-                assistantContent = recovered.content || "(imagen generada)";
-                assistantImage = recovered.image;
-              }
-            }
-          }
-          if (!assistantContent) {
-            console.warn("[useChat] Empty assistantContent after all retries", {
-              convoId,
-              activeId,
+        for (let attempt = 0; attempt <= MAX_STREAM_RETRIES; attempt++) {
+          try {
+            // Crear nuevo AbortController para este stream — guardado en ref
+            // para que sea cancelable desde fuera (futuro botón "Stop")
+            abortRef.current = new AbortController();
+            const res = await streamNoaMessage(
+              displayText,
+              convoId || undefined,
+              imageBase64,
               imageMode,
+              imageEngine,
+              {
+                onToken: (accumulated) => setStreamingText(accumulated),
+                onImage: (img, meta) => {
+                  // Si ya hay una imagen previa, la primera va al texto como markdown img
+                  if (assistantImage && img !== assistantImage) {
+                    assistantContent += `\n\n![imagen](${assistantImage})\n\n`;
+                  }
+                  assistantImage = img;
+                  // Guardar como última imagen generada para edit rápido
+                  if (img) setLastGeneratedImage({ url: img });
+                  if (meta) {
+                    assistantImageMetadata = {
+                      engine: meta.engine,
+                      generationTimeMs: meta.generation_time_ms,
+                      costEstimateUsd: meta.cost_estimate_usd,
+                    };
+                  }
+                },
+              },
+              abortRef.current.signal,
+              thinkingLevel,
               editMode,
-              hasImage: !!assistantImage,
-            });
-            assistantContent = assistantImage
-              ? "(imagen generada)"
-              : "No pude generar una respuesta. Intenta enviar tu mensaje de nuevo.";
+              imageUrl,
+            );
+            assistantContent = res.fullText || "";
+            assistantImage = assistantImage || (res.image ?? undefined);
+            if (typeof res.memory_usage === "number") setMemoryUsage(res.memory_usage);
+            // Si callback no recibió metadata pero el return sí, usarla
+            if (!assistantImageMetadata && res.imageMetadata) {
+              assistantImageMetadata = {
+                engine: res.imageMetadata.engine,
+                generationTimeMs: res.imageMetadata.generation_time_ms,
+                costEstimateUsd: res.imageMetadata.cost_estimate_usd,
+              };
+            }
+            if (assistantContent) break;
+            // Respuesta vacia — reintentar una vez
+            if (attempt < MAX_STREAM_RETRIES) {
+              setStreamingText("");
+              console.warn("[useChat] Empty response from Noa, retrying...");
+              await new Promise((r) => setTimeout(r, 1000));
+            }
+          } catch (streamErr) {
+            if (attempt < MAX_STREAM_RETRIES) {
+              setStreamingText("");
+              console.warn("[useChat] Stream error, retrying...", streamErr);
+              await new Promise((r) => setTimeout(r, 1500));
+            } else {
+              // Antes de fallar: intentar recuperar del servidor (iOS background)
+              if (convoId && (imageMode || editMode)) {
+                console.info("[useChat] Stream lost — attempting server recovery...");
+                setLoadingHint("Reconectando...");
+                // Esperar un poco para que el backend termine de persistir
+                await new Promise((r) => setTimeout(r, 3000));
+                const recovered = await recoverLastAssistantMessage(convoId);
+                if (recovered && (recovered.image || recovered.content)) {
+                  console.info("[useChat] Recovery OK — got message from server");
+                  assistantContent = recovered.content || "(imagen generada)";
+                  assistantImage = recovered.image;
+                  break;
+                }
+              }
+              throw streamErr;
+            }
           }
-          setStreamingText("");
-        } else {
-          const MAX_HISTORY_MESSAGES = 40;
-          const history =
-            conversationsRef.current
-              .find((c) => c.id === convoId)
-              ?.messages.map((m) => ({
-                role: m.role === "user" ? ("user" as const) : ("assistant" as const),
-                content: m.content,
-              }))
-              .slice(-MAX_HISTORY_MESSAGES) || [];
-
-          assistantContent = await streamKronosMessage(
-            displayText,
-            history,
-            convoId,
-            (partial) => setStreamingText(partial),
-            imageBase64,
-          );
-          if (!assistantContent) {
-            assistantContent = "No pude generar una respuesta. Intenta enviar tu mensaje de nuevo.";
-          }
-          setStreamingText("");
         }
+        if (!assistantContent) {
+          // Último intento: recovery del servidor
+          if (convoId && (imageMode || editMode)) {
+            const recovered = await recoverLastAssistantMessage(convoId);
+            if (recovered && (recovered.image || recovered.content)) {
+              console.info("[useChat] Recovery (post-retry) OK");
+              assistantContent = recovered.content || "(imagen generada)";
+              assistantImage = recovered.image;
+            }
+          }
+        }
+        if (!assistantContent) {
+          console.warn("[useChat] Empty assistantContent after all retries", {
+            convoId,
+            activeId,
+            imageMode,
+            editMode,
+            hasImage: !!assistantImage,
+          });
+          assistantContent = assistantImage
+            ? "(imagen generada)"
+            : "No pude generar una respuesta. Intenta enviar tu mensaje de nuevo.";
+        }
+        setStreamingText("");
 
         // Si el resume listener ya inyectó el mensaje (PWA volvió de background
         // y rescató la respuesta del backend), no duplicar.
@@ -732,7 +693,6 @@ export function useChat(userId: string | null = null) {
     activeId,
     setActiveId,
     agent,
-    setAgent,
     thinkingLevel,
     setThinkingLevel,
     loading,

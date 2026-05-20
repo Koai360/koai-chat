@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import type { Page } from "@/hooks/useNavigation";
 import type { AuthUser } from "@/hooks/useAuth";
-import type { Agent } from "@/hooks/useChat";
 import { AIStarIcon } from "@/components/shared/AIStarIcon";
 import {
   Tooltip,
@@ -31,7 +30,6 @@ interface Props {
   onNavigate: (page: Page) => void;
   user: AuthUser;
   onLogout: () => void;
-  agent?: Agent;
 }
 
 const NAV_ITEMS: { page: Page; icon: typeof House; label: string }[] = [
@@ -44,14 +42,12 @@ const NAV_ITEMS: { page: Page; icon: typeof House; label: string }[] = [
   { page: "kb", icon: BookOpen, label: "KB Manager" },
 ];
 
-export function IconRail({ currentPage, onNavigate, user, onLogout, agent = "noa" }: Props) {
-  const accentColor = agent === "kronos" ? "#00E5FF" : "#D4E94B";
-
+export function IconRail({ currentPage, onNavigate, user, onLogout }: Props) {
   return (
     <TooltipProvider delayDuration={300}>
       <div
         className="hidden md:flex flex-col items-center w-14 h-full liquid-glass shrink-0"
-        style={{ "--accent-color": accentColor } as React.CSSProperties}
+        style={{ "--accent-color": "#D4E94B" } as React.CSSProperties}
       >
         {/* Logo */}
         <div className="flex items-center justify-center h-14 shrink-0">

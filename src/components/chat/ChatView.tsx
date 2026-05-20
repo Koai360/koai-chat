@@ -106,7 +106,6 @@ export function ChatView({ conversation, agent, loading, loadingHint, streamingT
         <div className={`max-w-[48rem] mx-auto w-full ${!conversation || conversation.messages.length === 0 ? "h-full" : ""}`}>
           {!conversation || conversation.messages.length === 0 ? (
             <EmptyState
-              agent={agent}
               userName={userName}
               onSend={onSend}
               loading={loading}
@@ -203,7 +202,7 @@ export function ChatView({ conversation, agent, loading, loadingHint, streamingT
         loading={loading}
         onTranscribe={onTranscribe}
         disabled={loading}
-        placeholder={agent === "noa" ? "Pregunta algo a Noa..." : "Pregunta algo a Kronos..."}
+        placeholder="Pregunta algo a Noa..."
         autoFocus={!!conversation}
         agent={agent}
         editSourceUrl={editSourceUrl}

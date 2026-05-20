@@ -1,13 +1,11 @@
 import { Plus, Bell } from "lucide-react";
-import type { Agent, ThinkingLevel } from "@/hooks/useChat";
+import type { ThinkingLevel } from "@/hooks/useChat";
 import type { AuthUser } from "@/hooks/useAuth";
 import type { Page } from "@/hooks/useNavigation";
 import { ThinkingLevelSelector } from "@/components/chat/ThinkingLevelSelector";
 
 interface Props {
-  agent: Agent;
-  onAgentChange: (agent: Agent) => void;
-  agentDisabled: boolean;
+  disabled: boolean;
   thinkingLevel: ThinkingLevel;
   onThinkingLevelChange: (level: ThinkingLevel) => void;
   onNewConversation: () => void;
@@ -26,16 +24,14 @@ interface Props {
 
 /**
  * ContentTopBar — barra superior con:
- * - Toggle Noa ↔ Kronos (segmented control, no dropdown)
- * - Botón "Nueva conversación"
- * - Avatar usuario → Settings
+ * - Thinking level selector
+ * - Memoria/contexto chip (solo en chat ≥60% usage)
+ * - Notificaciones + Nueva conversación + Avatar
  *
  * Tema dark fijo (toggle eliminado por decisión de producto).
  */
 export function ContentTopBar({
-  agent,
-  onAgentChange,
-  agentDisabled,
+  disabled,
   thinkingLevel,
   onThinkingLevelChange,
   onNewConversation,
@@ -57,52 +53,12 @@ export function ContentTopBar({
         paddingTop: "env(safe-area-inset-top, 0px)",
       }}
     >
-      {/* Toggle Noa ↔ Kronos — segmented control */}
-      <div
-        role="radiogroup"
-        aria-label="Seleccionar agente"
-        className="inline-flex items-center h-9 sm:h-10 p-1 rounded-full border border-border bg-bg-surface"
-      >
-        {(["noa", "kronos"] as const).map((opt) => {
-          const isActive = agent === opt;
-          const label = opt === "noa" ? "Noa" : "Kronos";
-          const accent = opt === "noa" ? "#D4E94B" : "#00E5FF";
-          return (
-            <button
-              key={opt}
-              role="radio"
-              aria-checked={isActive}
-              disabled={agentDisabled}
-              onClick={() => onAgentChange(opt)}
-              className={`
-                relative h-7 sm:h-8 px-3 sm:px-3.5 rounded-full
-                font-display text-[12.5px] font-medium
-                transition-all duration-300
-                disabled:opacity-50 disabled:cursor-not-allowed
-                ${isActive ? "text-bg" : "text-text-muted hover:text-text"}
-              `}
-              style={{
-                background: isActive ? accent : "transparent",
-                boxShadow: isActive ? `0 0 12px ${accent}40, 0 0 0 1px ${accent}80` : "none",
-                letterSpacing: "-0.012em",
-              }}
-            >
-              {label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Thinking level selector — only applies to Noa */}
-      {agent === "noa" && (
-        <div className="ml-2">
-          <ThinkingLevelSelector
-            value={thinkingLevel}
-            onChange={onThinkingLevelChange}
-            disabled={agentDisabled}
-          />
-        </div>
-      )}
+      {/* Thinking level selector */}
+      <ThinkingLevelSelector
+        value={thinkingLevel}
+        onChange={onThinkingLevelChange}
+        disabled={disabled}
+      />
 
       {/* Memory / contexto usado — chip al lado del thinking. Solo visible en chat
           view y cuando >=60% (para evitar ruido). Agrupa "estado del agente" en un

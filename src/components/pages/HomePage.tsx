@@ -2,13 +2,9 @@ import { EmptyState } from "@/components/chat/EmptyState";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { transcribeAudio } from "@/lib/api";
 import type { Page } from "@/hooks/useNavigation";
-import type { Agent } from "@/hooks/useChat";
 
 interface Props {
   userName: string;
-  /** Agent activo en el TopBar — controla EmptyState (acciones + gradient)
-      y ChatInput (placeholder + color del send button). */
-  agent: Agent;
   loading?: boolean;
   onSend: (text: string, imageBase64?: string, imageMode?: boolean, imageEngine?: string, editMode?: boolean, imageUrl?: string) => void;
   onStop?: () => void;
@@ -25,14 +21,13 @@ interface Props {
  * handleHomeSend en AppShell se encarga de navegar + enviar (sendMessage
  * crea la convo internamente si no existe).
  */
-export function HomePage({ userName, agent, loading = false, onSend, onStop, onNavigate: _onNavigate }: Props) {
+export function HomePage({ userName, loading = false, onSend, onStop, onNavigate: _onNavigate }: Props) {
   return (
     <div className="flex flex-col h-full bg-bg">
       {/* Quick actions + greeting — scrollable */}
       <div className="flex-1 overflow-y-auto px-3 py-2 min-h-0">
         <div className="max-w-[48rem] mx-auto w-full h-full">
           <EmptyState
-            agent={agent}
             userName={userName}
             onSend={onSend}
             loading={loading}
@@ -46,8 +41,7 @@ export function HomePage({ userName, agent, loading = false, onSend, onStop, onN
         onStop={onStop}
         loading={loading}
         onTranscribe={transcribeAudio}
-        placeholder={agent === "kronos" ? "Pregunta algo a Kronos..." : "Pregunta algo a Noa..."}
-        agent={agent}
+        placeholder="Pregunta algo a Noa..."
       />
     </div>
   );

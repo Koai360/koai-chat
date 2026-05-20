@@ -19,7 +19,7 @@ export function exportAsText(title: string, messages: Message[]): void {
   const lines = [`# ${title}`, `Exportado: ${new Date().toLocaleDateString("es-ES")}`, ""];
 
   for (const msg of messages) {
-    const who = msg.role === "user" ? "Tú" : msg.agent === "kronos" ? "Kronos" : "Noa";
+    const who = msg.role === "user" ? "Tú" : "Noa";
     const time = formatTimestamp(msg.timestamp);
     lines.push(`[${time}] ${who}:`);
     lines.push(msg.content);
@@ -58,7 +58,7 @@ export async function exportAsPdf(title: string, messages: Message[]): Promise<v
   const lines = [`# ${title}`, ""];
 
   for (const msg of messages) {
-    const who = msg.role === "user" ? "**Tú**" : msg.agent === "kronos" ? "**Kronos**" : "**Noa**";
+    const who = msg.role === "user" ? "**Tú**" : "**Noa**";
     const time = formatTimestamp(msg.timestamp);
     lines.push(`### ${who} — ${time}`);
     lines.push(msg.content);

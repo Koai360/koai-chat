@@ -31,7 +31,7 @@ interface Props {
   disabled?: boolean;
   placeholder?: string;
   autoFocus?: boolean;
-  agent?: "noa" | "kronos";
+  agent?: "noa";
   /** URL de imagen existente en R2 para edit iterativo (click "Editar" en chat/galería) */
   editSourceUrl?: string | null;
   /** Callback para limpiar la URL cuando el usuario cancela el edit */
@@ -89,7 +89,7 @@ function compressImage(dataUrl: string, maxBytes: number): Promise<{ base64: str
 // ENGINE_OPTIONS y tipos viven en EngineSelector.tsx (single source of truth)
 // Backend dispatch correspondiente: /opt/koai-api/koai/tools/image_gen_tools.py:generate_image()
 
-export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe, disabled, placeholder = "Pregunta algo a Noa...", autoFocus, agent = "noa", editSourceUrl, onClearEditSource, lastGeneratedImage, memoryUsage: _memoryUsage = 0 }: Props) {
+export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe, disabled, placeholder = "Pregunta algo a Noa...", autoFocus, agent: _agent = "noa", editSourceUrl, onClearEditSource, lastGeneratedImage, memoryUsage: _memoryUsage = 0 }: Props) {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
@@ -756,9 +756,9 @@ export function ChatInput({ onSend, onStop, loading, onTranscribe: _onTranscribe
               aria-label="Enviar mensaje"
               className="w-10 h-10 rounded-xl flex items-center justify-center active:scale-90 disabled:opacity-50 transition-all"
               style={{
-                backgroundColor: agent === "kronos" ? "#00E5FF" : "#D4E94B",
+                backgroundColor: "#D4E94B",
                 color: "#0a0a0c",
-                boxShadow: `0 0 12px 2px ${agent === "kronos" ? "rgba(0,229,255,0.3)" : "rgba(197,227,74,0.3)"}`,
+                boxShadow: `0 0 12px 2px rgba(197,227,74,0.3)`,
               }}
             >
               <ArrowUp className="h-[18px] w-[18px]" />

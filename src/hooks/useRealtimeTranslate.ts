@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { API_URL, API_KEY, getAuthToken } from "../config";
 
 /**
@@ -24,7 +24,13 @@ export type TranslateState =
 
 interface UseRealtimeTranslateOptions {
   targetLanguage: string;
-  audioElement: HTMLAudioElement | null;
+  /**
+   * Ref al <audio> element donde se reproducirá la voz traducida.
+   * Se pasa como RefObject (no como `.current`) porque en el primer render
+   * el ref es null y la captura por valor dejaría el ontrack handler sin
+   * destino aunque el usuario clickee "Iniciar" varios ms después.
+   */
+  audioElementRef: RefObject<HTMLAudioElement | null>;
   maxSessionSeconds?: number; // auto-disconnect
   onError?: (err: string) => void;
 }
@@ -41,7 +47,7 @@ function getAuthHeaders(): Record<string, string> {
 
 export function useRealtimeTranslate({
   targetLanguage,
-  audioElement,
+  audioElementRef,
   maxSessionSeconds = DEFAULT_MAX_SESSION,
   onError,
 }: UseRealtimeTranslateOptions) {
@@ -194,12 +200,22 @@ export function useRealtimeTranslate({
       const pc = new RTCPeerConnection();
       pcRef.current = pc;
 
-      if (audioElement) {
-        pc.ontrack = (ev) => {
-          audioElement.srcObject = ev.streams[0];
-          meterCleanupRef.current = attachLevelMeter(ev.streams[0], setAudioLevel);
-        };
-      }
+      // Asegurar transceiver de audio recv (defensa contra browsers que
+      // no negocian inbound automáticamente al solo agregar un sender).
+      pc.addTransceiver("audio", { direction: "sendrecv" });
+
+      pc.ontrack = (ev) => {
+        const el = audioElementRef.current;
+        if (el) {
+          el.srcObject = ev.streams[0];
+          // Forzar play: en Safari iOS autoPlay puede no kickear automático
+          // dentro del callback async; el gesture inicial (click Iniciar) lo permite.
+          el.play().catch((e) => console.warn("[translate] audio.play() rejected:", e));
+        } else {
+          console.warn("[translate] ontrack fired but audioElementRef.current is null");
+        }
+        meterCleanupRef.current = attachLevelMeter(ev.streams[0], setAudioLevel);
+      };
 
       const ms = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -271,7 +287,7 @@ export function useRealtimeTranslate({
       cleanup();
       if (onError) onError(msg);
     }
-  }, [state, targetLanguage, audioElement, maxSessionSeconds, handleEvent, cleanup, disconnect, onError]);
+  }, [state, targetLanguage, audioElementRef, maxSessionSeconds, handleEvent, cleanup, disconnect, onError]);
 
   const toggleMute = useCallback(() => {
     const ms = streamRef.current;

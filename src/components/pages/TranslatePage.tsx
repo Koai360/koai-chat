@@ -88,7 +88,7 @@ export function TranslatePage() {
     toggleMute,
   } = useRealtimeTranslate({
     targetLanguage: targetLang,
-    audioElement: audioRef.current,
+    audioElementRef: audioRef,
   });
 
   const targetLabel = useMemo(

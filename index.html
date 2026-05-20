@@ -24,6 +24,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Noa AI" />
     <link rel="manifest" href="/manifest.json" />
+    <!-- Pre-warm TLS handshakes para Translate page (OpenAI Realtime + koai-api) -->
+    <link rel="preconnect" href="https://api.openai.com" crossorigin />
+    <link rel="preconnect" href="https://api.koai360.com" crossorigin />
     <title>Noa AI — Asistente interna KOAI Studios</title>
     <meta name="description" content="Chat privado con Noa IA del equipo KOAI Studios. Generación de imágenes con Flux.2 Pro y Z-Image, edición iterativa con Kontext, y Kronos para código. 10 motores de IA en un solo lugar." />
     <meta property="og:title" content="Noa AI — Asistente interna KOAI Studios" />

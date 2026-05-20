@@ -66,6 +66,9 @@ export function useRealtimeTranslate({
   const meterCleanupRef = useRef<(() => void) | null>(null);
   const sourceDeltaRef = useRef("");
   const translatedDeltaRef = useRef("");
+  // Pre-mint cache: ephemeral key, target lang it was minted for, and expires_at (unix seconds).
+  const prewarmRef = useRef<{ key: string; lang: string; expiresAt: number } | null>(null);
+  const prewarmInflightRef = useRef<Promise<string> | null>(null);
 
   const cleanup = useCallback(() => {
     if (timerRef.current) {
@@ -172,6 +175,57 @@ export function useRealtimeTranslate({
     }
   }, [onError]);
 
+  const mintEphemeral = useCallback(async (lang: string): Promise<string> => {
+    const cached = prewarmRef.current;
+    const nowSec = Math.floor(Date.now() / 1000);
+    if (cached && cached.lang === lang && cached.expiresAt - nowSec > 5) {
+      console.log("[translate] using prewarmed ephemeral");
+      return cached.key;
+    }
+    if (prewarmInflightRef.current) return prewarmInflightRef.current;
+
+    const promise = (async () => {
+      const tokenRes = await fetch(`${API_URL}/api/realtime-translate/session`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ target_language: lang }),
+      });
+      if (!tokenRes.ok) {
+        const body = await tokenRes.text().catch(() => "");
+        throw new Error(`Session endpoint ${tokenRes.status}: ${body.slice(0, 200)}`);
+      }
+      const data = await tokenRes.json();
+      const key: string | undefined = data?.value;
+      const expiresAt: number | undefined = data?.expires_at;
+      if (!key) throw new Error("No ephemeral key returned");
+      prewarmRef.current = {
+        key,
+        lang,
+        expiresAt: expiresAt || Math.floor(Date.now() / 1000) + 50,
+      };
+      return key;
+    })();
+
+    prewarmInflightRef.current = promise;
+    try {
+      return await promise;
+    } finally {
+      prewarmInflightRef.current = null;
+    }
+  }, []);
+
+  // Pre-warm: mintea el ephemeral cuando el componente monta (o cambia el idioma).
+  // El ek vive ~60s y se reusa al hacer click Iniciar → ahorra ~200-500ms de TLS+mint.
+  useEffect(() => {
+    let cancelled = false;
+    void mintEphemeral(targetLanguage).catch((e) => {
+      if (!cancelled) console.warn("[translate] prewarm failed:", e);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [targetLanguage, mintEphemeral]);
+
   const connect = useCallback(async () => {
     if (state !== "disconnected" && state !== "error") return;
     setError(null);
@@ -182,19 +236,8 @@ export function useRealtimeTranslate({
     setState("connecting");
 
     try {
-      // 1. mint ephemeral
-      const tokenRes = await fetch(`${API_URL}/api/realtime-translate/session`, {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ target_language: targetLanguage }),
-      });
-      if (!tokenRes.ok) {
-        const body = await tokenRes.text().catch(() => "");
-        throw new Error(`Session endpoint ${tokenRes.status}: ${body.slice(0, 200)}`);
-      }
-      const tokenData = await tokenRes.json();
-      const ephemeralKey: string | undefined = tokenData?.value;
-      if (!ephemeralKey) throw new Error("No ephemeral key returned");
+      // 1. ephemeral (cached pre-warm si existe, sino mint inline)
+      const ephemeralKey = await mintEphemeral(targetLanguage);
 
       // 2. setup pc + mic
       const pc = new RTCPeerConnection();
@@ -300,7 +343,7 @@ export function useRealtimeTranslate({
       cleanup();
       if (onError) onError(msg);
     }
-  }, [state, targetLanguage, audioElementRef, maxSessionSeconds, handleEvent, cleanup, disconnect, onError]);
+  }, [state, targetLanguage, audioElementRef, maxSessionSeconds, handleEvent, cleanup, disconnect, onError, mintEphemeral]);
 
   const toggleMute = useCallback(() => {
     const ms = streamRef.current;

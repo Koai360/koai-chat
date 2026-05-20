@@ -233,8 +233,10 @@ export function useRealtimeTranslate({
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
+      // gpt-realtime-translate tiene endpoint SDP dedicado bajo /translations/.
+      // El modelo va implícito en el ephemeral key (minted como type=translation).
       const sdpRes = await fetch(
-        "https://api.openai.com/v1/realtime/calls?model=gpt-realtime-translate",
+        "https://api.openai.com/v1/realtime/translations/calls",
         {
           method: "POST",
           body: offer.sdp,
@@ -244,9 +246,6 @@ export function useRealtimeTranslate({
           },
         }
       );
-      // Nota: OpenAI también expone `/v1/realtime/translations/calls` dedicado
-      // para este modelo; el path genérico `/v1/realtime/calls?model=` también
-      // funciona y mantiene paridad con Kira-Studio.
       if (!sdpRes.ok) {
         const body = await sdpRes.text().catch(() => "");
         throw new Error(`SDP ${sdpRes.status}: ${body.slice(0, 200)}`);

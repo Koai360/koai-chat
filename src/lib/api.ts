@@ -127,7 +127,9 @@ export async function streamNoaMessage(
   // - edit_mode: BFL Pro ~8s + fallback Modal ~45s → 180_000ms
   // - flux2: 32B premium → 240_000ms
   // - zimage/studioflux-raw: ~5-60s → 180_000ms
-  // - resto: 120_000ms
+  // - texto: 240_000ms para acompañar el cap backend MAX_IDLE_TOTAL=180s.
+  //   El backend emite ping cada 10s mientras LLM piensa, pero AbortController
+  //   es timer absoluto y no se resetea por bytes — red de seguridad amplia.
   const isStudio = imageEngine === "studioflux-raw" || imageEngine === "zimage";
   const isSdxl = imageEngine === "sdxl" || imageEngine?.startsWith("sdxl-");
   const timeoutMs = editMode
@@ -136,7 +138,7 @@ export async function streamNoaMessage(
       ? imageEngine === "flux2" ? 240_000
       : isStudio || isSdxl ? 180_000
       : 90_000
-    : 120_000;
+    : 240_000;
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);

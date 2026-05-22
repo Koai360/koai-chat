@@ -7,9 +7,9 @@ import { UpdateBanner } from "@/components/shared/UpdateBanner";
 import { Toaster } from "sonner";
 
 export default function App() {
-  const { user, loading, loginWithGoogle, logout } = useAuth();
+  const { user, loading, error, mountGoogleButton, logout } = useAuth();
 
-  if (loading) {
+  if (loading && !user) {
     return (
       <>
         <AppBackground />
@@ -23,7 +23,11 @@ export default function App() {
   if (!user) {
     return (
       <>
-        <LoginScreen onGoogleLogin={loginWithGoogle} />
+        <LoginScreen
+          mountGoogleButton={mountGoogleButton}
+          error={error}
+          loading={loading}
+        />
         <Toaster theme="dark" position="top-right" />
       </>
     );

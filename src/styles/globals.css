@@ -326,6 +326,15 @@ select:focus-visible {
   box-shadow: none !important;
 }
 
+/* Trigger de Dropdown / Sheet / Tooltip etc — Radix programmatic focus()
+   tras close. iOS Safari trata tap como focus-visible. Opt-out explícito. */
+[data-no-focus-ring]:focus,
+[data-no-focus-ring]:focus-visible,
+[data-no-focus-ring]:focus-within {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 /* ============================================================
    PROSE-NOA · markdown rendering en chat messages
    ============================================================ */

@@ -301,3 +301,134 @@ html[data-keyboard="open"] .hide-on-keyboard {
   box-shadow: var(--ring-focus);
   border-radius: var(--radius-sm);
 }
+
+/* ============================================================
+   PROSE-NOA · markdown rendering en chat messages
+   ============================================================ */
+
+.prose-noa {
+  font-family: var(--font-body);
+}
+
+.prose-noa p {
+  margin: 0;
+}
+
+.prose-noa p + p {
+  margin-top: 0.75rem;
+}
+
+.prose-noa strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.prose-noa em {
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.prose-noa a {
+  color: var(--color-noa);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+  transition: opacity 150ms;
+}
+
+.prose-noa a:hover {
+  opacity: 0.8;
+}
+
+.prose-noa code {
+  font-family: var(--font-mono);
+  background: var(--color-bg-elevated);
+  color: #ffffff;
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+  font-size: 0.875em;
+  border: 1px solid var(--color-border);
+}
+
+.prose-noa pre {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  margin: 0.75rem 0;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.prose-noa pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  border-radius: 0;
+}
+
+.prose-noa ul,
+.prose-noa ol {
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+
+.prose-noa ul {
+  list-style: disc;
+}
+
+.prose-noa ol {
+  list-style: decimal;
+}
+
+.prose-noa li {
+  margin: 0.25rem 0;
+}
+
+.prose-noa h1,
+.prose-noa h2,
+.prose-noa h3,
+.prose-noa h4 {
+  font-family: var(--font-display);
+  color: #ffffff;
+  font-weight: 600;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.prose-noa h1 { font-size: 1.5rem; }
+.prose-noa h2 { font-size: 1.25rem; }
+.prose-noa h3 { font-size: 1.1rem; }
+
+.prose-noa blockquote {
+  border-left: 2px solid var(--color-noa);
+  padding-left: 0.875rem;
+  color: rgba(255, 255, 255, 0.75);
+  font-style: italic;
+  margin: 0.75rem 0;
+}
+
+.prose-noa hr {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 1rem 0;
+}
+
+.prose-noa table {
+  border-collapse: collapse;
+  margin: 0.75rem 0;
+  font-size: 0.9em;
+}
+
+.prose-noa th,
+.prose-noa td {
+  border: 1px solid var(--color-border-hi);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.prose-noa th {
+  background: var(--color-bg-elevated);
+  font-weight: 600;
+}

@@ -3,11 +3,12 @@ import { AppBackground } from "./AppBackground";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { Sheet } from "@/components/ui/Sheet";
-import { ChatEmpty } from "@/components/chat/ChatEmpty";
+import { ChatSurface } from "@/components/chat/ChatSurface";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { useRoute } from "@/hooks/useRoute";
+import { useChat } from "@/hooks/useChat";
 import { navigate } from "@/lib/routing";
-import type { AuthUser, Conversation } from "@/types/api";
+import type { AuthUser } from "@/types/api";
 
 interface AppShellProps {
   user: AuthUser;
@@ -22,38 +23,59 @@ interface AppShellProps {
  *   │  ┌─ Sidebar (desktop rail+overlay) ─┐ │
  *   │  └─ Main column ───────────────────┘ │
  *   │     ├─ TopBar (mobile only)          │
- *   │     ├─ Page content (chat/galeria/…) │
+ *   │     ├─ ChatSurface (scrollable)      │
  *   │     └─ ChatInput (sticky bottom)     │
  *   └────────────────────────────────────────┘
- *
- * Mobile sidebar = Sheet drawer desde izquierda.
  */
 export function AppShell({ user, onLogout }: AppShellProps) {
   const route = useRoute();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // Placeholders Fase 2 — Fase 3 los llenará useChat real
-  const [conversations] = useState<Conversation[]>([]);
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const {
+    conversations,
+    activeId,
+    setActiveId,
+    messages,
+    loading,
+    loadingHint,
+    streamingText,
+    sendMessage,
+    stopGeneration,
+    newConversation,
+  } = useChat(user.id);
 
-  // Cuando hash cambia, cierra drawer mobile
+  // Sync activeId con la ruta URL
+  useEffect(() => {
+    if (route.kind === "chat") {
+      if (route.conversationId && route.conversationId !== activeId) {
+        setActiveId(route.conversationId);
+      } else if (!route.conversationId && activeId !== null) {
+        setActiveId(null);
+      }
+    }
+  }, [route, activeId, setActiveId]);
+
+  // Cierra drawer mobile al cambiar de ruta
   useEffect(() => {
     setDrawerOpen(false);
   }, [route]);
 
   const handleNewChat = () => {
-    setActiveConversationId(null);
+    setActiveId(null);
     navigate({ kind: "chat" });
   };
 
   const handleSelectConversation = (id: string) => {
-    setActiveConversationId(id);
     navigate({ kind: "chat", conversationId: id });
   };
 
-  const handleSend = (text: string) => {
-    // En Fase 3 esto invoca useChat.sendMessage
-    console.log("[AppShell] send placeholder:", text);
+  const handleSend = async (text: string) => {
+    // Si no hay conversación activa, sendMessage crea una y nos lleva ahí
+    if (!activeId) {
+      const conv = await newConversation();
+      navigate({ kind: "chat", conversationId: conv.id });
+    }
+    await sendMessage(text);
   };
 
   return (
@@ -66,7 +88,7 @@ export function AppShell({ user, onLogout }: AppShellProps) {
           user={user}
           route={route}
           conversations={conversations}
-          activeConversationId={activeConversationId}
+          activeConversationId={activeId}
           onLogout={onLogout}
           onNewChat={handleNewChat}
           onSelectConversation={handleSelectConversation}
@@ -79,7 +101,7 @@ export function AppShell({ user, onLogout }: AppShellProps) {
             user={user}
             route={route}
             conversations={conversations}
-            activeConversationId={activeConversationId}
+            activeConversationId={activeId}
             onLogout={onLogout}
             onNewChat={handleNewChat}
             onSelectConversation={handleSelectConversation}
@@ -91,8 +113,16 @@ export function AppShell({ user, onLogout }: AppShellProps) {
         <div className="flex-1 flex flex-col min-w-0 h-full">
           <TopBar onMenu={() => setDrawerOpen(true)} onNewChat={handleNewChat} />
 
-          <main className="flex-1 overflow-y-auto min-h-0">
-            {route.kind === "chat" && <ChatEmpty userName={user.name?.split(" ")[0]} />}
+          <main className="flex-1 overflow-hidden min-h-0">
+            {route.kind === "chat" && (
+              <ChatSurface
+                messages={messages}
+                streamingText={streamingText}
+                loading={loading}
+                loadingHint={loadingHint}
+                userName={user.name?.split(" ")[0]}
+              />
+            )}
             {route.kind === "galeria" && <PlaceholderPage title="Galería" subtitle="Fase 5" />}
             {route.kind === "historial" && (
               <PlaceholderPage title="Historial" subtitle="Fase 5" />
@@ -102,8 +132,13 @@ export function AppShell({ user, onLogout }: AppShellProps) {
             )}
           </main>
 
-          {/* Input sticky bottom — solo visible en chat */}
-          {route.kind === "chat" && <ChatInput onSend={handleSend} />}
+          {route.kind === "chat" && (
+            <ChatInput
+              onSend={handleSend}
+              onStop={stopGeneration}
+              loading={loading}
+            />
+          )}
         </div>
       </div>
     </>

@@ -2,6 +2,7 @@ import { forwardRef, useRef, useState, type ChangeEvent, type KeyboardEvent } fr
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowUp, Mic, Plus, Shield, Square, X, FileText, Image as ImageIcon } from "lucide-react";
 import { IconButton } from "@/components/ui/IconButton";
+import { VoiceBar } from "./VoiceBar";
 import { cn } from "@/lib/cn";
 
 export interface AttachedFile {
@@ -16,11 +17,12 @@ export interface AttachedFile {
 interface ChatInputProps {
   onSend: (text: string, attachments?: AttachedFile[]) => void;
   onStop?: () => void;
-  onVoiceTap?: () => void;
   loading?: boolean;
   privateMode?: boolean;
   onTogglePrivate?: () => void;
   placeholder?: string;
+  /** Si true, al confirmar el audio se envía directo. Si false, popula el textbox. */
+  autoSendVoice?: boolean;
 }
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB safety cap
@@ -45,21 +47,37 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
     {
       onSend,
       onStop,
-      onVoiceTap,
       loading = false,
       privateMode = false,
       onTogglePrivate,
       placeholder = "Pregúntale a Noa",
+      autoSendVoice = true,
     },
     ref,
   ) => {
     const [value, setValue] = useState("");
     const [attachments, setAttachments] = useState<AttachedFile[]>([]);
+    const [voiceActive, setVoiceActive] = useState(false);
     const internalRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const textareaRef = (ref as React.RefObject<HTMLTextAreaElement>) ?? internalRef;
 
     const hasContent = value.trim().length > 0 || attachments.length > 0;
+
+    const handleVoiceStart = () => setVoiceActive(true);
+    const handleVoiceCancel = () => setVoiceActive(false);
+    const handleVoiceTranscript = (text: string) => {
+      setVoiceActive(false);
+      if (autoSendVoice) {
+        // Send directo sin mostrar texto en el input — UX más rápida
+        onSend(text, attachments.length > 0 ? attachments : undefined);
+        setAttachments([]);
+      } else {
+        // Populate el input para que el user edite antes de send
+        setValue((prev) => (prev ? `${prev} ${text}` : text));
+        requestAnimationFrame(() => textareaRef.current?.focus());
+      }
+    };
 
     const handleAttachClick = () => {
       fileInputRef.current?.click();
@@ -147,7 +165,7 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
           />
 
           {/* Attachments chips arriba del input */}
-          {attachments.length > 0 && (
+          {!voiceActive && attachments.length > 0 && (
             <div className="flex items-center gap-2 flex-wrap mb-2 px-1">
               {attachments.map((att, i) => (
                 <AttachmentChip key={`${att.name}-${i}`} att={att} onRemove={() => removeAttachment(i)} />
@@ -155,6 +173,18 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
             </div>
           )}
 
+          {/* Voice recording inline reemplaza el pill */}
+          <AnimatePresence mode="wait" initial={false}>
+            {voiceActive && (
+              <VoiceBar
+                key="voice-bar"
+                onTranscript={handleVoiceTranscript}
+                onCancel={handleVoiceCancel}
+              />
+            )}
+          </AnimatePresence>
+
+          {!voiceActive && (
           <div
             className={cn(
               "flex items-end gap-1.5 px-2.5 py-2",
@@ -254,12 +284,13 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
                     label="Hablar a Noa"
                     variant="ghost"
                     size="md"
-                    onClick={onVoiceTap}
+                    onClick={handleVoiceStart}
                   />
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
+          )}
         </div>
       </div>
     );

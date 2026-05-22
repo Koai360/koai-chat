@@ -1,7 +1,8 @@
-import { Sparkles, Brain, ChevronDown, Check } from "lucide-react";
+import { Brain, ChevronDown, Check } from "lucide-react";
 import { Dropdown, DropdownItem, DropdownSeparator } from "@/components/ui/Dropdown";
 import { cn } from "@/lib/cn";
 import type { ModelMode } from "@/lib/autoThinking";
+import noaIcon from "@/assets/noa-icon.png";
 
 /**
  * ModelPicker — selector visible arriba del chat.
@@ -29,7 +30,7 @@ const OPTIONS: ModeOption[] = [
     label: "Estándar",
     shortLabel: null,
     description: "Rápido para el día a día",
-    icon: <Sparkles className="size-4 text-white/80" />,
+    icon: <img src={noaIcon} alt="" aria-hidden="true" className="size-4 object-contain opacity-90" />,
   },
   {
     mode: "pro",

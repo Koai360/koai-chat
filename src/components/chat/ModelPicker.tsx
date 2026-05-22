@@ -11,14 +11,14 @@ import type { ModelMode } from "@/lib/autoThinking";
  *   - Pro                → Gemini 3.5 Pro thinking=high, análisis profundo
  *
  * Visual TopBar:
- *   - Estándar:       "Noa · Estándar ⌄"
- *   - Pro:            "Noa · Pro ⌄"
+ *   - Estándar:       "Noa ⌄"                  (limpio, sin sufijo)
+ *   - Pro:            "Noa · Pro ⌄"            ("Pro" en verde neon)
  */
 
 interface ModeOption {
   mode: ModelMode;
   label: string;
-  shortLabel: string;
+  shortLabel: string | null;     // null = no se muestra sufijo en el pill (caso Estándar)
   description: string;
   icon: React.ReactNode;
 }
@@ -27,7 +27,7 @@ const OPTIONS: ModeOption[] = [
   {
     mode: "standard",
     label: "Estándar",
-    shortLabel: "Estándar",
+    shortLabel: null,
     description: "Rápido para el día a día",
     icon: <Sparkles className="size-4 text-white/80" />,
   },
@@ -36,7 +36,7 @@ const OPTIONS: ModeOption[] = [
     label: "Pro",
     shortLabel: "Pro",
     description: "Análisis profundos",
-    icon: <Brain className="size-4 text-[var(--color-purple)]" />,
+    icon: <Brain className="size-4 text-[var(--color-noa)]" />,
   },
 ];
 
@@ -69,7 +69,13 @@ export function ModelPicker({ mode, onChange, className }: ModelPickerProps) {
           {current.shortLabel && (
             <>
               <span className="text-white/30 leading-none">·</span>
-              <span className="mono text-[11px] text-white/55 tracking-tight uppercase leading-none">
+              <span
+                className="mono text-[11px] tracking-tight uppercase leading-none font-semibold"
+                style={{
+                  color: "var(--color-noa)",
+                  textShadow: "0 0 8px color-mix(in oklch, var(--color-noa) 55%, transparent)",
+                }}
+              >
                 {current.shortLabel}
               </span>
             </>

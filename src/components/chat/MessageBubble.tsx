@@ -1,13 +1,28 @@
-import { memo } from "react";
+import { memo, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import rehypeRaw from "rehype-raw";
 import { Sparkle } from "./Sparkle";
 import { CardRenderer } from "./CardRenderer";
+import { CopyBlock } from "./CopyBlock";
+import { CodeBlock } from "./CodeBlock";
 import { parseCards } from "@/lib/cards";
 import { preprocessMarkdown } from "@/lib/markdownPreprocess";
 import { cn } from "@/lib/cn";
 import type { ChatMessage } from "@/types/api";
+
+/** Extrae texto crudo de los children de ReactMarkdown (que puede traer arrays anidados). */
+function extractText(node: ReactNode): string {
+  if (node == null) return "";
+  if (typeof node === "string") return node;
+  if (typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(extractText).join("");
+  if (typeof node === "object" && "props" in (node as object)) {
+    // @ts-expect-error narrowed via props guard
+    return extractText(node.props.children);
+  }
+  return "";
+}
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -60,6 +75,34 @@ export const MessageBubble = memo(function MessageBubble({
             >
               <ReactMarkdown
                 rehypePlugins={[rehypeRaw as never, rehypeHighlight as never]}
+                components={{
+                  // Override `<pre>` para soportar:
+                  //   ```copy[:Label] ... ```  → CopyBlock destacado
+                  //   ```lang ... ```          → CodeBlock con mini-botón copiar
+                  pre({ children }) {
+                    // El child esperado es <code class="language-xxx">…</code>
+                    const codeNode = Array.isArray(children) ? children[0] : children;
+                    const className =
+                      (codeNode as { props?: { className?: string } })?.props?.className ?? "";
+                    const langMatch = /language-([\w:-]+)/.exec(className);
+                    const lang = langMatch ? langMatch[1] : "";
+                    const rawText = extractText(
+                      (codeNode as { props?: { children?: ReactNode } })?.props?.children,
+                    ).replace(/\n$/, "");
+
+                    if (lang.startsWith("copy")) {
+                      const label = lang.includes(":") ? lang.split(":")[1] : undefined;
+                      return <CopyBlock text={rawText} label={label} />;
+                    }
+                    return (
+                      <CodeBlock language={lang || undefined} raw={rawText}>
+                        {children}
+                      </CodeBlock>
+                    );
+                  },
+                  // <pre> ya inyecta nuestro wrapper, así que <code> dentro de él
+                  // se renderiza normal (hereda highlight de rehype-highlight).
+                }}
               >
                 {preprocessMarkdown(seg.content)}
               </ReactMarkdown>

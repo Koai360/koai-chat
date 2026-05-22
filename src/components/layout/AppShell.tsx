@@ -8,6 +8,7 @@ import { ChatInput } from "@/components/chat/ChatInput";
 import { GalleryPage } from "@/components/pages/GalleryPage";
 import { HistoryPage } from "@/components/pages/HistoryPage";
 import { SettingsPage } from "@/components/pages/SettingsPage";
+import { VoiceModal } from "@/components/voice/VoiceModal";
 import { useRoute } from "@/hooks/useRoute";
 import { useChat } from "@/hooks/useChat";
 import { navigate } from "@/lib/routing";
@@ -33,6 +34,7 @@ interface AppShellProps {
 export function AppShell({ user, onLogout }: AppShellProps) {
   const route = useRoute();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [voiceModalOpen, setVoiceModalOpen] = useState(false);
 
   const {
     conversations,
@@ -137,11 +139,20 @@ export function AppShell({ user, onLogout }: AppShellProps) {
             <ChatInput
               onSend={handleSend}
               onStop={stopGeneration}
+              onVoiceTap={() => setVoiceModalOpen(true)}
               loading={loading}
             />
           )}
         </div>
       </div>
+
+      <VoiceModal
+        open={voiceModalOpen}
+        onClose={() => setVoiceModalOpen(false)}
+        onTranscript={(text) => {
+          handleSend(text);
+        }}
+      />
     </>
   );
 }

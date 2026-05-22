@@ -51,7 +51,7 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
       privateMode = false,
       onTogglePrivate,
       placeholder = "Pregúntale a Noa",
-      autoSendVoice = true,
+      autoSendVoice = false,
     },
     ref,
   ) => {

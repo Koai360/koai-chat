@@ -1,4 +1,4 @@
-import { Wand2, Sparkles, Brain, ChevronDown, Check } from "lucide-react";
+import { Sparkles, Brain, ChevronDown, Check } from "lucide-react";
 import { Dropdown, DropdownItem, DropdownSeparator } from "@/components/ui/Dropdown";
 import { cn } from "@/lib/cn";
 import type { ModelMode } from "@/lib/autoThinking";
@@ -6,13 +6,11 @@ import type { ModelMode } from "@/lib/autoThinking";
 /**
  * ModelPicker — selector visible arriba del chat.
  *
- * 3 modos (todos sobre Gemini 3.5 Flash, cambia el thinking_level):
- *   - Auto (default)  → Noa elige nivel según la pregunta (autoThinkingLevel)
- *   - Estándar        → siempre medium thinking
- *   - Pro             → siempre high thinking (análisis profundos)
+ * 2 modos explícitos (sin Auto):
+ *   - Estándar (default) → Gemini 3.5 Flash, instant para el día a día
+ *   - Pro                → Gemini 3.5 Pro thinking=high, análisis profundo
  *
  * Visual TopBar:
- *   - Auto activo:    "Noa ⌄"
  *   - Estándar:       "Noa · Estándar ⌄"
  *   - Pro:            "Noa · Pro ⌄"
  */
@@ -20,24 +18,17 @@ import type { ModelMode } from "@/lib/autoThinking";
 interface ModeOption {
   mode: ModelMode;
   label: string;
-  shortLabel: string | null; // null = no se muestra en el pill (caso Auto)
+  shortLabel: string;
   description: string;
   icon: React.ReactNode;
 }
 
 const OPTIONS: ModeOption[] = [
   {
-    mode: "auto",
-    label: "Auto",
-    shortLabel: null,
-    description: "Noa decide según tu pregunta",
-    icon: <Wand2 className="size-4 text-[var(--color-noa)]" />,
-  },
-  {
     mode: "standard",
     label: "Estándar",
     shortLabel: "Estándar",
-    description: "Pensamiento equilibrado",
+    description: "Rápido para el día a día",
     icon: <Sparkles className="size-4 text-white/80" />,
   },
   {

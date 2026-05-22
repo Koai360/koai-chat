@@ -43,11 +43,12 @@ const MODEL_MODE_KEY = "noa.modelMode";
 function loadInitialMode(): ModelMode {
   try {
     const saved = localStorage.getItem(MODEL_MODE_KEY);
-    if (saved === "auto" || saved === "standard" || saved === "pro") return saved;
+    if (saved === "standard" || saved === "pro") return saved;
+    // Migración: usuarios viejos con "auto" guardado → standard
   } catch {
     /* noop */
   }
-  return "auto";
+  return "standard";
 }
 
 export function useChat(userId: string | undefined): UseChatReturn {
@@ -158,11 +159,10 @@ export function useChat(userId: string | undefined): UseChatReturn {
       const abort = new AbortController();
       abortRef.current = abort;
 
-      // Resolver thinking_level dinámicamente según el mode:
-      //   - auto     → autoThinkingLevel(text) clasifica low/medium/high
-      //   - standard → siempre medium
-      //   - pro      → siempre high
-      const resolvedLevel: ThinkingLevel = resolveThinkingLevel(modelMode, text);
+      // Resolver thinking_level según el mode (sin auto):
+      //   - standard → low (Gemini 3.5 Flash)
+      //   - pro      → high (Gemini 3.5 Pro thinking=high)
+      const resolvedLevel: ThinkingLevel = resolveThinkingLevel(modelMode);
 
       const payload: SendMessagePayload = {
         message: text,

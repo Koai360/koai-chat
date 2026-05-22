@@ -174,12 +174,13 @@ export function useDeepgramStream(opts: UseDeepgramStreamOpts = {}): UseDeepgram
       // No es fatal — sin visualizer pero la transcripción sigue
     }
 
-    // 3. WebSocket al backend
+    // 3. WebSocket al backend (Deepgram Flux v2 multilingual por default)
     const mime = pickAudioMime();
     const token = getAuthToken();
     const params = new URLSearchParams({
       mime,
       lang: opts.lang || "es",
+      model: "flux", // purpose-built voice agents, multilingual, sub-200ms EOT
     });
     if (token) params.set("token", token);
     const url = wsUrl(`/api/transcribe/stream?${params}`);

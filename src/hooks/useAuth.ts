@@ -30,13 +30,14 @@ export function useAuth(): AuthState & {
       try {
         return { user: JSON.parse(rawUser) as AuthUser, loading: false };
       } catch {
-        /* fallthrough */
+        /* fallthrough — user corrupt, sigue como sin sesión */
       }
     }
     return { user: null, loading: true };
   });
 
-  // Procesa callback de OAuth: si la URL tiene ?token=...&user=..., guarda y limpia
+  // Procesa callback de OAuth: si la URL tiene ?token=...&user=..., guarda y limpia.
+  // Independiente de eso, SIEMPRE garantizamos que loading termine (sino app stuck en sparkle).
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token");
@@ -59,10 +60,20 @@ export function useAuth(): AuthState & {
       }
     }
 
-    // Si no hay sesión válida, terminamos loading
-    if (!getAuthToken()) {
-      setState({ user: null, loading: false });
-    }
+    // SIEMPRE terminar loading después del init. Cubre 4 casos:
+    //   - sin token + sin user → LoginScreen
+    //   - sin token + user huérfano → limpia + LoginScreen
+    //   - token + user válido → AppShell (ya seteado en useState init)
+    //   - token + user corrupto/missing → limpia token viejo + LoginScreen (forzar re-login)
+    setState((prev) => {
+      if (prev.user) return prev; // ya tiene user válido, no tocamos
+      // No user válido: si hay token huérfano, lo limpiamos
+      if (getAuthToken()) {
+        setAuthToken(null);
+        localStorage.removeItem(USER_KEY);
+      }
+      return { user: null, loading: false };
+    });
   }, []);
 
   const loginWithGoogle = useCallback(() => {

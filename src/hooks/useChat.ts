@@ -241,9 +241,26 @@ export function useChat(userId: string | undefined): UseChatReturn {
         setLoading(false);
         setLoadingHint(null);
         abortRef.current = null;
+
+        // Auto-title: el backend genera título en ~5-8s tras el primer turno.
+        // Refrescamos la lista a los 7s para que el sidebar tome el nuevo título.
+        // Solo si la conversación actual todavía tiene el title default.
+        const currentConv = conversations.find((c) => c.id === convId);
+        const stillDefault =
+          !currentConv?.title ||
+          ["nueva conversación", "nueva conversacion", "new conversation"].includes(
+            currentConv.title.trim().toLowerCase(),
+          );
+        if (stillDefault) {
+          setTimeout(() => {
+            listConversations()
+              .then(setConversations)
+              .catch(() => {});
+          }, 7000);
+        }
       }
     },
-    [loading, modelMode, newConversation, messages],
+    [loading, modelMode, newConversation, messages, conversations],
   );
 
   const refresh = useCallback(async () => {

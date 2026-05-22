@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   User as UserIcon,
@@ -10,6 +10,12 @@ import {
   Wrench,
   LogOut,
   ChevronRight,
+  Lock,
+  Shield,
+  EyeOff,
+  KeyRound,
+  Check,
+  Loader2,
 } from "lucide-react";
 import type { AuthUser, UserMemory } from "@/types/api";
 import { listMemories, deleteMemory } from "@/lib/api";
@@ -18,6 +24,7 @@ import { Pill } from "@/components/ui/Pill";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { relativeTime } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import { usePrivateMode } from "@/hooks/usePrivateMode";
 
 interface SettingsPageProps {
   user: AuthUser;
@@ -30,6 +37,7 @@ const TABS: Array<{ id: string; label: string; icon: ReactNode }> = [
   { id: "tema", label: "Apariencia", icon: <Palette className="size-4" /> },
   { id: "voz", label: "Voz", icon: <Mic className="size-4" /> },
   { id: "notificaciones", label: "Notificaciones", icon: <Bell className="size-4" /> },
+  { id: "privacidad", label: "Privacidad", icon: <Shield className="size-4" /> },
   { id: "memoria", label: "Memoria", icon: <Brain className="size-4" /> },
   { id: "kb", label: "Conocimiento", icon: <BookOpen className="size-4" /> },
   { id: "tools", label: "Herramientas", icon: <Wrench className="size-4" /> },
@@ -86,6 +94,7 @@ export function SettingsPage({ user, tab, onLogout }: SettingsPageProps) {
                 {activeTab === "tema" && <ThemeTab />}
                 {activeTab === "voz" && <VoiceTab />}
                 {activeTab === "notificaciones" && <NotificationsTab />}
+                {activeTab === "privacidad" && <PrivacyTab />}
                 {activeTab === "memoria" && <MemoryTab />}
                 {activeTab === "kb" && <KbTab />}
                 {activeTab === "tools" && <ToolsTab />}
@@ -298,5 +307,319 @@ function ToolRow({ name, active }: { name: string; active: boolean }) {
         {active ? "Conectado" : "Inactivo"}
       </Pill>
     </div>
+  );
+}
+
+// ============================================================================
+// Privacy tab — Galería privada con PIN
+// ============================================================================
+
+type PinStep = "idle" | "setup" | "verify" | "change-old" | "change-new";
+
+function PrivacyTab() {
+  const { hasPin, isUnlocked, loading, unlock, lock, setPin } = usePrivateMode();
+  const [step, setStep] = useState<PinStep>("idle");
+  const [pinValue, setPinValue] = useState("");
+  const [oldPinValue, setOldPinValue] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const reset = useCallback(() => {
+    setStep("idle");
+    setPinValue("");
+    setOldPinValue("");
+    setError(null);
+    setBusy(false);
+    setSuccess(false);
+  }, []);
+
+  const handleDigit = (
+    index: number,
+    value: string,
+    setter: (v: string) => void,
+    current: string,
+  ) => {
+    if (!/^\d?$/.test(value)) return;
+    const digits = current.split("");
+    digits[index] = value;
+    setter(digits.join("").slice(0, 4));
+    if (value && index < 3) inputRefs.current[index + 1]?.focus();
+  };
+
+  const handleKeyDown = (
+    index: number,
+    e: React.KeyboardEvent,
+    current: string,
+    setter: (v: string) => void,
+  ) => {
+    if (e.key === "Backspace" && !current[index] && index > 0) {
+      const digits = current.split("");
+      digits[index - 1] = "";
+      setter(digits.join(""));
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleSetup = useCallback(async () => {
+    if (pinValue.length !== 4) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await setPin(pinValue);
+      setSuccess(true);
+      setTimeout(reset, 1500);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }, [pinValue, setPin, reset]);
+
+  const handleVerify = useCallback(async () => {
+    if (pinValue.length !== 4) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const ok = await unlock(pinValue);
+      if (ok) {
+        setSuccess(true);
+        setTimeout(reset, 1000);
+      } else {
+        setError("PIN incorrecto");
+        setPinValue("");
+        inputRefs.current[0]?.focus();
+      }
+    } catch {
+      setError("Error al verificar");
+    } finally {
+      setBusy(false);
+    }
+  }, [pinValue, unlock, reset]);
+
+  const handleChangeOld = useCallback(() => {
+    if (oldPinValue.length !== 4) return;
+    setStep("change-new");
+    setPinValue("");
+    setTimeout(() => inputRefs.current[0]?.focus(), 100);
+  }, [oldPinValue]);
+
+  const handleChangeNew = useCallback(async () => {
+    if (pinValue.length !== 4) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await setPin(pinValue, oldPinValue);
+      setSuccess(true);
+      setTimeout(reset, 1500);
+    } catch (err) {
+      setError((err as Error).message);
+      setStep("change-old");
+      setOldPinValue("");
+      setPinValue("");
+    } finally {
+      setBusy(false);
+    }
+  }, [pinValue, oldPinValue, setPin, reset]);
+
+  useEffect(() => {
+    if (pinValue.length === 4 && !busy) {
+      if (step === "setup") handleSetup();
+      else if (step === "verify") handleVerify();
+      else if (step === "change-new") handleChangeNew();
+    }
+  }, [pinValue, step, busy, handleSetup, handleVerify, handleChangeNew]);
+
+  useEffect(() => {
+    if (oldPinValue.length === 4 && step === "change-old" && !busy) {
+      handleChangeOld();
+    }
+  }, [oldPinValue, step, busy, handleChangeOld]);
+
+  const renderPin = (value: string, setter: (v: string) => void) => (
+    <div className="flex gap-3 justify-center my-4">
+      {[0, 1, 2, 3].map((i) => (
+        <input
+          key={i}
+          ref={(el) => {
+            inputRefs.current[i] = el;
+          }}
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={1}
+          value={value[i] || ""}
+          onChange={(e) => handleDigit(i, e.target.value, setter, value)}
+          onKeyDown={(e) => handleKeyDown(i, e, value, setter)}
+          className="w-12 h-14 text-center text-xl font-medium rounded-xl bg-[var(--color-bg-input)] border border-[var(--color-border)] text-white focus:border-[var(--color-noa)] focus:ring-2 focus:ring-[var(--color-noa)]/30 outline-none transition mono"
+          autoComplete="off"
+        />
+      ))}
+    </div>
+  );
+
+  return (
+    <>
+      <Section
+        title="Galería privada"
+        description="Imágenes ocultas detrás de un PIN de 4 dígitos. Solo se ven cuando desbloqueás la sesión."
+      >
+        <div className="flex items-start gap-3">
+          <div className="size-10 rounded-xl bg-[var(--color-noa-soft)] flex items-center justify-center shrink-0">
+            <EyeOff className="size-5 text-[var(--color-noa)]" />
+          </div>
+          <div className="flex-1 min-w-0">
+            {loading ? (
+              <Skeleton variant="rect" height={20} width={140} />
+            ) : !hasPin ? (
+              <p className="text-[13px] text-white/65">Aún no tenés PIN configurado.</p>
+            ) : (
+              <p className="text-[13px] text-white/65">
+                Estado: <span className="text-white font-medium">{isUnlocked ? "Desbloqueada" : "Bloqueada"}</span>
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-4 space-y-3">
+          {!hasPin && step !== "setup" && (
+            <Button
+              variant="primary"
+              size="md"
+              leadingIcon={<KeyRound className="size-4" />}
+              onClick={() => {
+                setStep("setup");
+                setPinValue("");
+                setError(null);
+                setTimeout(() => inputRefs.current[0]?.focus(), 100);
+              }}
+            >
+              Configurar PIN
+            </Button>
+          )}
+
+          {step === "setup" && (
+            <div className="space-y-2">
+              <p className="text-[12px] text-white/55 text-center">Creá un PIN de 4 dígitos</p>
+              {renderPin(pinValue, setPinValue)}
+              {error && <p className="text-[12px] text-[var(--color-danger)] text-center">{error}</p>}
+              {success && (
+                <div className="flex items-center justify-center gap-1.5 text-[12px] text-emerald-400">
+                  <Check className="size-3.5" /> PIN configurado
+                </div>
+              )}
+              {busy && (
+                <div className="flex justify-center">
+                  <Loader2 className="size-4 animate-spin text-[var(--color-noa)]" />
+                </div>
+              )}
+              <button onClick={reset} className="block mx-auto text-[12px] text-white/55 hover:text-white">
+                Cancelar
+              </button>
+            </div>
+          )}
+
+          {hasPin && step === "idle" && (
+            <div className="flex flex-wrap gap-2">
+              {isUnlocked ? (
+                <Button variant="secondary" size="md" leadingIcon={<Lock className="size-4" />} onClick={lock}>
+                  Bloquear
+                </Button>
+              ) : (
+                <Button
+                  variant="primary"
+                  size="md"
+                  leadingIcon={<KeyRound className="size-4" />}
+                  onClick={() => {
+                    setStep("verify");
+                    setPinValue("");
+                    setError(null);
+                    setTimeout(() => inputRefs.current[0]?.focus(), 100);
+                  }}
+                >
+                  Desbloquear
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="md"
+                onClick={() => {
+                  setStep("change-old");
+                  setOldPinValue("");
+                  setPinValue("");
+                  setError(null);
+                  setTimeout(() => inputRefs.current[0]?.focus(), 100);
+                }}
+              >
+                Cambiar PIN
+              </Button>
+            </div>
+          )}
+
+          {step === "verify" && (
+            <div className="space-y-2 pt-2 border-t border-white/[0.06]">
+              <p className="text-[12px] text-white/55 text-center">Ingresá tu PIN para desbloquear</p>
+              {renderPin(pinValue, setPinValue)}
+              {error && <p className="text-[12px] text-[var(--color-danger)] text-center">{error}</p>}
+              {success && (
+                <div className="flex items-center justify-center gap-1.5 text-[12px] text-emerald-400">
+                  <Check className="size-3.5" /> Desbloqueada
+                </div>
+              )}
+              {busy && (
+                <div className="flex justify-center">
+                  <Loader2 className="size-4 animate-spin text-[var(--color-noa)]" />
+                </div>
+              )}
+              <button onClick={reset} className="block mx-auto text-[12px] text-white/55 hover:text-white">
+                Cancelar
+              </button>
+            </div>
+          )}
+
+          {step === "change-old" && (
+            <div className="space-y-2 pt-2 border-t border-white/[0.06]">
+              <p className="text-[12px] text-white/55 text-center">Ingresá tu PIN actual</p>
+              {renderPin(oldPinValue, setOldPinValue)}
+              {error && <p className="text-[12px] text-[var(--color-danger)] text-center">{error}</p>}
+              <button onClick={reset} className="block mx-auto text-[12px] text-white/55 hover:text-white">
+                Cancelar
+              </button>
+            </div>
+          )}
+
+          {step === "change-new" && (
+            <div className="space-y-2 pt-2 border-t border-white/[0.06]">
+              <p className="text-[12px] text-white/55 text-center">Ingresá tu nuevo PIN</p>
+              {renderPin(pinValue, setPinValue)}
+              {error && <p className="text-[12px] text-[var(--color-danger)] text-center">{error}</p>}
+              {success && (
+                <div className="flex items-center justify-center gap-1.5 text-[12px] text-emerald-400">
+                  <Check className="size-3.5" /> PIN actualizado
+                </div>
+              )}
+              {busy && (
+                <div className="flex justify-center">
+                  <Loader2 className="size-4 animate-spin text-[var(--color-noa)]" />
+                </div>
+              )}
+              <button onClick={reset} className="block mx-auto text-[12px] text-white/55 hover:text-white">
+                Cancelar
+              </button>
+            </div>
+          )}
+        </div>
+      </Section>
+
+      <Section title="Cómo funciona">
+        <ul className="text-[13px] text-white/65 space-y-1.5 list-disc list-inside">
+          <li>Tocá <strong className="text-white font-medium">ocultar</strong> en cualquier imagen de la galería para moverla al espacio privado.</li>
+          <li>Una vez desbloqueada en esta sesión, aparece una pestaña <strong className="text-white font-medium">Privadas</strong> en la galería.</li>
+          <li>La sesión se bloquea al cerrar la app o al tap <strong className="text-white font-medium">Bloquear</strong>.</li>
+          <li>3 intentos fallidos = 30s bloqueo · 5 = 5min · 8 = 1h · 10+ = 24h.</li>
+        </ul>
+      </Section>
+    </>
   );
 }

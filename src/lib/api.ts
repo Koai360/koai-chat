@@ -225,15 +225,25 @@ export async function* streamMessage(
 // IMAGES / GALLERY
 // ============================================================
 
-export async function listImages(opts: { limit?: number; before?: string } = {}): Promise<{
+export async function listImages(
+  opts: { limit?: number; before?: string; hidden?: boolean } = {},
+): Promise<{
   items: ChatImage[];
   next_cursor?: string | null;
 }> {
   const params = new URLSearchParams();
   if (opts.limit) params.set("limit", String(opts.limit));
   if (opts.before) params.set("before", opts.before);
+  if (opts.hidden) params.set("hidden", "true");
   const res = await apiFetch(`/api/chat/images?${params}`);
   return res.json();
+}
+
+export async function hideImage(messageId: string, hidden: boolean): Promise<void> {
+  await apiFetch(`/api/chat/images/${messageId}/hide`, {
+    method: "PATCH",
+    json: { hidden },
+  });
 }
 
 export async function deleteImage(messageId: string): Promise<void> {
@@ -254,6 +264,36 @@ export async function unrateImage(messageId: string): Promise<void> {
 export async function fetchRatingsMap(): Promise<Record<string, 1 | 2 | 3 | 4 | 5>> {
   const res = await apiFetch("/api/chat/images/likes/ratings");
   return res.json();
+}
+
+// ============================================================
+// PRIVATE GALLERY (PIN)
+// ============================================================
+
+export async function fetchPrivateStatus(): Promise<{ has_pin: boolean }> {
+  const res = await apiFetch("/api/chat/private/status");
+  return res.json();
+}
+
+export async function verifyPrivatePin(pin: string): Promise<boolean> {
+  try {
+    const res = await apiFetch("/api/chat/private/verify-pin", {
+      method: "POST",
+      json: { pin },
+    });
+    const data = await res.json();
+    return data.ok === true;
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 401) return false;
+    throw err;
+  }
+}
+
+export async function setPrivatePin(pin: string, oldPin?: string): Promise<void> {
+  await apiFetch("/api/chat/private/set-pin", {
+    method: "POST",
+    json: oldPin ? { pin, old_pin: oldPin } : { pin },
+  });
 }
 
 // ============================================================

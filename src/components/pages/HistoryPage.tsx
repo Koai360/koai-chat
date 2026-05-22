@@ -82,7 +82,7 @@ export function HistoryPage() {
           ) : (
             grouped.map(({ label, items: bucket }) => (
               <section key={label}>
-                <h2 className="text-[11px] uppercase tracking-wider text-white/45 mb-2 font-medium">
+                <h2 className="mono text-[10px] uppercase tracking-[0.12em] text-white/45 mb-2 font-medium">
                   {label}
                 </h2>
                 <div className="space-y-1">

@@ -24,8 +24,8 @@ export function TopBar({ onMenu, onNewChat }: TopBarProps) {
       />
 
       <div className="flex items-center gap-1.5 text-white">
-        <span className="display text-[15px] font-medium">Noa</span>
-        <span className="text-white/40 text-[13px]">3.5 Flash</span>
+        <span className="display text-[16px] font-semibold">Noa</span>
+        <span className="mono text-white/40 text-[11px] tracking-tight uppercase">3.5 Flash</span>
       </div>
 
       <IconButton

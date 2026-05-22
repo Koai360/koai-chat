@@ -124,9 +124,10 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
               placeholder={placeholder}
               rows={1}
               className={cn(
-                "flex-1 resize-none bg-transparent text-white placeholder:text-white/40",
+                "flex-1 resize-none bg-transparent text-white",
+                "placeholder:text-white/35 placeholder:font-mono placeholder:text-[14px] placeholder:tracking-tight",
                 "text-[15px] leading-6 px-2 py-2",
-                "outline-none border-0",
+                "outline-none border-none focus:outline-none focus:ring-0",
                 "min-h-[40px] max-h-[160px]",
               )}
               style={{ fieldSizing: "content" } as React.CSSProperties}

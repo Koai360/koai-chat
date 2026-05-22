@@ -256,7 +256,7 @@ function SidebarContent({
 
       {/* Recientes */}
       <div className="flex-1 overflow-y-auto px-3 py-2 min-h-0">
-        <p className="text-[11px] uppercase tracking-wider text-white/40 px-2.5 mb-2 font-medium">
+        <p className="mono text-[10px] uppercase tracking-[0.12em] text-white/40 px-2.5 mb-2 font-medium">
           Recientes
         </p>
         <nav className="flex flex-col gap-0.5">
@@ -337,7 +337,7 @@ function SidebarContent({
               )}
               <div className="flex-1 min-w-0 text-left">
                 <p className="text-sm text-white/95 truncate font-medium">{user.name}</p>
-                <p className="text-xs text-white/40 truncate">{user.email}</p>
+                <p className="mono text-[11px] text-white/40 truncate tracking-tight">{user.email}</p>
               </div>
             </button>
           }

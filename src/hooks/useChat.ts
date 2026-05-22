@@ -145,6 +145,7 @@ export function useChat(userId: string | undefined): UseChatReturn {
       };
 
       let accumulated = "";
+      let imageUrl: string | null = null;
       try {
         for await (const ev of streamMessage(payload, abort.signal)) {
           handleStreamEvent(ev, {
@@ -154,14 +155,19 @@ export function useChat(userId: string | undefined): UseChatReturn {
               setLoadingHint(null);
             },
             onHint: (hint) => setLoadingHint(hint),
+            onImage: (url) => {
+              imageUrl = url;
+              setLoadingHint(null);
+            },
             onDone: () => {
               // Promovemos streamingText → message
-              if (accumulated && convId) {
+              if ((accumulated || imageUrl) && convId) {
                 const assistantMsg: ChatMessage = {
                   id: `assistant-${Date.now()}`,
                   conversation_id: convId,
                   role: "assistant",
                   content: accumulated,
+                  image: imageUrl,
                   created_at: new Date().toISOString(),
                 };
                 setMessages((prev) => [...prev, assistantMsg]);
@@ -183,11 +189,11 @@ export function useChat(userId: string | undefined): UseChatReturn {
           setMessages((prev) => [...prev, errMsg]);
         }
       } finally {
-        // Si el stream terminó sin enviar `done`, hacemos flush manual
-        if (accumulated && !messages.some((m) => m.content === accumulated)) {
+        // Si el stream terminó sin enviar `done` (timeout, abort, error), flush manual
+        if (accumulated || imageUrl) {
           setMessages((prev) => {
-            // Evitamos duplicar si ya se agregó por onDone
-            if (prev.some((m) => m.role === "assistant" && m.content === accumulated)) {
+            // Dedup: si onDone ya promovió, no agregar de nuevo
+            if (prev.some((m) => m.role === "assistant" && m.content === accumulated && m.image === imageUrl)) {
               return prev;
             }
             return [
@@ -197,6 +203,7 @@ export function useChat(userId: string | undefined): UseChatReturn {
                 conversation_id: convId!,
                 role: "assistant",
                 content: accumulated,
+                image: imageUrl,
                 created_at: new Date().toISOString(),
               },
             ];
@@ -244,12 +251,17 @@ function handleStreamEvent(
     onDelta: (text: string) => void;
     onHint: (hint: string) => void;
     onDone: () => void;
+    onImage: (url: string) => void;
   },
 ) {
   const data = ev.data;
+  const type = ev.type as string;
 
-  // Eventos custom del backend
-  switch (ev.type) {
+  // koai-api emite `event: token` para texto del LLM, `event: image` para imágenes,
+  // `event: image_metadata` para metadata, `event: ping` para heartbeat, `event: done`.
+  // También aceptamos `delta` (alias generic), `hint` (status), `card` (estructurada).
+  switch (type) {
+    case "token":
     case "delta": {
       const text =
         typeof data === "string"
@@ -261,6 +273,22 @@ function handleStreamEvent(
       if (text) handlers.onDelta(text);
       break;
     }
+    case "image": {
+      const url =
+        typeof data === "string"
+          ? data
+          : (data as { image?: string; url?: string })?.image ??
+            (data as { image?: string; url?: string })?.url ??
+            "";
+      if (url) handlers.onImage(url);
+      break;
+    }
+    case "image_metadata":
+      // Solo log/track — no se renderiza en chat por ahora
+      break;
+    case "ping":
+      // Heartbeat keepalive — ignorar
+      break;
     case "hint": {
       const hint =
         typeof data === "string"
@@ -276,14 +304,12 @@ function handleStreamEvent(
       break;
     case "tool_call":
     case "tool_result":
-      // El backend nos avisa qué tool corre — usarlo como hint si tiene texto
       if (data && typeof data === "object" && "name" in data) {
         const name = String((data as { name: unknown }).name);
         handlers.onHint(`Consultando ${name}…`);
       }
       break;
     case "card":
-      // El backend puede emitir card como evento custom — embebemos como bloque markdown
       if (data && typeof data === "object") {
         const typed = data as { type?: string };
         if (typed.type) {
@@ -296,6 +322,10 @@ function handleStreamEvent(
       console.warn("[useChat] backend error event", data);
       break;
     default:
+      // Log no-mapeado para diagnosis sin romper el stream
+      if (type !== "message") {
+        console.debug("[useChat] unmapped event type:", type, data);
+      }
       break;
   }
 }

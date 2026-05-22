@@ -40,13 +40,16 @@ async function apiFetch(path: string, opts: FetchOpts = {}): Promise<Response> {
   const { json, skipAuth, headers, ...rest } = opts;
 
   const finalHeaders: Record<string, string> = {
-    "X-API-Key": API_KEY,
     ...(headers as Record<string, string>),
   };
 
-  if (!skipAuth) {
-    const token = getAuthToken();
-    if (token) finalHeaders["Authorization"] = `Bearer ${token}`;
+  // Backend prefiere JWT sobre API key — si hay JWT, mandar SOLO ese
+  // (sino el middleware setea user_id="api-key-user" e ignora el JWT)
+  const token = skipAuth ? null : getAuthToken();
+  if (token) {
+    finalHeaders["Authorization"] = `Bearer ${token}`;
+  } else {
+    finalHeaders["X-API-Key"] = API_KEY;
   }
 
   if (json !== undefined) {
@@ -157,9 +160,12 @@ export async function* streamMessage(
   const token = getAuthToken();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    "X-API-Key": API_KEY,
   };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  } else {
+    headers["X-API-Key"] = API_KEY;
+  }
 
   const res = await fetch(`${API_BASE}/api/chat/stream`, {
     method: "POST",
@@ -282,8 +288,12 @@ export async function transcribeAudio(blob: Blob): Promise<{ text: string }> {
   const fd = new FormData();
   fd.append("file", blob, "audio.webm");
   const token = getAuthToken();
-  const headers: Record<string, string> = { "X-API-Key": API_KEY };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  } else {
+    headers["X-API-Key"] = API_KEY;
+  }
   const res = await fetch(`${API_BASE}/api/transcribe`, {
     method: "POST",
     headers,

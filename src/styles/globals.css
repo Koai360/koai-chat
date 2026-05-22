@@ -296,10 +296,34 @@ html[data-keyboard="open"] .hide-on-keyboard {
    FOCUS RING · accessible default
    ============================================================ */
 
-:focus-visible {
+/* Solo elementos navegables por keyboard (no inputs — el wrapper pill
+   maneja su propio focus-within ring). Evita "doble cuadro" visual. */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+[tabindex="0"]:focus-visible {
   outline: none;
   box-shadow: var(--ring-focus);
   border-radius: var(--radius-sm);
+}
+
+/* Inputs y textareas: jamás ring propio. Sus wrappers controlan el focus
+   visible con focus-within (ChatInput pill, SearchBar, etc). */
+input,
+textarea,
+select {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 /* ============================================================

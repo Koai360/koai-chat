@@ -5,6 +5,9 @@ import { TopBar } from "./TopBar";
 import { Sheet } from "@/components/ui/Sheet";
 import { ChatSurface } from "@/components/chat/ChatSurface";
 import { ChatInput } from "@/components/chat/ChatInput";
+import { GalleryPage } from "@/components/pages/GalleryPage";
+import { HistoryPage } from "@/components/pages/HistoryPage";
+import { SettingsPage } from "@/components/pages/SettingsPage";
 import { useRoute } from "@/hooks/useRoute";
 import { useChat } from "@/hooks/useChat";
 import { navigate } from "@/lib/routing";
@@ -123,12 +126,10 @@ export function AppShell({ user, onLogout }: AppShellProps) {
                 userName={user.name?.split(" ")[0]}
               />
             )}
-            {route.kind === "galeria" && <PlaceholderPage title="Galería" subtitle="Fase 5" />}
-            {route.kind === "historial" && (
-              <PlaceholderPage title="Historial" subtitle="Fase 5" />
-            )}
+            {route.kind === "galeria" && <GalleryPage />}
+            {route.kind === "historial" && <HistoryPage />}
             {route.kind === "config" && (
-              <PlaceholderPage title="Configuración" subtitle="Fase 5" />
+              <SettingsPage user={user} tab={route.tab} onLogout={onLogout} />
             )}
           </main>
 
@@ -145,11 +146,3 @@ export function AppShell({ user, onLogout }: AppShellProps) {
   );
 }
 
-function PlaceholderPage({ title, subtitle }: { title: string; subtitle?: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center h-full px-6">
-      <h1 className="display text-2xl text-white/90 mb-2">{title}</h1>
-      {subtitle && <p className="text-sm text-white/40">{subtitle}</p>}
-    </div>
-  );
-}

@@ -44,6 +44,8 @@ export function AppShell({ user, onLogout }: AppShellProps) {
     loading,
     loadingHint,
     streamingText,
+    thinkingLevel,
+    setThinkingLevel,
     sendMessage,
     stopGeneration,
     newConversation,
@@ -137,7 +139,12 @@ export function AppShell({ user, onLogout }: AppShellProps) {
 
         {/* Main column */}
         <div className="flex-1 flex flex-col min-w-0 h-full">
-          <TopBar onMenu={() => setDrawerOpen(true)} onNewChat={handleNewChat} />
+          <TopBar
+            onMenu={() => setDrawerOpen(true)}
+            onNewChat={handleNewChat}
+            thinkingLevel={thinkingLevel}
+            onThinkingLevelChange={setThinkingLevel}
+          />
 
           <main className="flex-1 overflow-hidden min-h-0">
             {route.kind === "chat" && (

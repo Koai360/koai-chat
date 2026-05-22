@@ -84,29 +84,29 @@ export function Sidebar({
 
   return (
     <>
-      {/* Rail collapsed siempre presente (56px) */}
+      {/* Rail collapsed siempre presente (60px) */}
       <aside
         className={cn(
           "hidden md:flex flex-col items-center justify-between",
-          "w-14 h-full shrink-0",
+          "w-[60px] h-full shrink-0",
           "bg-[var(--color-bg-elevated)]/40 border-r border-[var(--color-border)]",
           "backdrop-blur-xl py-3 safe-top safe-bottom z-30 relative",
         )}
       >
         <div className="flex flex-col items-center gap-2">
           <IconButton
-            icon={<Menu className="size-5" />}
+            icon={<Menu className="size-[22px]" strokeWidth={2} />}
             label={open ? "Cerrar menú" : "Abrir menú"}
             variant="ghost"
-            size="md"
+            size="lg"
             onClick={() => setExpanded((v) => !v)}
             active={open}
           />
           <IconButton
-            icon={<Edit3 className="size-5" />}
+            icon={<Edit3 className="size-[20px]" strokeWidth={2} />}
             label="Nuevo chat"
             variant="ghost"
-            size="md"
+            size="lg"
             onClick={onNewChat}
           />
         </div>

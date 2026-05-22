@@ -465,3 +465,96 @@ select:focus-visible {
   background: var(--color-bg-elevated);
   font-weight: 600;
 }
+
+/* ============================================================
+   Highlights & colors inline — markdownPreprocess.ts
+   ============================================================ */
+
+/* ==texto== highlight neutral (amarillo suave) */
+.prose-noa mark.hl,
+.prose-noa mark {
+  background: color-mix(in oklch, #f5d76e 28%, transparent);
+  color: #ffffff;
+  padding: 0.05em 0.3em;
+  border-radius: 4px;
+  font-weight: 500;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* :color[texto] inline */
+.prose-noa .hl-lime,
+.prose-noa .hl-green,
+.prose-noa .hl-red,
+.prose-noa .hl-yellow,
+.prose-noa .hl-purple {
+  font-weight: 600;
+}
+.prose-noa .hl-lime   { color: var(--color-noa); }
+.prose-noa .hl-green  { color: #4ade80; }
+.prose-noa .hl-red    { color: #f87171; }
+.prose-noa .hl-yellow { color: #fbbf24; }
+.prose-noa .hl-purple { color: #c084fc; }
+
+/* ============================================================
+   Callouts — > [!INFO] / [!TIP] / [!WARN] / [!SUCCESS] / [!DANGER]
+   ============================================================ */
+
+.prose-noa .callout {
+  display: block;
+  margin: 0.85rem 0;
+  padding: 0.75rem 1rem 0.75rem 0.95rem;
+  border-radius: 10px;
+  border: 1px solid;
+  background: rgba(255, 255, 255, 0.025);
+  font-size: 0.95em;
+  line-height: 1.55;
+  position: relative;
+  padding-left: 2.2rem;
+}
+
+.prose-noa .callout::before {
+  content: "";
+  position: absolute;
+  left: 0.75rem;
+  top: 0.95rem;
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.85;
+  box-shadow: 0 0 12px 1px currentColor;
+}
+
+.prose-noa .callout-info {
+  border-color: color-mix(in oklch, #60a5fa 45%, transparent);
+  color: #93c5fd;
+}
+.prose-noa .callout-info { background: color-mix(in oklch, #60a5fa 8%, transparent); }
+
+.prose-noa .callout-tip {
+  border-color: color-mix(in oklch, var(--color-noa) 50%, transparent);
+  color: var(--color-noa);
+}
+.prose-noa .callout-tip { background: color-mix(in oklch, var(--color-noa) 8%, transparent); }
+
+.prose-noa .callout-warn {
+  border-color: color-mix(in oklch, #fbbf24 55%, transparent);
+  color: #fcd34d;
+}
+.prose-noa .callout-warn { background: color-mix(in oklch, #fbbf24 9%, transparent); }
+
+.prose-noa .callout-success {
+  border-color: color-mix(in oklch, #4ade80 50%, transparent);
+  color: #86efac;
+}
+.prose-noa .callout-success { background: color-mix(in oklch, #4ade80 8%, transparent); }
+
+.prose-noa .callout-danger {
+  border-color: color-mix(in oklch, #f87171 55%, transparent);
+  color: #fca5a5;
+}
+.prose-noa .callout-danger { background: color-mix(in oklch, #f87171 10%, transparent); }
+
+/* Texto del body del callout en blanco (no en color del accent) */
+.prose-noa .callout > * { color: rgba(255, 255, 255, 0.92); }

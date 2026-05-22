@@ -1,9 +1,11 @@
 import { memo } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
+import rehypeRaw from "rehype-raw";
 import { Sparkle } from "./Sparkle";
 import { CardRenderer } from "./CardRenderer";
 import { parseCards } from "@/lib/cards";
+import { preprocessMarkdown } from "@/lib/markdownPreprocess";
 import { cn } from "@/lib/cn";
 import type { ChatMessage } from "@/types/api";
 
@@ -56,8 +58,10 @@ export const MessageBubble = memo(function MessageBubble({
               key={i}
               className="prose-noa text-white/95 text-[15px] leading-[1.65]"
             >
-              <ReactMarkdown rehypePlugins={[rehypeHighlight as never]}>
-                {seg.content}
+              <ReactMarkdown
+                rehypePlugins={[rehypeRaw as never, rehypeHighlight as never]}
+              >
+                {preprocessMarkdown(seg.content)}
               </ReactMarkdown>
             </div>
           ) : (

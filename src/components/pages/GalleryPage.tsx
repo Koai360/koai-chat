@@ -144,7 +144,7 @@ export function GalleryPage() {
           <EmptyState view={view} hasPin={hasPin} />
         ) : (
           <>
-            <div className="columns-2 md:columns-3 gap-2 md:gap-3 [column-fill:_balance]">
+            <div className="columns-3 gap-2 md:gap-3 [column-fill:_balance]">
               {items.map((img) => (
                 <GalleryTile
                   key={img.id}
@@ -263,7 +263,7 @@ function SkeletonMasonry() {
   // Skeletons con alturas variables para imitar el masonry
   const heights = [220, 320, 180, 260, 200, 340, 240, 200, 280, 220, 200, 300];
   return (
-    <div className="columns-2 md:columns-3 gap-2 md:gap-3">
+    <div className="columns-3 gap-2 md:gap-3">
       {heights.map((h, i) => (
         <div key={i} className="mb-2 md:mb-3 break-inside-avoid">
           <Skeleton variant="rect" height={h} className="rounded-xl w-full" />

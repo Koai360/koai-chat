@@ -18,17 +18,31 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes("node_modules")) {
-            if (id.includes("react-markdown") || id.includes("rehype") || id.includes("highlight")) {
+            // CRÍTICO: react + react-dom + scheduler DEBEN ir juntos.
+            // Si quedan separados, scheduler intenta poblar React internals
+            // antes de que React esté inicializado → TypeError "unstable_now".
+            if (
+              id.includes("/react/") ||
+              id.includes("/react-dom/") ||
+              id.includes("/scheduler/") ||
+              id.includes("/use-sync-external-store/")
+            ) {
+              return "react";
+            }
+            if (id.includes("react-markdown") || id.includes("rehype") || id.includes("/lowlight/") || id.includes("/highlight.js/")) {
               return "markdown";
             }
-            if (id.includes("framer-motion")) return "motion";
-            if (id.includes("radix-ui")) return "radix";
-            if (id.includes("react-dom")) return "react";
+            if (id.includes("framer-motion") || id.includes("/motion-dom/") || id.includes("/motion-utils/")) {
+              return "motion";
+            }
+            if (id.includes("radix-ui") || id.includes("/@radix-ui/")) {
+              return "radix";
+            }
             if (id.includes("@fontsource")) return "fonts";
             if (id.includes("lucide-react")) return "icons";
             return "vendor";
           }
-          // Code-split por surface
+          // Code-split por surface (app code)
           if (id.includes("/components/pages/")) return "pages";
           if (id.includes("/components/cards/")) return "cards";
           if (id.includes("/components/voice/")) return "voice";

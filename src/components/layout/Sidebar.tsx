@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  Menu,
-  Edit3,
+  PanelLeft,
+  PanelLeftClose,
+  SquarePen,
   Image as ImageIcon,
   Clock,
   Settings,
@@ -95,7 +96,13 @@ export function Sidebar({
       >
         <div className="flex flex-col items-center gap-2">
           <IconButton
-            icon={<Menu className="size-[22px]" strokeWidth={2} />}
+            icon={
+              open ? (
+                <PanelLeftClose className="size-[22px]" strokeWidth={2} />
+              ) : (
+                <PanelLeft className="size-[22px]" strokeWidth={2} />
+              )
+            }
             label={open ? "Cerrar menú" : "Abrir menú"}
             variant="ghost"
             size="lg"
@@ -103,7 +110,7 @@ export function Sidebar({
             active={open}
           />
           <IconButton
-            icon={<Edit3 className="size-[20px]" strokeWidth={2} />}
+            icon={<SquarePen className="size-[20px]" strokeWidth={2} />}
             label="Nuevo chat"
             variant="ghost"
             size="lg"
@@ -259,7 +266,7 @@ function SidebarContent({
       <div className="flex items-center gap-2.5 px-4 py-4">
         {onCollapse && (
           <IconButton
-            icon={<Menu className="size-5" />}
+            icon={<PanelLeftClose className="size-5" />}
             label="Colapsar menú"
             variant="ghost"
             size="md"
@@ -282,7 +289,7 @@ function SidebarContent({
             "hover:bg-[var(--color-noa-soft)] hover:border-[var(--color-noa)]/40 hover:text-[var(--color-noa)]",
           )}
         >
-          <Edit3 className="size-4" />
+          <SquarePen className="size-4" />
           Nuevo chat
         </button>
       </div>

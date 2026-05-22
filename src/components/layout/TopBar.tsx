@@ -1,4 +1,4 @@
-import { Menu, Edit3 } from "lucide-react";
+import { PanelLeft, SquarePen } from "lucide-react";
 import { IconButton } from "@/components/ui/IconButton";
 import { ModelPicker } from "@/components/chat/ModelPicker";
 import type { ModelMode } from "@/lib/autoThinking";
@@ -25,7 +25,7 @@ export function TopBar({ onMenu, onNewChat, modelMode, onModelModeChange }: TopB
       style={{ paddingTop: "calc(env(safe-area-inset-top) + 0.5rem)" }}
     >
       <IconButton
-        icon={<Menu className="size-[22px]" strokeWidth={2} />}
+        icon={<PanelLeft className="size-[22px]" strokeWidth={2} />}
         label="Abrir menú"
         variant="ghost"
         size="lg"
@@ -35,7 +35,7 @@ export function TopBar({ onMenu, onNewChat, modelMode, onModelModeChange }: TopB
       <ModelPicker mode={modelMode} onChange={onModelModeChange} />
 
       <IconButton
-        icon={<Edit3 className="size-[20px]" strokeWidth={2} />}
+        icon={<SquarePen className="size-[20px]" strokeWidth={2} />}
         label="Nuevo chat"
         variant="ghost"
         size="lg"

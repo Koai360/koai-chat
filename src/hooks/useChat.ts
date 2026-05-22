@@ -160,8 +160,8 @@ export function useChat(userId: string | undefined): UseChatReturn {
       abortRef.current = abort;
 
       // Resolver thinking_level según el mode (sin auto):
-      //   - standard → low (Gemini 3.5 Flash)
-      //   - pro      → high (Gemini 3.5 Pro thinking=high)
+      //   - standard → medium (Gemini 3.5 Pro thinking=medium)
+      //   - pro      → high   (Gemini 3.5 Pro thinking=high)
       const resolvedLevel: ThinkingLevel = resolveThinkingLevel(modelMode);
 
       const payload: SendMessagePayload = {

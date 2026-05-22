@@ -8,7 +8,7 @@ import noaIcon from "@/assets/noa-icon.png";
  * ModelPicker — selector visible arriba del chat.
  *
  * 2 modos explícitos (sin Auto):
- *   - Estándar (default) → Gemini 3.5 Flash, instant para el día a día
+ *   - Estándar (default) → Gemini 3.5 Pro thinking=medium, ~3-6s, balance
  *   - Pro                → Gemini 3.5 Pro thinking=high, análisis profundo
  *
  * Visual TopBar:

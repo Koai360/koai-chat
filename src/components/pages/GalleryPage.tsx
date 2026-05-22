@@ -124,13 +124,13 @@ export function GalleryPage() {
           </div>
 
           {showPrivateTab && (
-            <div className="flex gap-1.5 bg-[var(--color-bg-elevated)] p-1 rounded-full border border-white/[0.06]">
+            <div className="flex gap-1 bg-[var(--color-bg-elevated)] p-1 rounded-full border border-white/[0.08] shadow-[0_2px_12px_rgba(0,0,0,0.30)]">
               <ViewTab active={view === "all"} onClick={() => setView("all")} label="Todas" />
               <ViewTab
                 active={view === "private"}
                 onClick={() => setView("private")}
                 label="Privadas"
-                icon={<EyeOff className="size-3.5" />}
+                icon={<EyeOff className="size-4" />}
               />
             </div>
           )}
@@ -139,25 +139,27 @@ export function GalleryPage() {
 
       <div className="flex-1 overflow-y-auto px-3 md:px-6 pb-6">
         {items.length === 0 && loading ? (
-          <SkeletonGrid />
+          <SkeletonMasonry />
         ) : items.length === 0 ? (
           <EmptyState view={view} hasPin={hasPin} />
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
-            {items.map((img) => (
-              <GalleryTile
-                key={img.id}
-                image={img}
-                rating={ratings[img.id]}
-                onClick={() => setModalImage(img)}
-              />
-            ))}
+          <>
+            <div className="columns-2 md:columns-3 gap-2 md:gap-3 [column-fill:_balance]">
+              {items.map((img) => (
+                <GalleryTile
+                  key={img.id}
+                  image={img}
+                  rating={ratings[img.id]}
+                  onClick={() => setModalImage(img)}
+                />
+              ))}
+            </div>
             {!done && (
-              <div ref={observerRef} className="col-span-full h-20 flex items-center justify-center">
+              <div ref={observerRef} className="h-20 flex items-center justify-center">
                 {loading && <Skeleton width={100} height={12} className="rounded-full" />}
               </div>
             )}
-          </div>
+          </>
         )}
       </div>
 
@@ -188,10 +190,10 @@ function ViewTab({
     <button
       onClick={onClick}
       className={cn(
-        "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] transition",
+        "flex items-center gap-1.5 h-9 px-4 rounded-full text-[14px] font-medium transition-all",
         active
-          ? "bg-white/[0.10] text-white"
-          : "text-white/55 hover:text-white hover:bg-white/[0.04]",
+          ? "bg-white text-black"
+          : "text-white/60 hover:text-white hover:bg-white/[0.04]",
       )}
     >
       {icon}
@@ -209,33 +211,39 @@ function GalleryTile({
   rating?: number;
   onClick: () => void;
 }) {
-  // Reescribimos URL si es Supabase storage para servir thumb (regla S104)
   const url = image.url || "";
-  const thumbUrl =
-    url.includes("/storage/v1/object/public/")
-      ? url.replace(
-          "/storage/v1/object/public/",
-          "/storage/v1/render/image/public/?width=600&quality=85&resize=contain&path=",
-        )
-      : url;
+  // Supabase Storage: rewriter a /render/image para thumb optimizado (regla S104).
+  // R2 (cdn.koai360.com): CF Image Transformations via /cdn-cgi/image/.
+  let thumbUrl = url;
+  if (url.includes("/storage/v1/object/public/")) {
+    thumbUrl = url.replace(
+      "/storage/v1/object/public/",
+      "/storage/v1/render/image/public/?width=800&quality=85&resize=contain&path=",
+    );
+  } else if (url.startsWith("https://cdn.koai360.com/")) {
+    const rest = url.replace("https://cdn.koai360.com/", "");
+    thumbUrl = `https://cdn.koai360.com/cdn-cgi/image/width=800,quality=85,format=auto/${rest}`;
+  }
 
   return (
     <motion.button
-      initial={{ opacity: 0, scale: 0.96 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.2 }}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
       onClick={onClick}
       className={cn(
-        "group relative aspect-square rounded-xl overflow-hidden",
+        "group relative w-full mb-2 md:mb-3 break-inside-avoid rounded-xl overflow-hidden",
         "bg-[var(--color-bg-elevated)] border border-white/[0.06]",
         "hover:border-white/[0.16] transition-colors",
+        "block text-left",
       )}
     >
       <img
         src={thumbUrl}
         alt={image.prompt || ""}
         loading="lazy"
-        className="w-full h-full object-cover"
+        decoding="async"
+        className="w-full h-auto block"
       />
       {image.hidden && (
         <div className="absolute top-1.5 left-1.5 bg-black/70 backdrop-blur-sm rounded-full size-6 flex items-center justify-center">
@@ -251,11 +259,15 @@ function GalleryTile({
   );
 }
 
-function SkeletonGrid() {
+function SkeletonMasonry() {
+  // Skeletons con alturas variables para imitar el masonry
+  const heights = [220, 320, 180, 260, 200, 340, 240, 200, 280, 220, 200, 300];
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
-      {Array.from({ length: 12 }).map((_, i) => (
-        <Skeleton key={i} variant="rect" className="aspect-square rounded-xl" />
+    <div className="columns-2 md:columns-3 gap-2 md:gap-3">
+      {heights.map((h, i) => (
+        <div key={i} className="mb-2 md:mb-3 break-inside-avoid">
+          <Skeleton variant="rect" height={h} className="rounded-xl w-full" />
+        </div>
       ))}
     </div>
   );

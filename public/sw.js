@@ -1,86 +1,137 @@
-const CACHE_NAME = "koai-chat-v17";
-const PRECACHE = ["/", "/manifest.json"];
+/**
+ * Noa SW v3 — service worker premium dark redesign.
+ *
+ * Strategy:
+ * - Pre-cache shell (manifest + icons)
+ * - Runtime cache: stale-while-revalidate para assets estáticos
+ * - Network-only para /api/* (siempre fresh)
+ * - SKIP_WAITING al recibir mensaje del cliente (update flow)
+ * - Push notifications: solo si app no está visible
+ */
 
-self.addEventListener("install", (e) => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE))
+const VERSION = "noa-v3.0.0";
+const STATIC_CACHE = `${VERSION}-static`;
+const RUNTIME_CACHE = `${VERSION}-runtime`;
+
+const PRECACHE_URLS = [
+  "/",
+  "/manifest.json",
+  "/icons/noa-192.png",
+  "/icons/noa-512.png",
+];
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches
+      .open(STATIC_CACHE)
+      .then((cache) => cache.addAll(PRECACHE_URLS))
+      .catch(() => {})
   );
   self.skipWaiting();
 });
 
-self.addEventListener("activate", (e) => {
-  e.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    (async () => {
+      // Limpia caches viejos
+      const keys = await caches.keys();
+      await Promise.all(
+        keys
+          .filter((k) => !k.startsWith(VERSION))
+          .map((k) => caches.delete(k))
+      );
+      await self.clients.claim();
+    })()
   );
-  self.clients.claim();
 });
 
-self.addEventListener("message", (e) => {
-  if (e.data === "SKIP_WAITING") {
+self.addEventListener("message", (event) => {
+  if (event.data === "SKIP_WAITING") {
     self.skipWaiting();
   }
 });
 
-// --- Push Notifications ---
-self.addEventListener("push", (e) => {
-  if (!e.data) return;
+self.addEventListener("fetch", (event) => {
+  const url = new URL(event.request.url);
+
+  // API requests siempre fresh
+  if (url.pathname.startsWith("/api/")) return;
+
+  // Solo cachemos same-origin GETs
+  if (event.request.method !== "GET" || url.origin !== self.location.origin) return;
+
+  // Stale-while-revalidate para assets
+  if (
+    url.pathname.startsWith("/assets/") ||
+    url.pathname.startsWith("/icons/") ||
+    url.pathname.endsWith(".woff2") ||
+    url.pathname.endsWith(".woff") ||
+    url.pathname.endsWith(".css") ||
+    url.pathname.endsWith(".js")
+  ) {
+    event.respondWith(
+      (async () => {
+        const cache = await caches.open(RUNTIME_CACHE);
+        const cached = await cache.match(event.request);
+        const networkPromise = fetch(event.request)
+          .then((resp) => {
+            if (resp.ok) cache.put(event.request, resp.clone()).catch(() => {});
+            return resp;
+          })
+          .catch(() => cached);
+        return cached || networkPromise;
+      })()
+    );
+    return;
+  }
+
+  // Navegaciones → network-first con fallback a index cached
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match("/").then((r) => r || Response.error()))
+    );
+  }
+});
+
+// --- Push notifications ---
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
   try {
-    const data = e.data.json();
-    const title = data.title || "Noa AI";
+    const data = event.data.json();
+    const title = data.title || "Noa";
     const options = {
       body: data.body || "",
       icon: "/icons/noa-192.png",
       badge: "/icons/noa-192.png",
       data: { url: data.url || "/" },
-      vibrate: [100, 50, 100],
+      vibrate: [80, 40, 80],
     };
-    e.waitUntil(
-      clients.matchAll({ type: "window", includeUncontrolled: true, visibilityState: "visible" }).then((visibleClients) => {
-        if (visibleClients.length > 0) {
-          // App abierta y visible → NO mostrar notificación del sistema
-          return;
-        }
-        // App en background o cerrada → mostrar notificación del sistema
-        return self.registration.showNotification(title, options);
-      })
+    event.waitUntil(
+      self.clients
+        .matchAll({ type: "window", includeUncontrolled: true, visibilityState: "visible" })
+        .then((visibleClients) => {
+          if (visibleClients.length > 0) return;
+          return self.registration.showNotification(title, options);
+        })
     );
   } catch (err) {
-    console.error("[SW] Push parse error:", err);
+    console.error("[SW] push parse error", err);
   }
 });
 
-self.addEventListener("notificationclick", (e) => {
-  e.notification.close();
-  const url = e.notification.data?.url || "/";
-  e.waitUntil(
-    clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
-      for (const client of windowClients) {
-        if (client.url.includes(self.location.origin) && "focus" in client) {
-          return client.focus();
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || "/";
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((windowClients) => {
+        for (const client of windowClients) {
+          if (client.url.includes(self.location.origin) && "focus" in client) {
+            return client.focus();
+          }
         }
-      }
-      return clients.openWindow(url);
-    })
-  );
-});
-
-self.addEventListener("fetch", (e) => {
-  const url = new URL(e.request.url);
-
-  // Never cache API calls
-  if (url.pathname.startsWith("/api")) return;
-
-  e.respondWith(
-    fetch(e.request)
-      .then((res) => {
-        if (res.ok && e.request.method === "GET") {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
-        }
-        return res;
+        return self.clients.openWindow(url);
       })
-      .catch(() => caches.match(e.request))
   );
 });

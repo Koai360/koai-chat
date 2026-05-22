@@ -143,14 +143,7 @@ export function ChatEmpty({ userName = "Jesús" }: ChatEmptyProps) {
           style={{ fontSize: "clamp(2.5rem, 7vw, 3.75rem)" }}
         >
           {before}
-          <span
-            className="bg-clip-text text-transparent"
-            style={{
-              backgroundImage: "linear-gradient(135deg, #C8DD4A 0%, #7B6CB5 50%, #6B3F8E 100%)",
-            }}
-          >
-            {userName}
-          </span>
+          <span style={{ color: "#C8DD4A" }}>{userName}</span>
           {after}
         </h1>
 

@@ -1,7 +1,7 @@
 /**
  * Sparkle — anchor visual KOAI (no copy de Google rainbow).
  *
- * Diamond ◆ 4-pointed con gradient lime → purple (KOAI brand).
+ * Diamond ◆ 4-pointed en lime neón sólido KOAI (#C8DD4A).
  * Tamaño base 32px, escalable via prop `size`.
  * Animación pulse opcional (loop 2.4s, muy sutil).
  */
@@ -24,17 +24,10 @@ export function Sparkle({ size = 32, className, animate = false }: SparkleProps)
       aria-hidden
       style={animate ? { animation: "sparklePulse 2.4s ease-in-out infinite" } : undefined}
     >
-      <defs>
-        <linearGradient id="koaiSparkleGrad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#C8DD4A" />
-          <stop offset="50%" stopColor="#7B6CB5" />
-          <stop offset="100%" stopColor="#6B3F8E" />
-        </linearGradient>
-      </defs>
       {/* Diamond ◆ con curvas concavas (4-pointed star Gemini-style) */}
       <path
         d="M16 1 C 17 9, 23 15, 31 16 C 23 17, 17 23, 16 31 C 15 23, 9 17, 1 16 C 9 15, 15 9, 16 1 Z"
-        fill="url(#koaiSparkleGrad)"
+        fill="#C8DD4A"
       />
       <style>{`
         @keyframes sparklePulse {

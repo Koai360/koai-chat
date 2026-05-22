@@ -148,10 +148,8 @@ function Waveform({ level, active }: WaveformProps) {
             transition={{ type: "spring", stiffness: 500, damping: 25 }}
             className="w-1.5 rounded-full"
             style={{
-              background: active
-                ? "linear-gradient(180deg, var(--color-noa) 0%, #7B6CB5 60%, var(--color-purple) 100%)"
-                : "rgba(255,255,255,0.15)",
-              boxShadow: active ? "0 0 12px rgba(200, 221, 74, 0.25)" : "none",
+              background: active ? "var(--color-noa)" : "rgba(255,255,255,0.15)",
+              boxShadow: active ? "0 0 12px rgba(200, 221, 74, 0.35)" : "none",
             }}
           />
         );

@@ -1,18 +1,49 @@
-import { useAuth } from "./hooks/useAuth";
-import { AppShell } from "./components/layout/AppShell";
-import { LoginScreen } from "./components/shared/LoginScreen";
-import { LoadingScreen } from "./components/shared/LoadingScreen";
+import { useAuth } from "@/hooks/useAuth";
+import { LoginScreen } from "@/components/auth/LoginScreen";
+import { AppShell } from "@/components/layout/AppShell";
+import { Sparkle } from "@/components/chat/Sparkle";
+import { AppBackground } from "@/components/layout/AppBackground";
+import { UpdateBanner } from "@/components/shared/UpdateBanner";
+import { Toaster } from "sonner";
 
 export default function App() {
-  const auth = useAuth();
+  const { user, loading, loginWithGoogle, logout } = useAuth();
 
-  if (auth.isLoading) {
-    return <LoadingScreen />;
+  if (loading) {
+    return (
+      <>
+        <AppBackground />
+        <main className="relative z-10 h-full flex items-center justify-center">
+          <Sparkle size={40} animate />
+        </main>
+      </>
+    );
   }
 
-  if (!auth.isAuthenticated) {
-    return <LoginScreen onLogin={auth.login} onGoogleLogin={auth.loginWithGoogle} />;
+  if (!user) {
+    return (
+      <>
+        <LoginScreen onGoogleLogin={loginWithGoogle} />
+        <Toaster theme="dark" position="top-right" />
+      </>
+    );
   }
 
-  return <AppShell user={auth.user!} onLogout={auth.logout} />;
+  return (
+    <>
+      <AppShell user={user} onLogout={logout} />
+      <UpdateBanner />
+      <Toaster
+        theme="dark"
+        position="top-right"
+        toastOptions={{
+          style: {
+            background: "var(--color-bg-overlay)",
+            border: "1px solid var(--color-border-hi)",
+            color: "var(--color-text)",
+          },
+        }}
+      />
+    </>
+  );
 }

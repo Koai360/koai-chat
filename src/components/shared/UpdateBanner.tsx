@@ -1,29 +1,64 @@
-import { motion } from "framer-motion";
-import { RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { RefreshCw, X } from "lucide-react";
+import { applyServiceWorkerUpdate } from "@/lib/sw";
+import { Button } from "@/components/ui/Button";
 
-interface Props {
-  onUpdate: () => void;
-}
+/**
+ * UpdateBanner — toast persistent en bottom-right cuando hay nueva versión PWA.
+ *
+ * Se dispara via window event "sw-update-available" emitido por el SW registration.
+ * Usuario puede actualizar (skipWaiting + reload) o dismiss.
+ */
+export function UpdateBanner() {
+  const [show, setShow] = useState(false);
 
-export function UpdateBanner({ onUpdate }: Props) {
+  useEffect(() => {
+    const handler = () => setShow(true);
+    window.addEventListener("sw-update-available", handler);
+    return () => window.removeEventListener("sw-update-available", handler);
+  }, []);
+
   return (
-    <motion.div
-      initial={{ y: 100, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      className="fixed bottom-20 left-4 right-4 z-[100] safe-bottom"
-    >
-      <div className="bg-noa text-bg rounded-2xl shadow-2xl shadow-noa/20 flex items-center justify-center gap-3 py-3 px-5">
-        <RefreshCw className="h-4 w-4" />
-        <span className="text-sm font-semibold">Nueva versión disponible</span>
-        <Button
-          onClick={onUpdate}
-          size="sm"
-          className="bg-brand hover:bg-brand/90 text-white rounded-full px-5 h-7 text-xs font-bold"
+    <AnimatePresence>
+      {show && (
+        <motion.div
+          initial={{ opacity: 0, y: 20, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 20, scale: 0.96 }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          className="fixed bottom-4 right-4 z-50 max-w-xs"
         >
-          Actualizar
-        </Button>
-      </div>
-    </motion.div>
+          <div className="card-glass p-4 flex items-start gap-3">
+            <RefreshCw className="size-5 text-[var(--color-noa)] mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-white font-medium">Nueva versión disponible</p>
+              <p className="text-[12px] text-white/55 mt-0.5">
+                Actualizá para obtener las últimas mejoras
+              </p>
+              <div className="flex items-center gap-2 mt-3">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={applyServiceWorkerUpdate}
+                >
+                  Actualizar
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setShow(false)}>
+                  Más tarde
+                </Button>
+              </div>
+            </div>
+            <button
+              onClick={() => setShow(false)}
+              className="text-white/40 hover:text-white/80 transition shrink-0"
+              aria-label="Cerrar"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

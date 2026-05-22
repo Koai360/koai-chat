@@ -1,152 +1,85 @@
-import { useState, useEffect, useCallback } from "react";
-import { API_URL } from "../config";
+import { useCallback, useEffect, useState } from "react";
+import { getAuthToken, setAuthToken } from "@/lib/api";
+import type { AuthUser } from "@/types/api";
 
-export interface AuthUser {
-  id: string;
-  name: string;
-  role: string;
-  email?: string;
-  picture?: string;
-}
+const USER_KEY = "noa.user";
 
 interface AuthState {
   user: AuthUser | null;
-  token: string | null;
-  isLoading: boolean;
-  isAuthenticated: boolean;
-  login: (username: string, password: string) => Promise<void>;
-  loginWithGoogle: (credential: string) => Promise<void>;
+  loading: boolean;
+}
+
+/**
+ * useAuth — gestiona session con backend koai-api.
+ *
+ * El flow real de Google OAuth:
+ *   1. Frontend redirige a `${API_BASE}/api/auth/google/login?redirect_uri=...`
+ *   2. Backend devuelve a callback con `?token=JWT&user=base64(json)`
+ *   3. Frontend persiste token + user en localStorage
+ *
+ * En dev también soporta token + user manual via localStorage.
+ */
+export function useAuth(): AuthState & {
+  loginWithGoogle: () => void;
   logout: () => void;
-}
+} {
+  const [state, setState] = useState<AuthState>(() => {
+    const token = getAuthToken();
+    const rawUser = localStorage.getItem(USER_KEY);
+    if (token && rawUser) {
+      try {
+        return { user: JSON.parse(rawUser) as AuthUser, loading: false };
+      } catch {
+        /* fallthrough */
+      }
+    }
+    return { user: null, loading: true };
+  });
 
-const TOKEN_KEY = "koai-chat-token";
-const USER_KEY = "koai-chat-user";
-
-function decodePayload(token: string): Record<string, unknown> | null {
-  try {
-    const base64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
-    return JSON.parse(atob(base64));
-  } catch {
-    return null;
-  }
-}
-
-function isTokenExpired(token: string): boolean {
-  const payload = decodePayload(token);
-  if (!payload?.exp) return true;
-  return Date.now() / 1000 > (payload.exp as number);
-}
-
-export function useAuth(): AuthState {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Inicializar desde localStorage + verificar con backend
+  // Procesa callback de OAuth: si la URL tiene ?token=...&user=..., guarda y limpia
   useEffect(() => {
-    let cancelled = false;
-    const savedToken = localStorage.getItem(TOKEN_KEY);
-    const savedUser = localStorage.getItem(USER_KEY);
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    const userB64 = params.get("user");
 
-    if (!savedToken || isTokenExpired(savedToken) || !savedUser) {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
-      setIsLoading(false);
-      return;
+    if (token && userB64) {
+      try {
+        const userJson = atob(userB64);
+        const user = JSON.parse(userJson) as AuthUser;
+        setAuthToken(token);
+        localStorage.setItem(USER_KEY, JSON.stringify(user));
+        setState({ user, loading: false });
+        // Limpia los query params para que no quede el token visible
+        const url = new URL(window.location.href);
+        url.search = "";
+        window.history.replaceState({}, "", url.toString());
+        return;
+      } catch (err) {
+        console.warn("[useAuth] callback parse error", err);
+      }
     }
 
-    // Mostrar UI rápido con datos locales mientras verificamos
-    try {
-      setToken(savedToken);
-      setUser(JSON.parse(savedUser));
-    } catch {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
-      setIsLoading(false);
-      return;
+    // Si no hay sesión válida, terminamos loading
+    if (!getAuthToken()) {
+      setState({ user: null, loading: false });
     }
-
-    // Verificar con backend — si el token fue revocado server-side, logout
-    fetch(`${API_URL}/api/auth/me`, {
-      headers: { Authorization: `Bearer ${savedToken}` },
-    })
-      .then((res) => {
-        if (cancelled) return;
-        if (res.status === 401) {
-          // Token revocado server-side
-          localStorage.removeItem(TOKEN_KEY);
-          localStorage.removeItem(USER_KEY);
-          setToken(null);
-          setUser(null);
-        }
-        // Si res.ok, todo bien — mantener state local
-        // Si res falla por red, mantener state local (modo offline)
-      })
-      .catch(() => {
-        // Network error — asumir válido y dejar que los fetches reales
-        // manejen el 401 si aplica. No romper el flow offline.
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
-  const _saveAuth = useCallback((data: { token: string; user: AuthUser }) => {
-    localStorage.setItem(TOKEN_KEY, data.token);
-    localStorage.setItem(USER_KEY, JSON.stringify(data.user));
-    setToken(data.token);
-    setUser(data.user);
+  const loginWithGoogle = useCallback(() => {
+    const apiBase = import.meta.env.VITE_API_BASE || "https://api.koai360.com";
+    const redirectUri = window.location.origin + window.location.pathname;
+    window.location.href = `${apiBase}/api/auth/google/login?redirect_uri=${encodeURIComponent(redirectUri)}`;
   }, []);
-
-  const login = useCallback(async (username: string, password: string) => {
-    const res = await fetch(`${API_URL}/api/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
-    });
-
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new Error(data.detail || "Credenciales inválidas");
-    }
-
-    const data = await res.json();
-    _saveAuth(data);
-  }, [_saveAuth]);
-
-  const loginWithGoogle = useCallback(async (credential: string) => {
-    const res = await fetch(`${API_URL}/api/auth/google`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ credential }),
-    });
-
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new Error(data.detail || "Error al iniciar sesión con Google");
-    }
-
-    const data = await res.json();
-    _saveAuth(data);
-  }, [_saveAuth]);
 
   const logout = useCallback(() => {
-    localStorage.removeItem(TOKEN_KEY);
+    setAuthToken(null);
     localStorage.removeItem(USER_KEY);
-    setToken(null);
-    setUser(null);
+    setState({ user: null, loading: false });
   }, []);
 
   return {
-    user,
-    token,
-    isLoading,
-    isAuthenticated: !!user && !!token,
-    login,
+    user: state.user,
+    loading: state.loading,
     loginWithGoogle,
     logout,
   };

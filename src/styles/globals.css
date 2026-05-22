@@ -1,0 +1,434 @@
+@import "tailwindcss";
+@import "@fontsource/sora/400.css";
+@import "@fontsource/sora/500.css";
+@import "@fontsource/sora/600.css";
+@import "@fontsource/dm-sans/400.css";
+@import "@fontsource/dm-sans/500.css";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
+
+/* ============================================================
+   NOA · DESIGN SYSTEM v6 · "Premium Dark"
+   Negro profundo + gradients indigo/sapphire/violet
+   Inspiración: Gemini Neural Expressive (mayo 2026)
+   ============================================================ */
+
+@theme {
+  /* === BACKGROUNDS · negro profundo === */
+  --color-bg: #000000;
+  --color-bg-elevated: #0a0a0c;
+  --color-bg-overlay: #14141a;
+  --color-bg-input: #0e0e12;
+
+  /* === GRADIENT STOPS · jewel-tone bottom-up === */
+  --color-gradient-base: #000000;
+  --color-gradient-mid: #050818;
+  --color-gradient-glow: #0e1538;
+  --color-gradient-accent: #1a1f4d;
+
+  /* === GLASS SURFACES · dark glassmorphism === */
+  --color-glass-base: rgba(20, 22, 32, 0.55);
+  --color-glass-border: rgba(255, 255, 255, 0.06);
+  --color-glass-border-hi: rgba(255, 255, 255, 0.10);
+
+  /* === TEXT === */
+  --color-text: #ffffff;
+  --color-text-muted: rgba(255, 255, 255, 0.65);
+  --color-text-subtle: rgba(255, 255, 255, 0.42);
+  --color-text-faint: rgba(255, 255, 255, 0.24);
+
+  /* === BORDERS · casi inexistentes === */
+  --color-border: rgba(255, 255, 255, 0.06);
+  --color-border-hi: rgba(255, 255, 255, 0.10);
+  --color-border-strong: rgba(255, 255, 255, 0.16);
+
+  /* === BRAND KOAI · lime + purple, uso restraint === */
+  --color-noa: #c8dd4a;
+  --color-noa-soft: rgba(200, 221, 74, 0.12);
+  --color-noa-glow: rgba(200, 221, 74, 0.20);
+  --color-noa-dim: #6f8e1a;
+
+  --color-purple: #6b3f8e;
+  --color-purple-soft: rgba(107, 63, 142, 0.18);
+  --color-purple-glow: rgba(107, 63, 142, 0.28);
+
+  /* === ACCENT JEWEL GRADIENTS === */
+  --color-sapphire: #1e3a8a;
+  --color-indigo: #312e81;
+  --color-violet: #4c1d95;
+  --color-violet-deep: #2e1065;
+
+  /* === SEMANTIC === */
+  --color-success: #7cac7e;
+  --color-success-soft: rgba(124, 172, 126, 0.16);
+  --color-warning: #d4a75f;
+  --color-warning-soft: rgba(212, 167, 95, 0.16);
+  --color-danger: #c97070;
+  --color-danger-soft: rgba(201, 112, 112, 0.16);
+  --color-info: #7b9bb5;
+  --color-info-soft: rgba(123, 155, 181, 0.16);
+
+  /* === FONT FAMILIES === */
+  --font-display: "Sora", system-ui, -apple-system, sans-serif;
+  --font-body: "DM Sans", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* === RADIUS === */
+  --radius-pill: 9999px;
+  --radius-card: 16px;
+  --radius-card-lg: 20px;
+  --radius-btn: 12px;
+  --radius-sm: 8px;
+  --radius-xs: 6px;
+
+  /* === SHADOWS · premium dark === */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.40), 0 2px 8px rgba(0, 0, 0, 0.20);
+  --shadow-deep: 0 20px 60px rgba(0, 0, 0, 0.55), 0 4px 16px rgba(0, 0, 0, 0.30);
+  --shadow-glow-noa: 0 0 40px rgba(200, 221, 74, 0.15);
+
+  /* === FOCUS RING === */
+  --ring-focus: 0 0 0 2px rgba(200, 221, 74, 0.40);
+
+  /* === TIMING === */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --duration-fast: 150ms;
+  --duration-base: 220ms;
+  --duration-slow: 400ms;
+}
+
+/* ============================================================
+   BASE RESET
+   ============================================================ */
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body,
+#root {
+  height: 100dvh;
+  margin: 0;
+  padding: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  overflow: hidden;
+}
+
+button {
+  font-family: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+}
+
+input,
+textarea {
+  font-family: inherit;
+  background: none;
+  border: none;
+  outline: none;
+  color: inherit;
+  font-size: 16px; /* prevent iOS zoom */
+}
+
+::selection {
+  background: var(--color-noa-soft);
+  color: var(--color-text);
+}
+
+/* Mono tabular numbers para alinear cantidades */
+.mono,
+code,
+pre {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum" 1, "calt" 1;
+}
+
+/* Sora display */
+.display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+/* ============================================================
+   APP BACKGROUND · layered gradient + breath animation
+   ============================================================ */
+
+.app-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    /* Glow bottom violet/sapphire */
+    radial-gradient(
+      ellipse 120% 60% at 50% 110%,
+      rgba(76, 29, 149, 0.15) 0%,
+      rgba(30, 58, 138, 0.10) 30%,
+      transparent 70%
+    ),
+    /* Deep indigo lower half */
+    linear-gradient(
+      180deg,
+      #000000 0%,
+      #000000 40%,
+      #050818 70%,
+      #0e1538 100%
+    ),
+    /* Black base */
+    #000000;
+}
+
+.app-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 80% 40% at 50% 100%,
+    rgba(107, 63, 142, 0.12) 0%,
+    transparent 70%
+  );
+  animation: breathe 18s ease-in-out infinite;
+  will-change: opacity;
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-bg::before {
+    animation: none;
+  }
+}
+
+/* ============================================================
+   GLASS UTILITY · dark glassmorphism
+   ============================================================ */
+
+.card-glass {
+  background: var(--color-glass-base);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  transition: border-color var(--duration-base) var(--ease-out);
+}
+
+.card-glass:hover {
+  border-color: var(--color-glass-border-hi);
+}
+
+/* Fallback si no soporta backdrop-filter */
+@supports not (backdrop-filter: blur(24px)) {
+  .card-glass {
+    background: var(--color-bg-overlay);
+  }
+}
+
+/* ============================================================
+   SCROLLBAR · minimal premium
+   ============================================================ */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-hi);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-strong);
+}
+
+/* ============================================================
+   SAFE AREAS · iOS notch
+   ============================================================ */
+
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-left {
+  padding-left: env(safe-area-inset-left);
+}
+
+.safe-right {
+  padding-right: env(safe-area-inset-right);
+}
+
+/* ============================================================
+   KEYBOARD STATE · S104 pattern para mobile
+   ============================================================ */
+
+html[data-keyboard="open"] .hide-on-keyboard {
+  display: none;
+}
+
+/* ============================================================
+   FOCUS RING · accessible default
+   ============================================================ */
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
+  border-radius: var(--radius-sm);
+}
+
+/* ============================================================
+   PROSE-NOA · markdown rendering en chat messages
+   ============================================================ */
+
+.prose-noa {
+  font-family: var(--font-body);
+}
+
+.prose-noa p {
+  margin: 0;
+}
+
+.prose-noa p + p {
+  margin-top: 0.75rem;
+}
+
+.prose-noa strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.prose-noa em {
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.prose-noa a {
+  color: var(--color-noa);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+  transition: opacity 150ms;
+}
+
+.prose-noa a:hover {
+  opacity: 0.8;
+}
+
+.prose-noa code {
+  font-family: var(--font-mono);
+  background: var(--color-bg-elevated);
+  color: #ffffff;
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+  font-size: 0.875em;
+  border: 1px solid var(--color-border);
+}
+
+.prose-noa pre {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  margin: 0.75rem 0;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.prose-noa pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  border-radius: 0;
+}
+
+.prose-noa ul,
+.prose-noa ol {
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+
+.prose-noa ul {
+  list-style: disc;
+}
+
+.prose-noa ol {
+  list-style: decimal;
+}
+
+.prose-noa li {
+  margin: 0.25rem 0;
+}
+
+.prose-noa h1,
+.prose-noa h2,
+.prose-noa h3,
+.prose-noa h4 {
+  font-family: var(--font-display);
+  color: #ffffff;
+  font-weight: 600;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.prose-noa h1 { font-size: 1.5rem; }
+.prose-noa h2 { font-size: 1.25rem; }
+.prose-noa h3 { font-size: 1.1rem; }
+
+.prose-noa blockquote {
+  border-left: 2px solid var(--color-noa);
+  padding-left: 0.875rem;
+  color: rgba(255, 255, 255, 0.75);
+  font-style: italic;
+  margin: 0.75rem 0;
+}
+
+.prose-noa hr {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 1rem 0;
+}
+
+.prose-noa table {
+  border-collapse: collapse;
+  margin: 0.75rem 0;
+  font-size: 0.9em;
+}
+
+.prose-noa th,
+.prose-noa td {
+  border: 1px solid var(--color-border-hi);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.prose-noa th {
+  background: var(--color-bg-elevated);
+  font-weight: 600;
+}

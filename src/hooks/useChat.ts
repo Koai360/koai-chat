@@ -71,6 +71,11 @@ export function useChat(userId: string | undefined): UseChatReturn {
 
   const abortRef = useRef<AbortController | null>(null);
   const activeIdRef = useRef<string | null>(null);
+  // Cuando sendMessage crea una conv nueva, NO queremos que el useEffect del
+  // activeId resetee los messages — el optimistic user msg ya está seteado y
+  // getMessages() devolvería [] (conv nueva sin nada en backend). Marcamos
+  // el id aquí para que el effect lo skipee una sola vez.
+  const skipNextLoadRef = useRef<string | null>(null);
 
   useEffect(() => {
     activeIdRef.current = activeId;
@@ -89,6 +94,10 @@ export function useChat(userId: string | undefined): UseChatReturn {
     if (!activeId) {
       setMessages([]);
       return;
+    }
+    if (skipNextLoadRef.current === activeId) {
+      skipNextLoadRef.current = null;
+      return; // sendMessage ya seteó messages con el optimistic user msg
     }
     setMessages([]);
     getMessages(activeId)
@@ -136,10 +145,17 @@ export function useChat(userId: string | undefined): UseChatReturn {
     async (text: string, opts: Partial<SendMessagePayload> = {}) => {
       if (!text.trim() || loading) return;
 
-      // Garantizar conversación activa
-      let convId = activeIdRef.current;
-      if (!convId) {
-        const conv = await newConversation();
+      // Garantizar conversación activa. Si no hay activa, creamos una pero
+      // NO disparamos el load del useEffect — vamos a setear messages a mano
+      // con el optimistic user msg + flag para skipear la próxima carga.
+      const existingId = activeIdRef.current;
+      const isNewConv = !existingId;
+      let convId: string;
+      if (existingId) {
+        convId = existingId;
+      } else {
+        const conv = await createConversation("noa");
+        setConversations((prev) => [conv, ...prev]);
         convId = conv.id;
       }
 
@@ -151,7 +167,15 @@ export function useChat(userId: string | undefined): UseChatReturn {
         content: text,
         created_at: new Date().toISOString(),
       };
-      setMessages((prev) => [...prev, userMsg]);
+
+      if (isNewConv) {
+        // Conv recién creada: marcar para skipear el load, setear messages, activar conv.
+        skipNextLoadRef.current = convId;
+        setMessages([userMsg]);
+        setActiveIdState(convId);
+      } else {
+        setMessages((prev) => [...prev, userMsg]);
+      }
       setLoading(true);
       setStreamingText("");
       setLoadingHint("Pensando…");

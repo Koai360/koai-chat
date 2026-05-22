@@ -65,12 +65,12 @@ export function ModelPicker({ mode, onChange, className }: ModelPickerProps) {
       trigger={
         <button
           aria-label={`Modo: ${current.label}. Cambiar.`}
+          data-no-focus-ring
           className={cn(
             "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full",
             "text-white hover:bg-white/[0.06] active:bg-white/[0.10]",
             "transition-colors duration-150",
-            "min-h-[36px]",
-            "focus:outline-none focus:ring-0 focus-visible:ring-2 focus-visible:ring-[var(--color-noa)]/40",
+            "min-h-[36px] outline-none border-0",
             className,
           )}
         >

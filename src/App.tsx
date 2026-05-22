@@ -3,6 +3,8 @@ import { LoginScreen } from "@/components/auth/LoginScreen";
 import { AppShell } from "@/components/layout/AppShell";
 import { Sparkle } from "@/components/chat/Sparkle";
 import { AppBackground } from "@/components/layout/AppBackground";
+import { UpdateBanner } from "@/components/shared/UpdateBanner";
+import { Toaster } from "sonner";
 
 export default function App() {
   const { user, loading, loginWithGoogle, logout } = useAuth();
@@ -19,8 +21,29 @@ export default function App() {
   }
 
   if (!user) {
-    return <LoginScreen onGoogleLogin={loginWithGoogle} />;
+    return (
+      <>
+        <LoginScreen onGoogleLogin={loginWithGoogle} />
+        <Toaster theme="dark" position="top-right" />
+      </>
+    );
   }
 
-  return <AppShell user={user} onLogout={logout} />;
+  return (
+    <>
+      <AppShell user={user} onLogout={logout} />
+      <UpdateBanner />
+      <Toaster
+        theme="dark"
+        position="top-right"
+        toastOptions={{
+          style: {
+            background: "var(--color-bg-overlay)",
+            border: "1px solid var(--color-border-hi)",
+            color: "var(--color-text)",
+          },
+        }}
+      />
+    </>
+  );
 }

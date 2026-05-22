@@ -44,8 +44,8 @@ export function AppShell({ user, onLogout }: AppShellProps) {
     loading,
     loadingHint,
     streamingText,
-    thinkingLevel,
-    setThinkingLevel,
+    modelMode,
+    setModelMode,
     sendMessage,
     stopGeneration,
     newConversation,
@@ -142,8 +142,8 @@ export function AppShell({ user, onLogout }: AppShellProps) {
           <TopBar
             onMenu={() => setDrawerOpen(true)}
             onNewChat={handleNewChat}
-            thinkingLevel={thinkingLevel}
-            onThinkingLevelChange={setThinkingLevel}
+            modelMode={modelMode}
+            onModelModeChange={setModelMode}
           />
 
           <main className="flex-1 overflow-hidden min-h-0">

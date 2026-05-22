@@ -8,6 +8,7 @@ import {
   type StreamEvent,
 } from "@/lib/api";
 import type { ChatMessage, Conversation, SendMessagePayload, ThinkingLevel } from "@/types/api";
+import { resolveThinkingLevel, type ModelMode } from "@/lib/autoThinking";
 
 /**
  * useChat — state machine principal del chat con Noa.
@@ -28,13 +29,25 @@ export interface UseChatReturn {
   loading: boolean;
   loadingHint: string | null;
   streamingText: string;
-  thinkingLevel: ThinkingLevel;
-  setThinkingLevel: (lvl: ThinkingLevel) => void;
+  modelMode: ModelMode;
+  setModelMode: (mode: ModelMode) => void;
   sendMessage: (text: string, opts?: Partial<SendMessagePayload>) => Promise<void>;
   stopGeneration: () => void;
   newConversation: () => Promise<Conversation>;
   deleteConversation: (id: string) => Promise<void>;
   refresh: () => Promise<void>;
+}
+
+const MODEL_MODE_KEY = "noa.modelMode";
+
+function loadInitialMode(): ModelMode {
+  try {
+    const saved = localStorage.getItem(MODEL_MODE_KEY);
+    if (saved === "auto" || saved === "standard" || saved === "pro") return saved;
+  } catch {
+    /* noop */
+  }
+  return "auto";
 }
 
 export function useChat(userId: string | undefined): UseChatReturn {
@@ -44,7 +57,16 @@ export function useChat(userId: string | undefined): UseChatReturn {
   const [loading, setLoading] = useState(false);
   const [loadingHint, setLoadingHint] = useState<string | null>(null);
   const [streamingText, setStreamingText] = useState("");
-  const [thinkingLevel, setThinkingLevel] = useState<ThinkingLevel>("medium");
+  const [modelMode, setModelModeState] = useState<ModelMode>(loadInitialMode);
+
+  const setModelMode = useCallback((mode: ModelMode) => {
+    setModelModeState(mode);
+    try {
+      localStorage.setItem(MODEL_MODE_KEY, mode);
+    } catch {
+      /* noop */
+    }
+  }, []);
 
   const abortRef = useRef<AbortController | null>(null);
   const activeIdRef = useRef<string | null>(null);
@@ -136,11 +158,17 @@ export function useChat(userId: string | undefined): UseChatReturn {
       const abort = new AbortController();
       abortRef.current = abort;
 
+      // Resolver thinking_level dinámicamente según el mode:
+      //   - auto     → autoThinkingLevel(text) clasifica low/medium/high
+      //   - standard → siempre medium
+      //   - pro      → siempre high
+      const resolvedLevel: ThinkingLevel = resolveThinkingLevel(modelMode, text);
+
       const payload: SendMessagePayload = {
         message: text,
         conversation_id: convId,
         agent: "noa",
-        thinking_level: thinkingLevel,
+        thinking_level: resolvedLevel,
         ...opts,
       };
 
@@ -215,7 +243,7 @@ export function useChat(userId: string | undefined): UseChatReturn {
         abortRef.current = null;
       }
     },
-    [loading, thinkingLevel, newConversation, messages],
+    [loading, modelMode, newConversation, messages],
   );
 
   const refresh = useCallback(async () => {
@@ -235,8 +263,8 @@ export function useChat(userId: string | undefined): UseChatReturn {
     loading,
     loadingHint,
     streamingText,
-    thinkingLevel,
-    setThinkingLevel,
+    modelMode,
+    setModelMode,
     sendMessage,
     stopGeneration,
     newConversation,

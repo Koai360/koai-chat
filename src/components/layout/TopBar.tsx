@@ -1,13 +1,13 @@
 import { Menu, Edit3 } from "lucide-react";
 import { IconButton } from "@/components/ui/IconButton";
 import { ModelPicker } from "@/components/chat/ModelPicker";
-import type { ThinkingLevel } from "@/types/api";
+import type { ModelMode } from "@/lib/autoThinking";
 
 interface TopBarProps {
   onMenu: () => void;
   onNewChat: () => void;
-  thinkingLevel: ThinkingLevel;
-  onThinkingLevelChange: (lvl: ThinkingLevel) => void;
+  modelMode: ModelMode;
+  onModelModeChange: (mode: ModelMode) => void;
 }
 
 /**
@@ -18,7 +18,7 @@ interface TopBarProps {
  *
  * Touch targets HIG iOS: 44×44 mínimo en los IconButtons.
  */
-export function TopBar({ onMenu, onNewChat, thinkingLevel, onThinkingLevelChange }: TopBarProps) {
+export function TopBar({ onMenu, onNewChat, modelMode, onModelModeChange }: TopBarProps) {
   return (
     <header
       className="md:hidden flex items-center justify-between min-h-[64px] px-2 pb-2 relative z-20"
@@ -32,7 +32,7 @@ export function TopBar({ onMenu, onNewChat, thinkingLevel, onThinkingLevelChange
         onClick={onMenu}
       />
 
-      <ModelPicker level={thinkingLevel} onChange={onThinkingLevelChange} />
+      <ModelPicker mode={modelMode} onChange={onModelModeChange} />
 
       <IconButton
         icon={<Edit3 className="size-[20px]" strokeWidth={2} />}

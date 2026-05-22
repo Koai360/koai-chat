@@ -8,6 +8,9 @@ import {
   Settings,
   LogOut,
   User,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { Sparkle } from "@/components/chat/Sparkle";
 import { IconButton } from "@/components/ui/IconButton";
@@ -15,6 +18,7 @@ import { Dropdown, DropdownItem, DropdownSeparator } from "@/components/ui/Dropd
 import { cn } from "@/lib/cn";
 import type { AuthUser, Conversation } from "@/types/api";
 import { navigate, type Route } from "@/lib/routing";
+import { renameConversation as apiRenameConversation, deleteConversation as apiDeleteConversation } from "@/lib/api";
 
 interface SidebarProps {
   user: AuthUser;
@@ -24,6 +28,7 @@ interface SidebarProps {
   onLogout: () => void;
   onNewChat: () => void;
   onSelectConversation: (id: string) => void;
+  onConversationsChanged?: () => void;
   isMobile?: boolean;
   onCloseMobile?: () => void;
 }
@@ -45,6 +50,7 @@ export function Sidebar({
   onLogout,
   onNewChat,
   onSelectConversation,
+  onConversationsChanged,
   isMobile = false,
   onCloseMobile,
 }: SidebarProps) {
@@ -70,6 +76,7 @@ export function Sidebar({
           onSelectConversation(id);
           onCloseMobile?.();
         }}
+        onConversationsChanged={onConversationsChanged}
         onCollapse={onCloseMobile}
       />
     );
@@ -183,6 +190,7 @@ export function Sidebar({
                   onSelectConversation(id);
                   setExpanded(false);
                 }}
+                onConversationsChanged={onConversationsChanged}
                 onCollapse={() => setExpanded(false)}
               />
             </motion.aside>
@@ -205,6 +213,7 @@ interface SidebarContentProps {
   onLogout: () => void;
   onNewChat: () => void;
   onSelectConversation: (id: string) => void;
+  onConversationsChanged?: () => void;
   onCollapse?: () => void;
 }
 
@@ -216,9 +225,33 @@ function SidebarContent({
   onLogout,
   onNewChat,
   onSelectConversation,
+  onConversationsChanged,
   onCollapse,
 }: SidebarContentProps) {
   const recent = conversations.slice(0, 5);
+
+  const handleRename = async (conv: Conversation) => {
+    const next = window.prompt("Nuevo nombre del chat:", conv.title || "");
+    if (!next || next.trim() === conv.title) return;
+    try {
+      await apiRenameConversation(conv.id, next.trim());
+      onConversationsChanged?.();
+    } catch (err) {
+      console.warn("[Sidebar] rename failed", err);
+      window.alert("No se pudo renombrar el chat.");
+    }
+  };
+
+  const handleDelete = async (conv: Conversation) => {
+    if (!window.confirm(`¿Borrar "${conv.title || "esta conversación"}"?`)) return;
+    try {
+      await apiDeleteConversation(conv.id);
+      onConversationsChanged?.();
+    } catch (err) {
+      console.warn("[Sidebar] delete failed", err);
+      window.alert("No se pudo borrar el chat.");
+    }
+  };
 
   return (
     <div className="flex flex-col h-full safe-top safe-bottom">
@@ -267,22 +300,60 @@ function SidebarContent({
               const isActive = c.id === activeConversationId;
               const title = c.title || "Nueva conversación";
               return (
-                <button
+                <div
                   key={c.id}
-                  onClick={() => onSelectConversation(c.id)}
                   className={cn(
-                    "group w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left",
-                    "transition-colors duration-150",
+                    "group w-full flex items-center gap-1 pl-2.5 pr-1 py-2 rounded-lg",
+                    "transition-colors duration-150 min-h-[40px]",
                     isActive
                       ? "bg-white/[0.08] text-white"
                       : "text-white/70 hover:bg-white/[0.04] hover:text-white",
                   )}
                 >
-                  {isActive && (
-                    <span className="size-1.5 rounded-full bg-[var(--color-noa)] flex-shrink-0" />
-                  )}
-                  <span className="flex-1 text-sm truncate">{title}</span>
-                </button>
+                  <button
+                    onClick={() => onSelectConversation(c.id)}
+                    className="flex-1 flex items-center gap-2 min-w-0 text-left"
+                  >
+                    {isActive && (
+                      <span className="size-1.5 rounded-full bg-[var(--color-noa)] flex-shrink-0" />
+                    )}
+                    <span className="flex-1 text-sm truncate">{title}</span>
+                  </button>
+                  <Dropdown
+                    align="end"
+                    side="right"
+                    trigger={
+                      <button
+                        aria-label="Opciones del chat"
+                        className={cn(
+                          "shrink-0 size-7 rounded-md flex items-center justify-center",
+                          "text-white/40 hover:text-white hover:bg-white/[0.08]",
+                          "opacity-0 group-hover:opacity-100 focus:opacity-100",
+                          "md:opacity-0 opacity-100",
+                          "transition-opacity",
+                        )}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreHorizontal className="size-4" />
+                      </button>
+                    }
+                  >
+                    <DropdownItem
+                      icon={<Pencil className="size-4" />}
+                      onClick={() => handleRename(c)}
+                    >
+                      Renombrar
+                    </DropdownItem>
+                    <DropdownSeparator />
+                    <DropdownItem
+                      icon={<Trash2 className="size-4" />}
+                      variant="danger"
+                      onClick={() => handleDelete(c)}
+                    >
+                      Borrar
+                    </DropdownItem>
+                  </Dropdown>
+                </div>
               );
             })
           )}
@@ -297,22 +368,22 @@ function SidebarContent({
         </nav>
       </div>
 
-      {/* Footer utilities */}
-      <div className="border-t border-[var(--color-border)] px-2 py-2">
+      {/* Footer utilities — touch targets generosos */}
+      <div className="border-t border-[var(--color-border)] px-2 py-2 space-y-0.5">
         <FooterLink
-          icon={<ImageIcon className="size-4" />}
+          icon={<ImageIcon className="size-[18px]" />}
           label="Galería"
           active={route.kind === "galeria"}
           onClick={() => navigate({ kind: "galeria" })}
         />
         <FooterLink
-          icon={<Clock className="size-4" />}
+          icon={<Clock className="size-[18px]" />}
           label="Historial"
           active={route.kind === "historial"}
           onClick={() => navigate({ kind: "historial" })}
         />
         <FooterLink
-          icon={<Settings className="size-4" />}
+          icon={<Settings className="size-[18px]" />}
           label="Configuración"
           active={route.kind === "config"}
           onClick={() => navigate({ kind: "config" })}
@@ -379,10 +450,10 @@ function FooterLink({
     <button
       onClick={onClick}
       className={cn(
-        "w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition",
+        "w-full flex items-center gap-3 px-3 h-11 min-h-[44px] rounded-lg text-[14px] font-medium transition",
         active
-          ? "bg-white/[0.06] text-white"
-          : "text-white/70 hover:bg-white/[0.04] hover:text-white",
+          ? "bg-white/[0.08] text-white"
+          : "text-white/75 hover:bg-white/[0.05] hover:text-white",
       )}
     >
       {icon}

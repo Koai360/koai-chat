@@ -57,6 +57,7 @@ export type ThinkingLevel = "minimal" | "low" | "medium" | "high";
 export interface SendMessagePayload {
   message: string;
   conversation_id?: string;
+  workspace_id?: string;
   agent?: string;
   thinking_level?: ThinkingLevel;
   image_base64?: string;
@@ -64,4 +65,7 @@ export interface SendMessagePayload {
   image_engine?: string;
   edit_mode?: boolean;
   image_url?: string;
+  file_base64?: string;
+  file_name?: string;
+  file_type?: string;
 }

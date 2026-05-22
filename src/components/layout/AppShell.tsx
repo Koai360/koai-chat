@@ -47,6 +47,7 @@ export function AppShell({ user, onLogout }: AppShellProps) {
     sendMessage,
     stopGeneration,
     newConversation,
+    refresh,
   } = useChat(user.id);
 
   // Sync activeId con la ruta URL
@@ -74,13 +75,31 @@ export function AppShell({ user, onLogout }: AppShellProps) {
     navigate({ kind: "chat", conversationId: id });
   };
 
-  const handleSend = async (text: string) => {
+  const handleSend = async (text: string, attachments?: import("@/components/chat/ChatInput").AttachedFile[]) => {
     // Si no hay conversación activa, sendMessage crea una y nos lleva ahí
     if (!activeId) {
       const conv = await newConversation();
       navigate({ kind: "chat", conversationId: conv.id });
     }
-    await sendMessage(text);
+    // Backend acepta 1 image_base64 + 1 file_base64. Multi-file iteramos (cada uno como msg propio).
+    if (!attachments || attachments.length === 0) {
+      await sendMessage(text);
+      return;
+    }
+    // Primer attachment va con el texto. El resto como messages separados.
+    const [first, ...rest] = attachments;
+    const firstOpts =
+      first.kind === "image"
+        ? { image_base64: first.base64, image_mode: false }
+        : { file_base64: first.base64, file_name: first.name, file_type: first.mime };
+    await sendMessage(text, firstOpts as never);
+    for (const att of rest) {
+      const opts =
+        att.kind === "image"
+          ? { image_base64: att.base64, image_mode: false }
+          : { file_base64: att.base64, file_name: att.name, file_type: att.mime };
+      await sendMessage("", opts as never);
+    }
   };
 
   return (
@@ -97,6 +116,7 @@ export function AppShell({ user, onLogout }: AppShellProps) {
           onLogout={onLogout}
           onNewChat={handleNewChat}
           onSelectConversation={handleSelectConversation}
+          onConversationsChanged={refresh}
         />
 
         {/* Mobile drawer */}
@@ -110,6 +130,7 @@ export function AppShell({ user, onLogout }: AppShellProps) {
             onLogout={onLogout}
             onNewChat={handleNewChat}
             onSelectConversation={handleSelectConversation}
+            onConversationsChanged={refresh}
             onCloseMobile={() => setDrawerOpen(false)}
           />
         </Sheet>

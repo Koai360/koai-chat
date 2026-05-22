@@ -135,8 +135,6 @@ export async function renameConversation(id: string, title: string): Promise<voi
   await apiFetch(`/api/chat/conversations/${id}`, {
     method: "PATCH",
     json: { title },
-  }).catch(() => {
-    // Fallback si el endpoint PATCH no existe: usar persist message metadata
   });
 }
 

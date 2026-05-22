@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, Clock, Trash2 } from "lucide-react";
-import { listConversations, deleteConversation as apiDeleteConversation } from "@/lib/api";
+import { Search, Clock, Trash2, Pencil } from "lucide-react";
+import {
+  listConversations,
+  deleteConversation as apiDeleteConversation,
+  renameConversation as apiRenameConversation,
+} from "@/lib/api";
 import { navigate } from "@/lib/routing";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { IconButton } from "@/components/ui/IconButton";
@@ -37,6 +41,18 @@ export function HistoryPage() {
       setItems((prev) => prev.filter((c) => c.id !== id));
     } catch (err) {
       console.warn("[HistoryPage] delete failed", err);
+    }
+  };
+
+  const handleRename = async (conv: Conversation) => {
+    const next = window.prompt("Nuevo nombre del chat:", conv.title || "");
+    if (!next || next.trim() === conv.title) return;
+    try {
+      await apiRenameConversation(conv.id, next.trim());
+      setItems((prev) => prev.map((c) => (c.id === conv.id ? { ...c, title: next.trim() } : c)));
+    } catch (err) {
+      console.warn("[HistoryPage] rename failed", err);
+      window.alert("No se pudo renombrar.");
     }
   };
 
@@ -87,7 +103,7 @@ export function HistoryPage() {
                 </h2>
                 <div className="space-y-1">
                   {bucket.map((c) => (
-                    <HistoryItem key={c.id} conv={c} onDelete={handleDelete} />
+                    <HistoryItem key={c.id} conv={c} onDelete={handleDelete} onRename={handleRename} />
                   ))}
                 </div>
               </section>
@@ -102,15 +118,17 @@ export function HistoryPage() {
 function HistoryItem({
   conv,
   onDelete,
+  onRename,
 }: {
   conv: Conversation;
   onDelete: (id: string) => void;
+  onRename: (conv: Conversation) => void;
 }) {
   const title = conv.title || "Sin título";
   const ts = conv.last_message_at || conv.updated_at || conv.created_at;
 
   return (
-    <div className="group flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition">
+    <div className="group flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition">
       <button
         onClick={() => navigate({ kind: "chat", conversationId: conv.id })}
         className="flex-1 flex items-start gap-3 text-left min-w-0"
@@ -118,16 +136,24 @@ function HistoryItem({
         <Clock className="size-4 text-white/40 mt-0.5 shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="text-[14px] text-white/95 font-medium truncate">{title}</p>
-          <p className="text-[12px] text-white/45 mt-0.5">{relativeTime(ts)}</p>
+          <p className="mono text-[11px] text-white/45 mt-0.5 tracking-tight">{relativeTime(ts)}</p>
         </div>
       </button>
+      <IconButton
+        icon={<Pencil className="size-4" />}
+        label="Renombrar"
+        size="sm"
+        variant="ghost"
+        onClick={() => onRename(conv)}
+        className="md:opacity-0 md:group-hover:opacity-100 opacity-100"
+      />
       <IconButton
         icon={<Trash2 className="size-4" />}
         label="Borrar conversación"
         size="sm"
         variant="ghost"
         onClick={() => onDelete(conv.id)}
-        className="opacity-0 group-hover:opacity-100 hover:bg-[var(--color-danger-soft)] hover:text-[var(--color-danger)]"
+        className="md:opacity-0 md:group-hover:opacity-100 opacity-100 hover:bg-[var(--color-danger-soft)] hover:text-[var(--color-danger)]"
       />
     </div>
   );

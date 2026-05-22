@@ -20,7 +20,10 @@ interface TopBarProps {
  */
 export function TopBar({ onMenu, onNewChat, thinkingLevel, onThinkingLevelChange }: TopBarProps) {
   return (
-    <header className="md:hidden flex items-center justify-between h-14 px-2 safe-top relative z-20">
+    <header
+      className="md:hidden flex items-center justify-between min-h-[64px] px-2 pb-2 relative z-20"
+      style={{ paddingTop: "calc(env(safe-area-inset-top) + 0.5rem)" }}
+    >
       <IconButton
         icon={<Menu className="size-[22px]" strokeWidth={2} />}
         label="Abrir menú"

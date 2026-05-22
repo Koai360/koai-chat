@@ -64,8 +64,11 @@ export function ModelPicker({ level, onChange, className }: ModelPickerProps) {
           aria-label={`Modelo: ${current.label}. Cambiar variante`}
           className={cn(
             "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full",
-            "text-white hover:bg-white/[0.06] transition-colors",
+            "text-white hover:bg-white/[0.06] active:bg-white/[0.10]",
+            "transition-colors duration-150",
             "min-h-[36px]",
+            // Solo mostrar focus ring por keyboard nav (NO por touch/click)
+            "focus:outline-none focus:ring-0 focus-visible:ring-2 focus-visible:ring-[var(--color-noa)]/40",
             className,
           )}
         >

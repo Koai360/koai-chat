@@ -349,9 +349,11 @@ function ImageViewer({
       className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex items-center justify-center p-4"
       onClick={onClose}
     >
+      {/* top-[calc(safe-area+1rem)] para que el botón quede debajo del notch /
+          Dynamic Island en iPhone. En devices sin notch, safe-area=0 → top=1rem. */}
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 size-10 rounded-full bg-white/[0.08] hover:bg-white/[0.16] flex items-center justify-center transition"
+        className="absolute right-4 size-10 rounded-full bg-white/[0.08] hover:bg-white/[0.16] flex items-center justify-center transition top-[calc(env(safe-area-inset-top,0px)+1rem)]"
         aria-label="Cerrar"
       >
         <X className="size-5 text-white" />
@@ -363,7 +365,7 @@ function ImageViewer({
             e.stopPropagation();
             onToggleHidden(image);
           }}
-          className="absolute top-4 left-4 flex items-center gap-2 h-10 px-3.5 rounded-full bg-white/[0.08] hover:bg-white/[0.16] transition text-[13px] text-white"
+          className="absolute left-4 flex items-center gap-2 h-10 px-3.5 rounded-full bg-white/[0.08] hover:bg-white/[0.16] transition text-[13px] text-white top-[calc(env(safe-area-inset-top,0px)+1rem)]"
         >
           {isHidden ? (
             <>
@@ -380,7 +382,7 @@ function ImageViewer({
       )}
 
       {isHidden && (
-        <Pill tone="neutral" size="sm" className="absolute bottom-6 left-4">
+        <Pill tone="neutral" size="sm" className="absolute left-4 bottom-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]">
           <Lock className="size-3 mr-1" /> Privada
         </Pill>
       )}

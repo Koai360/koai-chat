@@ -81,6 +81,16 @@ export function useChat(userId: string | undefined): UseChatReturn {
     activeIdRef.current = activeId;
   }, [activeId]);
 
+  // Setter sync que actualiza el ref ANTES del setState. Eliminar la race
+  // condition donde sendMessage leía `activeIdRef.current` stale (aún null)
+  // entre un `setActiveIdState(newConv)` y el siguiente render → creaba una
+  // segunda conv duplicada (bug 2026-05-23: 2 convs en 300ms, mensaje "Que me
+  // propones?" cayó en conv distinta a la del precio stickers).
+  const setActive = useCallback((id: string | null) => {
+    activeIdRef.current = id;
+    setActiveIdState(id);
+  }, []);
+
   // Carga inicial de conversaciones
   useEffect(() => {
     if (!userId) return;
@@ -114,15 +124,15 @@ export function useChat(userId: string | undefined): UseChatReturn {
   }, [activeId]);
 
   const setActiveId = useCallback((id: string | null) => {
-    setActiveIdState(id);
-  }, []);
+    setActive(id);
+  }, [setActive]);
 
   const newConversation = useCallback(async (): Promise<Conversation> => {
     const conv = await createConversation("noa");
     setConversations((prev) => [conv, ...prev]);
-    setActiveIdState(conv.id);
+    setActive(conv.id);
     return conv;
-  }, []);
+  }, [setActive]);
 
   const deleteConversation = useCallback(
     async (id: string) => {
@@ -133,11 +143,11 @@ export function useChat(userId: string | undefined): UseChatReturn {
       }
       setConversations((prev) => prev.filter((c) => c.id !== id));
       if (activeIdRef.current === id) {
-        setActiveIdState(null);
+        setActive(null);
         setMessages([]);
       }
     },
-    [],
+    [setActive],
   );
 
   const stopGeneration = useCallback(() => {
@@ -178,7 +188,7 @@ export function useChat(userId: string | undefined): UseChatReturn {
         // Conv recién creada: marcar para skipear el load, setear messages, activar conv.
         skipNextLoadRef.current = convId;
         setMessages([userMsg]);
-        setActiveIdState(convId);
+        setActive(convId);
       } else {
         setMessages((prev) => [...prev, userMsg]);
       }

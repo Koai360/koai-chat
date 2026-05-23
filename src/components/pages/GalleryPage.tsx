@@ -72,6 +72,21 @@ export function GalleryPage() {
       .catch(() => {});
   }, []);
 
+  // Auto-refresh cuando se genera imagen nueva en el chat (S136).
+  // El backend persiste a chat_messages.image con ~1-3s de delay (R2 upload + INSERT).
+  // Esperamos 2.5s antes de re-fetch para que ya esté disponible en /api/chat/images.
+  useEffect(() => {
+    const handler = () => {
+      // Solo refresh si estoy viendo la vista "all" (las nuevas nunca son privadas)
+      if (view !== "all") return;
+      setTimeout(() => {
+        loadPage(undefined, "all");
+      }, 2500);
+    };
+    window.addEventListener("noa:image-generated", handler);
+    return () => window.removeEventListener("noa:image-generated", handler);
+  }, [view, loadPage]);
+
   // Infinite scroll
   useEffect(() => {
     if (!observerRef.current || done || loading) return;
@@ -144,7 +159,9 @@ export function GalleryPage() {
           <EmptyState view={view} hasPin={hasPin} />
         ) : (
           <>
-            <div className="columns-3 gap-2 md:gap-3 [column-fill:_balance]">
+            {/* column-fill: auto — agrega items al final de la última columna sin rebalancear
+                (era `balance`, que reacomodaba TODAS las tiles al hacer load-more = jank visual) */}
+            <div className="columns-3 gap-2 md:gap-3 [column-fill:_auto]">
               {items.map((img) => (
                 <GalleryTile
                   key={img.id}

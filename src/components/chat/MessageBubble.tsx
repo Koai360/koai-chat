@@ -47,7 +47,7 @@ export const MessageBubble = memo(function MessageBubble({
               <img
                 src={message.image}
                 alt=""
-                className="max-w-[280px] rounded-xl border border-white/[0.06]"
+                className="block w-full max-w-[280px] h-auto rounded-xl border border-white/[0.06]"
               />
             </div>
           )}
@@ -115,7 +115,7 @@ export const MessageBubble = memo(function MessageBubble({
           <img
             src={message.image}
             alt=""
-            className="max-w-[480px] rounded-xl border border-white/[0.06]"
+            className="block w-full max-w-[480px] h-auto rounded-xl border border-white/[0.06]"
           />
         )}
       </div>

@@ -210,6 +210,14 @@ export function useChat(userId: string | undefined): UseChatReturn {
             onImage: (url) => {
               imageUrl = url;
               setLoadingHint(null);
+              // Notificar a la galería que hay imagen nueva → recarga primera página
+              // (S136: sin esto, la imagen recién generada no aparece hasta que el user
+              // navega manualmente a Galería y la página se re-monta).
+              if (url) {
+                window.dispatchEvent(
+                  new CustomEvent("noa:image-generated", { detail: { url } }),
+                );
+              }
             },
             onDone: () => {
               // Promovemos streamingText → message

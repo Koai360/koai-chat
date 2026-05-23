@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import { EyeOff, Eye, Image as ImageIcon, Lock, X } from "lucide-react";
 import { listImages, fetchRatingsMap, hideImage } from "@/lib/api";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { Pill } from "@/components/ui/Pill";
 import { usePrivateMode } from "@/hooks/usePrivateMode";
 import type { ChatImage } from "@/types/api";
 import { cn } from "@/lib/cn";
@@ -349,14 +348,14 @@ function ImageViewer({
       className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex items-center justify-center p-4"
       onClick={onClose}
     >
-      {/* top-[calc(safe-area+1rem)] para que el botón quede debajo del notch /
-          Dynamic Island en iPhone. En devices sin notch, safe-area=0 → top=1rem. */}
+      {/* Botones flotantes — fondo oscuro garantizado + border + shadow para
+          legibilidad sobre cualquier imagen (clara u oscura). Pattern iOS clásico. */}
       <button
         onClick={onClose}
-        className="absolute right-4 size-10 rounded-full bg-white/[0.08] hover:bg-white/[0.16] flex items-center justify-center transition top-[calc(env(safe-area-inset-top,0px)+1rem)]"
+        className="absolute right-4 size-11 rounded-full bg-black/65 hover:bg-black/85 backdrop-blur-xl border border-white/15 shadow-[0_4px_20px_rgba(0,0,0,0.55)] flex items-center justify-center transition-all active:scale-95 top-[calc(env(safe-area-inset-top,0px)+1rem)]"
         aria-label="Cerrar"
       >
-        <X className="size-5 text-white" />
+        <X className="size-5 text-white" strokeWidth={2.5} />
       </button>
 
       {showToggle && (
@@ -365,7 +364,7 @@ function ImageViewer({
             e.stopPropagation();
             onToggleHidden(image);
           }}
-          className="absolute left-4 flex items-center gap-2 h-10 px-3.5 rounded-full bg-white/[0.08] hover:bg-white/[0.16] transition text-[13px] text-white top-[calc(env(safe-area-inset-top,0px)+1rem)]"
+          className="absolute left-4 flex items-center gap-2 h-11 px-4 rounded-full bg-black/65 hover:bg-black/85 backdrop-blur-xl border border-white/15 shadow-[0_4px_20px_rgba(0,0,0,0.55)] transition-all active:scale-95 text-[13px] font-medium text-white top-[calc(env(safe-area-inset-top,0px)+1rem)]"
         >
           {isHidden ? (
             <>
@@ -382,9 +381,9 @@ function ImageViewer({
       )}
 
       {isHidden && (
-        <Pill tone="neutral" size="sm" className="absolute left-4 bottom-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]">
-          <Lock className="size-3 mr-1" /> Privada
-        </Pill>
+        <div className="absolute left-4 bottom-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] flex items-center gap-1.5 h-8 px-3 rounded-full bg-black/65 backdrop-blur-xl border border-white/15 shadow-[0_4px_20px_rgba(0,0,0,0.55)] text-[12px] font-medium text-white">
+          <Lock className="size-3" /> Privada
+        </div>
       )}
 
       <img

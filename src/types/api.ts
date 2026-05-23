@@ -38,6 +38,10 @@ export interface ChatImage {
   url: string;
   prompt?: string;
   engine?: string;
+  /** Pixel width — backend lo guarda al subir imagen (S136). Null para imágenes legacy. */
+  width?: number | null;
+  /** Pixel height — backend lo guarda al subir imagen (S136). Null para imágenes legacy. */
+  height?: number | null;
   created_at: string;
   rating?: 0 | 1 | 2 | 3 | 4 | 5;
   hidden?: boolean;

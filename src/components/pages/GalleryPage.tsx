@@ -241,21 +241,44 @@ function GalleryTile({
     thumbUrl = `https://cdn.koai360.com/cdn-cgi/image/width=800,quality=85,format=auto/${rest}`;
   }
 
+  // S136 — Pinterest masonry sin layout shift:
+  // 1) Imágenes nuevas: backend persiste width/height → usar aspect-ratio = w/h
+  // 2) Imágenes legacy (sin dims): probe con new Image() onLoad → cache local
+  // 3) Fallback antes de detectar: aspect-square placeholder (~95% son 1:1)
+  const initialAspect =
+    image.width && image.height && image.width > 0 && image.height > 0
+      ? `${image.width} / ${image.height}`
+      : null;
+  const [aspectRatio, setAspectRatio] = useState<string | null>(initialAspect);
+
+  // Si no tenemos dims del backend, probe con un Image() — set local state al
+  // cargar. Solo corre para histórico; nuevas no entran a este path.
+  useEffect(() => {
+    if (aspectRatio) return; // ya conocido
+    const probe = new Image();
+    probe.onload = () => {
+      if (probe.naturalWidth > 0 && probe.naturalHeight > 0) {
+        setAspectRatio(`${probe.naturalWidth} / ${probe.naturalHeight}`);
+      }
+    };
+    probe.src = thumbUrl;
+    return () => {
+      probe.onload = null;
+    };
+  }, [thumbUrl, aspectRatio]);
+
   return (
-    // S136: contenedor cuadrado fijo + object-cover → cero layout shift al scroll.
-    // Las imágenes lazy-loaded ya no empujan a las que tienen debajo cuando cargan.
-    // Quité motion.button initial/animate porque re-animaba cada vez que un tile
-    // entraba al viewport (efecto "imágenes saltando"). Solo fade-in CSS al primer
-    // mount. Trade-off: imágenes panorámicas se cropean (~95% del catálogo es 1:1
-    // generado por GPT Image 2 / NBP a 1024x1024, así que no afecta).
     <button
       onClick={onClick}
       className={cn(
         "group relative w-full mb-2 md:mb-3 break-inside-avoid rounded-xl overflow-hidden",
         "bg-[var(--color-bg-elevated)] border border-white/[0.06]",
         "hover:border-white/[0.16] transition-colors",
-        "block text-left aspect-square",
+        "block text-left",
       )}
+      // Si aún no sabemos el aspect (no vino del backend ni probe completó),
+      // arrancar con cuadrado como placeholder. Cuando probe complete, transitions.
+      style={{ aspectRatio: aspectRatio ?? "1 / 1" }}
     >
       <img
         src={thumbUrl}

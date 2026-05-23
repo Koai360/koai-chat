@@ -89,7 +89,11 @@ export function useChat(userId: string | undefined): UseChatReturn {
       .catch((err) => console.warn("[useChat] listConversations failed", err));
   }, [userId]);
 
-  // Cuando cambia activeId, cargar mensajes
+  // Cuando cambia activeId, cargar mensajes.
+  // S136: NO hacer setMessages([]) eager — espera la respuesta del backend.
+  // Eager-clear borraba el optimistic user msg en algunos race conditions
+  // (sendMessage seteaba [userMsg] + setActiveId, y este effect arrasaba antes
+  // de que el flag skipNext se aplicara). El usuario veía "Pensando…" sin su msg.
   useEffect(() => {
     if (!activeId) {
       setMessages([]);
@@ -99,10 +103,12 @@ export function useChat(userId: string | undefined): UseChatReturn {
       skipNextLoadRef.current = null;
       return; // sendMessage ya seteó messages con el optimistic user msg
     }
-    setMessages([]);
     getMessages(activeId)
       .then((msgs) => {
-        if (activeIdRef.current === activeId) setMessages(msgs);
+        if (activeIdRef.current !== activeId) return;
+        // Si el backend devuelve [] y hay msgs locales (optimistic), mantenerlos.
+        // Sino el optimistic user msg se borra mid-stream.
+        setMessages((prev) => (msgs.length === 0 && prev.length > 0 ? prev : msgs));
       })
       .catch((err) => console.warn("[useChat] getMessages failed", err));
   }, [activeId]);

@@ -242,16 +242,19 @@ function GalleryTile({
   }
 
   return (
-    <motion.button
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
+    // S136: contenedor cuadrado fijo + object-cover → cero layout shift al scroll.
+    // Las imágenes lazy-loaded ya no empujan a las que tienen debajo cuando cargan.
+    // Quité motion.button initial/animate porque re-animaba cada vez que un tile
+    // entraba al viewport (efecto "imágenes saltando"). Solo fade-in CSS al primer
+    // mount. Trade-off: imágenes panorámicas se cropean (~95% del catálogo es 1:1
+    // generado por GPT Image 2 / NBP a 1024x1024, así que no afecta).
+    <button
       onClick={onClick}
       className={cn(
         "group relative w-full mb-2 md:mb-3 break-inside-avoid rounded-xl overflow-hidden",
         "bg-[var(--color-bg-elevated)] border border-white/[0.06]",
         "hover:border-white/[0.16] transition-colors",
-        "block text-left",
+        "block text-left aspect-square",
       )}
     >
       <img
@@ -259,7 +262,7 @@ function GalleryTile({
         alt={image.prompt || ""}
         loading="lazy"
         decoding="async"
-        className="w-full h-auto block"
+        className="absolute inset-0 w-full h-full object-cover block"
       />
       {image.hidden && (
         <div className="absolute top-1.5 left-1.5 bg-black/70 backdrop-blur-sm rounded-full size-6 flex items-center justify-center">
@@ -271,18 +274,18 @@ function GalleryTile({
           ★ {rating}
         </div>
       )}
-    </motion.button>
+    </button>
   );
 }
 
 function SkeletonMasonry() {
-  // Skeletons con alturas variables para imitar el masonry
-  const heights = [220, 320, 180, 260, 200, 340, 240, 200, 280, 220, 200, 300];
+  // Skeletons cuadrados — matchea el aspect-square real de los tiles
+  // (evita layout shift al transicionar skeleton → contenido real)
   return (
-    <div className="columns-3 gap-2 md:gap-3">
-      {heights.map((h, i) => (
-        <div key={i} className="mb-2 md:mb-3 break-inside-avoid">
-          <Skeleton variant="rect" height={h} className="rounded-xl w-full" />
+    <div className="columns-3 gap-2 md:gap-3 [column-fill:_auto]">
+      {Array.from({ length: 12 }).map((_, i) => (
+        <div key={i} className="mb-2 md:mb-3 break-inside-avoid aspect-square">
+          <Skeleton variant="rect" className="rounded-xl w-full h-full" />
         </div>
       ))}
     </div>

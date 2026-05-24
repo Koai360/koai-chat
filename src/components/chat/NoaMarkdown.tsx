@@ -1,0 +1,90 @@
+import { memo, type ReactNode } from "react";
+import ReactMarkdown from "react-markdown";
+import rehypeHighlight from "rehype-highlight";
+import rehypeRaw from "rehype-raw";
+import rehypeSanitize from "rehype-sanitize";
+import { CopyBlock } from "./CopyBlock";
+import { CodeBlock } from "./CodeBlock";
+import { preprocessMarkdown } from "@/lib/markdownPreprocess";
+import { noaSanitizeSchema } from "@/lib/markdownSanitizeSchema";
+import { noaHighlightLanguages } from "@/lib/highlightLanguages";
+
+interface NoaMarkdownProps {
+  content: string;
+  /**
+   * Si true, NO procesar callouts/highlights ni custom code blocks.
+   * Útil para mensajes user (texto plano básico, sin sintaxis custom).
+   */
+  plain?: boolean;
+}
+
+/**
+ * Extrae texto crudo de los children de ReactMarkdown (que puede traer arrays anidados).
+ */
+function extractText(node: ReactNode): string {
+  if (node == null) return "";
+  if (typeof node === "string") return node;
+  if (typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(extractText).join("");
+  if (typeof node === "object" && "props" in (node as object)) {
+    // @ts-expect-error narrowed via props guard
+    return extractText(node.props.children);
+  }
+  return "";
+}
+
+/**
+ * NoaMarkdown — single source of truth para renderizar markdown del asistente.
+ *
+ * P0-1 audit: rehype-sanitize aplicado entre raw y highlight (XSS hardening).
+ * P1-8 audit: highlight.js subset de 11 lenguajes (no `common` set entero).
+ * P2-2 audit: misma renderización en streaming y en final (no flash visible al
+ *             promover el mensaje). Antes MessageStream usaba SOLO rehypeHighlight
+ *             (sin raw, sin sanitize, sin preprocess, sin CopyBlock/CodeBlock).
+ */
+export const NoaMarkdown = memo(function NoaMarkdown({
+  content,
+  plain = false,
+}: NoaMarkdownProps) {
+  if (plain) {
+    // Path para burbujas user (sin rehype-raw, sin preprocess, plain text + basic md).
+    return <ReactMarkdown>{content}</ReactMarkdown>;
+  }
+
+  return (
+    <ReactMarkdown
+      rehypePlugins={[
+        rehypeRaw as never,
+        [rehypeSanitize, noaSanitizeSchema] as never,
+        [rehypeHighlight, { languages: noaHighlightLanguages, detect: true }] as never,
+      ]}
+      components={{
+        // Override `<pre>` para soportar:
+        //   ```copy[:Label] ... ```  → CopyBlock destacado
+        //   ```lang ... ```          → CodeBlock con mini-botón copiar
+        pre({ children }) {
+          const codeNode = Array.isArray(children) ? children[0] : children;
+          const className =
+            (codeNode as { props?: { className?: string } })?.props?.className ?? "";
+          const langMatch = /language-([\w:-]+)/.exec(className);
+          const lang = langMatch ? langMatch[1] : "";
+          const rawText = extractText(
+            (codeNode as { props?: { children?: ReactNode } })?.props?.children,
+          ).replace(/\n$/, "");
+
+          if (lang.startsWith("copy")) {
+            const label = lang.includes(":") ? lang.split(":")[1] : undefined;
+            return <CopyBlock text={rawText} label={label} />;
+          }
+          return (
+            <CodeBlock language={lang || undefined} raw={rawText}>
+              {children}
+            </CodeBlock>
+          );
+        },
+      }}
+    >
+      {preprocessMarkdown(content)}
+    </ReactMarkdown>
+  );
+});

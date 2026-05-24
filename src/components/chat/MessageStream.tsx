@@ -1,9 +1,7 @@
-import ReactMarkdown from "react-markdown";
-import rehypeHighlight from "rehype-highlight";
 import { Sparkle } from "./Sparkle";
 import { parseCards } from "@/lib/cards";
 import { CardRenderer } from "./CardRenderer";
-import { noaHighlightLanguages } from "@/lib/highlightLanguages";
+import { NoaMarkdown } from "./NoaMarkdown";
 
 interface MessageStreamProps {
   streamingText: string;
@@ -17,8 +15,10 @@ interface MessageStreamProps {
  * Muestra:
  *   - Sparkle pulsando
  *   - Hint contextual ("Pensando…", "Consultando cash flow…")
- *   - Texto streaming con markdown
+ *   - Texto streaming con markdown (mismo rendering que MessageBubble final)
  *   - Cards inline si ya hay markers parseables
+ *
+ * P2-2 audit: comparte NoaMarkdown con MessageBubble — no más flash al promover.
  */
 export function MessageStream({ streamingText, hint }: MessageStreamProps) {
   const segments = streamingText ? parseCards(streamingText) : [];
@@ -38,16 +38,7 @@ export function MessageStream({ streamingText, hint }: MessageStreamProps) {
               key={i}
               className="prose-noa text-white/95 text-[15px] leading-[1.65]"
             >
-              <ReactMarkdown
-                rehypePlugins={[
-                  [
-                    rehypeHighlight,
-                    { languages: noaHighlightLanguages, detect: true },
-                  ] as never,
-                ]}
-              >
-                {seg.content}
-              </ReactMarkdown>
+              <NoaMarkdown content={seg.content} />
             </div>
           ) : (
             <CardRenderer key={i} card={seg.card} />

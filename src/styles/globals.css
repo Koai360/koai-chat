@@ -73,10 +73,13 @@
   --color-info: #7b9bb5;
   --color-info-soft: rgba(123, 155, 181, 0.16);
 
-  /* === FONT FAMILIES === */
-  --font-display: "Sora", system-ui, -apple-system, sans-serif;
-  --font-body: "DM Sans", system-ui, -apple-system, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  /* === FONT FAMILIES ===
+     P2-17 audit: incluir fallbacks de emoji (✨ U+2728 caía a tofu antes).
+     Stack: nativo del OS → Apple → Segoe (Windows) → Noto (Linux/Android) → "Twemoji Mozilla". */
+  --font-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", "EmojiOne Color";
+  --font-display: "Sora", system-ui, -apple-system, sans-serif, var(--font-emoji);
+  --font-body: "DM Sans", system-ui, -apple-system, sans-serif, var(--font-emoji);
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace, var(--font-emoji);
 
   /* === RADIUS === */
   --radius-pill: 9999px;

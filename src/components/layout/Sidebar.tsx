@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   PanelLeft,
@@ -64,6 +64,18 @@ export function Sidebar({
 }: SidebarProps) {
   const [expanded, setExpanded] = useState(false);
   const open = isMobile || expanded;
+
+  // P2-12 audit: cerrar overlay desktop con Escape (mobile usa Sheet de vaul
+  // que ya tiene Escape). Listener global porque el motion.aside puede no
+  // tener foco al abrir y el evento sube al document.
+  useEffect(() => {
+    if (!expanded) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setExpanded(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [expanded]);
 
   // En mobile el sidebar siempre se renderiza expandido (lo controla el Sheet)
   // En desktop puede estar collapsed (56px) o expanded (overlay 280px)
@@ -351,8 +363,10 @@ function SidebarContent({
                       <button
                         aria-label="Opciones del chat"
                         className={cn(
-                          "shrink-0 size-7 rounded-md flex items-center justify-center",
-                          "text-white/40 hover:text-white hover:bg-white/[0.08]",
+                          // P2-16 audit: mobile siempre 44x44 (HIG). Desktop 28x28 ok
+                          // porque solo aparece en hover y el target real es el row.
+                          "shrink-0 size-7 md:size-7 [@media(pointer:coarse)]:size-11 rounded-md flex items-center justify-center",
+                          "text-white/55 hover:text-white hover:bg-white/[0.08]",
                           "opacity-0 group-hover:opacity-100 focus:opacity-100",
                           "md:opacity-0 opacity-100",
                           "transition-opacity",

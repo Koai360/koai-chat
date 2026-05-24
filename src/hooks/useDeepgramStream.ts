@@ -1,6 +1,27 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getAuthToken } from "@/lib/api";
 
+// P2-13 audit: mapping de errores comunes de getUserMedia a copy ES.
+// Estos `name` son los DOMException estándar emitidos por el browser.
+const LOCALIZED_MEDIA_ERRORS: Record<string, string> = {
+  NotFoundError: "No encontramos ningún micrófono conectado.",
+  DevicesNotFoundError: "No encontramos ningún micrófono conectado.",
+  NotAllowedError:
+    "Necesitamos permiso para acceder al micrófono. Activá el permiso en la configuración del navegador.",
+  PermissionDeniedError:
+    "Necesitamos permiso para acceder al micrófono. Activá el permiso en la configuración del navegador.",
+  NotReadableError:
+    "El micrófono está siendo usado por otra app. Cerrá las demás llamadas o grabaciones e intentá de nuevo.",
+  TrackStartError:
+    "El micrófono está siendo usado por otra app. Cerrá las demás llamadas o grabaciones e intentá de nuevo.",
+  OverconstrainedError:
+    "Tu micrófono no soporta la configuración requerida. Probá con otro dispositivo.",
+  ConstraintNotSatisfiedError:
+    "Tu micrófono no soporta la configuración requerida. Probá con otro dispositivo.",
+  SecurityError: "El navegador bloqueó el acceso al micrófono por seguridad (¿la página es HTTP?).",
+  AbortError: "La grabación fue interrumpida.",
+};
+
 /**
  * useDeepgramStream — transcripción en vivo via WebSocket proxy del backend.
  *
@@ -165,7 +186,14 @@ export function useDeepgramStream(opts: UseDeepgramStreamOpts = {}): UseDeepgram
       });
       streamRef.current = stream;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Permiso de micrófono denegado";
+      // P2-13 audit: mapear errores comunes de getUserMedia a copy ES legible.
+      // El default `err.message` del browser viene en inglés técnico
+      // ("Requested device not found"), inaceptable en una app en español.
+      const name = (err as { name?: string })?.name ?? "";
+      const localized = LOCALIZED_MEDIA_ERRORS[name];
+      const msg =
+        localized ??
+        (err instanceof Error ? err.message : "No pudimos acceder al micrófono.");
       setError(msg);
       return;
     }

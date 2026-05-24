@@ -2,12 +2,15 @@ import { memo, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import rehypeRaw from "rehype-raw";
+import rehypeSanitize from "rehype-sanitize";
 import { Sparkle } from "./Sparkle";
 import { CardRenderer } from "./CardRenderer";
 import { CopyBlock } from "./CopyBlock";
 import { CodeBlock } from "./CodeBlock";
 import { parseCards } from "@/lib/cards";
 import { preprocessMarkdown } from "@/lib/markdownPreprocess";
+import { noaSanitizeSchema } from "@/lib/markdownSanitizeSchema";
+import { noaHighlightLanguages } from "@/lib/highlightLanguages";
 import { cn } from "@/lib/cn";
 import type { ChatMessage } from "@/types/api";
 
@@ -74,7 +77,14 @@ export const MessageBubble = memo(function MessageBubble({
               className="prose-noa text-white/95 text-[15px] leading-[1.65]"
             >
               <ReactMarkdown
-                rehypePlugins={[rehypeRaw as never, rehypeHighlight as never]}
+                rehypePlugins={[
+                  rehypeRaw as never,
+                  [rehypeSanitize, noaSanitizeSchema] as never,
+                  [
+                    rehypeHighlight,
+                    { languages: noaHighlightLanguages, detect: true },
+                  ] as never,
+                ]}
                 components={{
                   // Override `<pre>` para soportar:
                   //   ```copy[:Label] ... ```  → CopyBlock destacado

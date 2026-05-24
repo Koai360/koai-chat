@@ -1,17 +1,33 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { AppBackground } from "./AppBackground";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { Sheet } from "@/components/ui/Sheet";
 import { ChatSurface } from "@/components/chat/ChatSurface";
 import { ChatInput } from "@/components/chat/ChatInput";
-import { GalleryPage } from "@/components/pages/GalleryPage";
-import { HistoryPage } from "@/components/pages/HistoryPage";
-import { SettingsPage } from "@/components/pages/SettingsPage";
+import { Sparkle } from "@/components/chat/Sparkle";
 import { useRoute } from "@/hooks/useRoute";
 import { useChat } from "@/hooks/useChat";
 import { navigate } from "@/lib/routing";
 import type { AuthUser } from "@/types/api";
+
+const GalleryPage = lazy(() =>
+  import("@/components/pages/GalleryPage").then((m) => ({ default: m.GalleryPage })),
+);
+const HistoryPage = lazy(() =>
+  import("@/components/pages/HistoryPage").then((m) => ({ default: m.HistoryPage })),
+);
+const SettingsPage = lazy(() =>
+  import("@/components/pages/SettingsPage").then((m) => ({ default: m.SettingsPage })),
+);
+
+function PageFallback() {
+  return (
+    <div className="h-full flex items-center justify-center">
+      <Sparkle size={28} animate />
+    </div>
+  );
+}
 
 interface AppShellProps {
   user: AuthUser;
@@ -154,10 +170,20 @@ export function AppShell({ user, onLogout }: AppShellProps) {
                 userName={user.name?.split(" ")[0]}
               />
             )}
-            {route.kind === "galeria" && <GalleryPage />}
-            {route.kind === "historial" && <HistoryPage />}
+            {route.kind === "galeria" && (
+              <Suspense fallback={<PageFallback />}>
+                <GalleryPage />
+              </Suspense>
+            )}
+            {route.kind === "historial" && (
+              <Suspense fallback={<PageFallback />}>
+                <HistoryPage />
+              </Suspense>
+            )}
             {route.kind === "config" && (
-              <SettingsPage user={user} tab={route.tab} onLogout={onLogout} />
+              <Suspense fallback={<PageFallback />}>
+                <SettingsPage user={user} tab={route.tab} onLogout={onLogout} />
+              </Suspense>
             )}
           </main>
 

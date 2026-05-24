@@ -14,6 +14,15 @@ export default defineConfig({
     target: "es2022",
     cssCodeSplit: true,
     chunkSizeWarningLimit: 800,
+    // No preloadear chunks no críticos del first paint (login screen):
+    // - `pages` solo entra al navegar a Galería/Historial/Settings
+    // - `markdown` solo entra cuando hay mensaje del asistente
+    // - `cards` solo entra cuando un mensaje contiene markers card:
+    // El browser los descarga on-demand. P1-7 audit.
+    modulePreload: {
+      resolveDependencies: (_url, deps) =>
+        deps.filter((d) => !/(pages|markdown|cards)-[A-Za-z0-9_-]+\.js$/.test(d)),
+    },
     rollupOptions: {
       output: {
         // NO splitamos node_modules — split agresivo causa race conditions con

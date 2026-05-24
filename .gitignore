@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Playwright MCP scratch (screenshots/temp browser data)
+.playwright-mcp/
+.claude/worktrees/

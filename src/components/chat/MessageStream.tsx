@@ -3,6 +3,7 @@ import rehypeHighlight from "rehype-highlight";
 import { Sparkle } from "./Sparkle";
 import { parseCards } from "@/lib/cards";
 import { CardRenderer } from "./CardRenderer";
+import { noaHighlightLanguages } from "@/lib/highlightLanguages";
 
 interface MessageStreamProps {
   streamingText: string;
@@ -37,7 +38,14 @@ export function MessageStream({ streamingText, hint }: MessageStreamProps) {
               key={i}
               className="prose-noa text-white/95 text-[15px] leading-[1.65]"
             >
-              <ReactMarkdown rehypePlugins={[rehypeHighlight as never]}>
+              <ReactMarkdown
+                rehypePlugins={[
+                  [
+                    rehypeHighlight,
+                    { languages: noaHighlightLanguages, detect: true },
+                  ] as never,
+                ]}
+              >
                 {seg.content}
               </ReactMarkdown>
             </div>

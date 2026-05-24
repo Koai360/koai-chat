@@ -45,7 +45,20 @@ export function ChatSurface({
 
   return (
     <div ref={scrollRef} className="flex flex-col h-full overflow-y-auto">
-      <div className="mx-auto max-w-3xl w-full py-4">
+      {/*
+        P1-10 audit fix: role="log" + aria-live="polite" para que lectores de
+        pantalla anuncien los mensajes nuevos de Noa. polite no interrumpe lo
+        que está leyendo el usuario; cuando finaliza el assistant msg el SR
+        lo anuncia. El stream live no se anuncia token-a-token (sería ruidoso);
+        el hint contextual va en un live region aparte sr-only.
+      */}
+      <div
+        className="mx-auto max-w-3xl w-full py-4"
+        role="log"
+        aria-live="polite"
+        aria-relevant="additions"
+        aria-label="Conversación con Noa"
+      >
         {messages.map((msg, i) => {
           const prev = messages[i - 1];
           const showAvatar = !prev || prev.role !== msg.role;
@@ -57,6 +70,11 @@ export function ChatSurface({
         )}
 
         <div ref={bottomRef} className="h-2" />
+      </div>
+
+      {/* Live region sr-only para anunciar estado de carga sin spammar token a token */}
+      <div role="status" aria-live="polite" className="sr-only">
+        {loading && !streamingText ? (loadingHint ?? "Pensando…") : ""}
       </div>
     </div>
   );

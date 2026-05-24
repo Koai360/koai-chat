@@ -31,11 +31,16 @@
   --color-glass-border: rgba(255, 255, 255, 0.06);
   --color-glass-border-hi: rgba(255, 255, 255, 0.10);
 
-  /* === TEXT === */
+  /* === TEXT ===
+     P2-1 audit (WCAG AA, 4.5:1 normal / 3:1 large/UI sobre #000):
+     - muted .65 = 8.63:1 (PASS AA + AAA) — informativo principal
+     - subtle .55 (subio de .42 → 3.94:1 FAIL) = 6.25:1 (PASS AA) — subtítulos/metadata
+     - faint .42 (subio de .24 → 1.93:1 FAIL hasta UI) = 3.94:1 (PASS AA large/UI)
+     - Tokens útiles para texto chico DEBEN usar -muted o -subtle, no -faint. */
   --color-text: #ffffff;
   --color-text-muted: rgba(255, 255, 255, 0.65);
-  --color-text-subtle: rgba(255, 255, 255, 0.42);
-  --color-text-faint: rgba(255, 255, 255, 0.24);
+  --color-text-subtle: rgba(255, 255, 255, 0.55);
+  --color-text-faint: rgba(255, 255, 255, 0.42);
 
   /* === BORDERS · casi inexistentes === */
   --color-border: rgba(255, 255, 255, 0.06);

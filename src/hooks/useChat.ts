@@ -38,6 +38,17 @@ export interface UseChatReturn {
   refresh: () => Promise<void>;
 }
 
+export interface UseChatOptions {
+  userId: string | undefined;
+  /**
+   * Invocado cuando sendMessage crea una conversación nueva (porque no había
+   * activa). El consumer típicamente hace `navigate({ kind: "chat", conversationId })`
+   * para sincronizar el URL hash. Se llama DESPUÉS de setActive + setMessages
+   * optimistas + skipNextLoadRef, así el useEffect del activeId skipea el load.
+   */
+  onConversationCreated?: (id: string) => void;
+}
+
 const MODEL_MODE_KEY = "noa.modelMode";
 
 function loadInitialMode(): ModelMode {
@@ -51,7 +62,8 @@ function loadInitialMode(): ModelMode {
   return "standard";
 }
 
-export function useChat(userId: string | undefined): UseChatReturn {
+export function useChat(options: UseChatOptions): UseChatReturn {
+  const { userId, onConversationCreated } = options;
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveIdState] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -185,10 +197,15 @@ export function useChat(userId: string | undefined): UseChatReturn {
       };
 
       if (isNewConv) {
-        // Conv recién creada: marcar para skipear el load, setear messages, activar conv.
+        // Conv recién creada: marcar para skipear el load, setear messages, activar conv,
+        // y notificar al consumer (AppShell) para que sincronice el URL.
+        // El orden importa: skipNextLoadRef ANTES de setActive evita que el
+        // useEffect del [activeId] dispare getMessages([]) y pise el userMsg
+        // optimista (bug P1-1 audit S139).
         skipNextLoadRef.current = convId;
         setMessages([userMsg]);
         setActive(convId);
+        onConversationCreated?.(convId);
       } else {
         setMessages((prev) => [...prev, userMsg]);
       }
@@ -308,7 +325,9 @@ export function useChat(userId: string | undefined): UseChatReturn {
         }
       }
     },
-    [loading, modelMode, newConversation, messages, conversations],
+    // P3-7 audit: messages y newConversation no se usan en el body — sacarlos
+    // evita re-create de sendMessage en cada streaming delta.
+    [loading, modelMode, conversations, onConversationCreated, setActive],
   );
 
   const refresh = useCallback(async () => {

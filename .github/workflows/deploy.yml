@@ -12,6 +12,9 @@ jobs:
         with:
           node-version: 22
       - run: npm ci --legacy-peer-deps
+      # P2-4 audit: lint en CI para que los errores no se acumulen silenciosos.
+      # Falla el build si hay errores nuevos.
+      - run: npm run lint
       - run: npm run build
       - run: npx wrangler pages deploy dist --project-name koai-chat --branch main --commit-message "${{ github.sha }}"
         env:

@@ -194,7 +194,7 @@ export async function* streamMessage(
 
     // Procesar eventos SSE línea por línea
     let idx: number;
-    // eslint-disable-next-line no-cond-assign
+    // P2-4 audit: directive removed (rule not active in current eslint config)
     while ((idx = buffer.indexOf("\n\n")) !== -1) {
       const rawEvent = buffer.slice(0, idx).trim();
       buffer = buffer.slice(idx + 2);
@@ -318,25 +318,5 @@ export async function deleteMemory(id: string): Promise<void> {
   await apiFetch(`/api/chat/user-memories/${id}`, { method: "DELETE" });
 }
 
-// ============================================================
-// AUDIO TRANSCRIBE
-// ============================================================
-
-export async function transcribeAudio(blob: Blob): Promise<{ text: string }> {
-  const fd = new FormData();
-  fd.append("file", blob, "audio.webm");
-  const token = getAuthToken();
-  const headers: Record<string, string> = {};
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  } else {
-    headers["X-API-Key"] = API_KEY;
-  }
-  const res = await fetch(`${API_BASE}/api/transcribe`, {
-    method: "POST",
-    headers,
-    body: fd,
-  });
-  if (!res.ok) throw new ApiError(res.status, `transcribe failed`);
-  return res.json();
-}
+// P2-5 audit: transcribeAudio era usada solo por VoiceModal (dead code, removed).
+// El flow de voz live usa Deepgram streaming via WS (useDeepgramStream), no POST blob.

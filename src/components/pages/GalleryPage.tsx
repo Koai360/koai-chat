@@ -158,9 +158,12 @@ export function GalleryPage() {
           <EmptyState view={view} hasPin={hasPin} />
         ) : (
           <>
-            {/* column-fill: auto — agrega items al final de la última columna sin rebalancear
-                (era `balance`, que reacomodaba TODAS las tiles al hacer load-more = jank visual) */}
-            <div className="columns-3 gap-2 md:gap-3 [column-fill:_auto]">
+            {/* P1-4 audit fix: column-fill: auto sobre contenedor de altura auto
+                tira TODO el contenido a la 1ª columna (2 y 3 vacías). Volvemos a
+                column-fill: balance (default) y hacemos columnas responsive:
+                mobile 2 col, tablet 3, desktop 4. Las tiles con aspect-ratio
+                garantizan que el rebalance en load-more no produzca jank. */}
+            <div className="columns-2 md:columns-3 xl:columns-4 gap-2 md:gap-3">
               {items.map((img) => (
                 <GalleryTile
                   key={img.id}
@@ -305,7 +308,7 @@ function SkeletonMasonry() {
   // Skeletons cuadrados — matchea el aspect-square real de los tiles
   // (evita layout shift al transicionar skeleton → contenido real)
   return (
-    <div className="columns-3 gap-2 md:gap-3 [column-fill:_auto]">
+    <div className="columns-2 md:columns-3 xl:columns-4 gap-2 md:gap-3">
       {Array.from({ length: 12 }).map((_, i) => (
         <div key={i} className="mb-2 md:mb-3 break-inside-avoid aspect-square">
           <Skeleton variant="rect" className="rounded-xl w-full h-full" />

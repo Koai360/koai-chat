@@ -87,7 +87,9 @@ export function useDeepgramStream(opts: UseDeepgramStreamOpts = {}): UseDeepgram
       rafRef.current = null;
     }
     try {
-      recorderRef.current?.state !== "inactive" && recorderRef.current?.stop();
+      // P2-4 audit: usar if statement en vez de && para control flow.
+      const rec = recorderRef.current;
+      if (rec && rec.state !== "inactive") rec.stop();
     } catch {
       /* noop */
     }
@@ -117,10 +119,19 @@ export function useDeepgramStream(opts: UseDeepgramStreamOpts = {}): UseDeepgram
     return () => cleanup();
   }, [cleanup]);
 
-  const tick = useCallback(() => {
-    if (!analyserRef.current) return;
-    const buf = new Uint8Array(analyserRef.current.fftSize);
-    analyserRef.current.getByteTimeDomainData(buf);
+  // P2-4 + P3-7 audit:
+  //  - antes: useCallback con auto-referencia a `tick` (react-hooks/exhaustive-deps).
+  //  - antes: alocaba Uint8Array cada frame (GC churn ~60Hz durante grabación).
+  // Ahora: function declaration (no es hook → sin issues de deps) + buffer reusado.
+  const tickBufRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
+  function tick(): void {
+    const analyser = analyserRef.current;
+    if (!analyser) return;
+    if (!tickBufRef.current || tickBufRef.current.length !== analyser.fftSize) {
+      tickBufRef.current = new Uint8Array(new ArrayBuffer(analyser.fftSize));
+    }
+    const buf = tickBufRef.current;
+    analyser.getByteTimeDomainData(buf);
     let sum = 0;
     for (let i = 0; i < buf.length; i++) {
       const v = (buf[i] - 128) / 128;
@@ -129,7 +140,7 @@ export function useDeepgramStream(opts: UseDeepgramStreamOpts = {}): UseDeepgram
     const rms = Math.sqrt(sum / buf.length);
     setLevel(Math.min(1, rms * 5));
     rafRef.current = requestAnimationFrame(tick);
-  }, []);
+  }
 
   const start = useCallback(async () => {
     if (!supported) {

@@ -59,7 +59,7 @@ export function LoginScreen({ mountGoogleButton, error, loading }: LoginScreenPr
             </div>
           )}
 
-          <p className="text-white/30 text-xs mt-8">
+          <p className="text-white/55 text-xs mt-8">
             Solo accesible para el equipo @koai360.com
           </p>
         </motion.div>

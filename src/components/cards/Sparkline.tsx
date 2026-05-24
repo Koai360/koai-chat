@@ -1,3 +1,5 @@
+import { useId } from "react";
+
 interface SparklineProps {
   values: number[];
   width?: number;
@@ -19,6 +21,10 @@ export function Sparkline({
   color = "var(--color-noa)",
   className,
 }: SparklineProps) {
+  // P2-4 audit: useId genera un id estable (no impure como Math.random)
+  // que React garantiza único por instancia. SVG <defs> necesita id único
+  // para que cada sparkline en la página tenga su propio gradient.
+  const gradId = `sparkline-grad-${useId().replace(/:/g, "")}`;
   if (!values || values.length < 2) {
     return (
       <div
@@ -47,7 +53,8 @@ export function Sparkline({
     .join(" ");
 
   const areaPoints = `${points} ${width},${height} 0,${height}`;
-  const gradientId = `sparkline-grad-${Math.random().toString(36).slice(2, 8)}`;
+  // P2-4 audit: useId() en vez de Math.random() — id estable + pure render.
+  const gradientId = gradId;
 
   return (
     <svg

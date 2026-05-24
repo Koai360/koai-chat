@@ -24,7 +24,16 @@
 
 const COLOR_INLINE = /:(lime|red|green|yellow|purple)\[([^\]]+)\]/g;
 const HIGHLIGHT = /==([^=]+)==/g;
-const ALERT_BLOCK = /^>\s*\[!(INFO|TIP|WARN|WARNING|SUCCESS|DANGER|CAUTION|NOTE|IMPORTANT)\]\s*(.*)$([\s\S]*?)(?=\n\s*\n|\n[^>]|$)/gim;
+// P1-5 audit fix: el regex anterior tenía `(.*)$([\s\S]*?)(?=...|$)` con flag `m`,
+// donde `$` matcheaba fin de línea del header y el lazy `[\s\S]*?` capturaba
+// cuerpo vacío. Resultado: callouts con `> - item1 / > - item2` salían como
+// caja vacía + texto literal del body (alertas financieras ilegibles).
+//
+// Nuevo: captura explícita de líneas `>` consecutivas siguientes al header.
+//   Grupo 1: TIPO (INFO/WARN/...)
+//   Grupo 2: header text (resto de la línea del [!TYPE])
+//   Grupo 3: body (`\n>...` opcional, cero o más líneas)
+const ALERT_BLOCK = /^>[ \t]*\[!(INFO|TIP|WARN|WARNING|SUCCESS|DANGER|CAUTION|NOTE|IMPORTANT)\][ \t]*([^\n]*)((?:\n>[^\n]*)*)/gim;
 
 const ALERT_TYPE_MAP: Record<string, string> = {
   INFO: "info",
@@ -102,11 +111,13 @@ export function preprocessMarkdown(input: string): string {
     const bodyLines: string[] = [];
     if (headerText && headerText.trim()) bodyLines.push(headerText.trim());
     for (let i = 1; i < lines.length; i++) {
-      const m = lines[i].match(/^>\s?(.*)$/);
+      const m = lines[i].match(/^>[ \t]?(.*)$/);
       if (m) bodyLines.push(m[1]);
       else break;
     }
-    const body = bodyLines.join(" ").trim();
+    // P1-5 audit: NO colapsar con " " — pierde estructura de listas (- item / - item).
+    // Conservamos \n; abajo lo traducimos a <br> después del escape, y `- `/`* ` a bullets.
+    const body = bodyLines.join("\n").trim();
     // Body puede contener:
     //   - Placeholders ${STASH_PREFIX}N${STASH_SUFFIX} de highlights/colors (HTML stashed)
     //   - Texto raw del LLM con potenciales `<` `>` peligrosos (XSS)
@@ -116,7 +127,11 @@ export function preprocessMarkdown(input: string): string {
     // los placeholders usan , no `<>`). Luego applyInlineMarkdown convierte
     // **bold** etc. a HTML válido. Después stash todo el div con su contenido ya
     // procesado para que el escape del NEXT match no lo toque.
-    const safe = applyInlineMarkdown(escapeInlineHtml(body));
+    const escaped = escapeInlineHtml(body);
+    const inlined = applyInlineMarkdown(escaped);
+    // Lista markdown `- item` / `* item` → bullet visual (callout no soporta nested ul)
+    const withBullets = inlined.replace(/(^|\n)([ \t]*)[-*][ \t]+/g, "$1$2• ");
+    const safe = withBullets.replace(/\n/g, "<br>");
     return stash(`<div class="callout callout-${type}">${safe}</div>`);
   });
 

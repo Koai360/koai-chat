@@ -50,10 +50,11 @@ export default defineConfig({
             // Resto: vendor único — rollup ordena cargas
             return undefined;
           }
-          // Code-split por surface (app code) — lazy loading natural
+          // Code-split por surface — P1-7 audit: ahora cargadas vía React.lazy()
+          // desde AppShell, así pages no entra en first-load. cards sigue eager
+          // porque MessageBubble los importa estático (renderiza inline).
           if (id.includes("/components/pages/")) return "pages";
           if (id.includes("/components/cards/")) return "cards";
-          if (id.includes("/components/voice/")) return "voice";
         },
       },
     },

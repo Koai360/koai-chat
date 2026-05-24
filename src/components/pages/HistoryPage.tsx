@@ -11,10 +11,18 @@ import { IconButton } from "@/components/ui/IconButton";
 import { relativeTime } from "@/lib/format";
 import type { Conversation } from "@/types/api";
 
+interface HistoryPageProps {
+  /**
+   * P1-3 audit: si se provee, borrar pasa por useChat.deleteConversation que
+   * limpia activeId + messages cuando borrás la conv activa. Sino fallback raw.
+   */
+  onDeleteConversation?: (id: string) => Promise<void>;
+}
+
 /**
  * HistoryPage — lista completa de conversaciones con buscador y agrupación por día.
  */
-export function HistoryPage() {
+export function HistoryPage({ onDeleteConversation }: HistoryPageProps = {}) {
   const [items, setItems] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -37,7 +45,11 @@ export function HistoryPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("¿Borrar esta conversación?")) return;
     try {
-      await apiDeleteConversation(id);
+      if (onDeleteConversation) {
+        await onDeleteConversation(id);
+      } else {
+        await apiDeleteConversation(id);
+      }
       setItems((prev) => prev.filter((c) => c.id !== id));
     } catch (err) {
       console.warn("[HistoryPage] delete failed", err);

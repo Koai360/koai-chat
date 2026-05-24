@@ -62,9 +62,15 @@ export function AppShell({ user, onLogout }: AppShellProps) {
     setModelMode,
     sendMessage,
     stopGeneration,
-    newConversation,
+    deleteConversation,
     refresh,
-  } = useChat(user.id);
+  } = useChat({
+    userId: user.id,
+    // P1-1 audit fix: sendMessage es dueño de crear la conv si no hay activa.
+    // Esto evita el race entre pre-create en handleSend + useEffect[activeId]
+    // que pisaba el userMsg optimista del primer mensaje.
+    onConversationCreated: (id) => navigate({ kind: "chat", conversationId: id }),
+  });
 
   // Sync activeId con la ruta URL
   useEffect(() => {
@@ -77,7 +83,8 @@ export function AppShell({ user, onLogout }: AppShellProps) {
     }
   }, [route, activeId, setActiveId]);
 
-  // Cierra drawer mobile al cambiar de ruta
+  // Cierra drawer mobile al cambiar de ruta (incluido browser back/forward).
+  // setState-in-effect es warning intencional acá: sincronizar UI con URL externo.
   useEffect(() => {
     setDrawerOpen(false);
   }, [route]);
@@ -92,11 +99,9 @@ export function AppShell({ user, onLogout }: AppShellProps) {
   };
 
   const handleSend = async (text: string, attachments?: import("@/components/chat/ChatInput").AttachedFile[]) => {
-    // Si no hay conversación activa, sendMessage crea una y nos lleva ahí
-    if (!activeId) {
-      const conv = await newConversation();
-      navigate({ kind: "chat", conversationId: conv.id });
-    }
+    // P1-1 audit fix: NO pre-creamos conversación acá. sendMessage la crea si
+    // no hay activa y dispara onConversationCreated → navigate. Eso garantiza
+    // que skipNextLoadRef se setee ANTES de que el useEffect[activeId] dispare.
     // Backend acepta 1 image_base64 + 1 file_base64. Multi-file iteramos (cada uno como msg propio).
     if (!attachments || attachments.length === 0) {
       await sendMessage(text);
@@ -147,6 +152,7 @@ export function AppShell({ user, onLogout }: AppShellProps) {
             onNewChat={handleNewChat}
             onSelectConversation={handleSelectConversation}
             onConversationsChanged={refresh}
+            onDeleteConversation={deleteConversation}
             onCloseMobile={() => setDrawerOpen(false)}
           />
         </Sheet>
@@ -177,7 +183,7 @@ export function AppShell({ user, onLogout }: AppShellProps) {
             )}
             {route.kind === "historial" && (
               <Suspense fallback={<PageFallback />}>
-                <HistoryPage />
+                <HistoryPage onDeleteConversation={deleteConversation} />
               </Suspense>
             )}
             {route.kind === "config" && (

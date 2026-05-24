@@ -19,5 +19,12 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // P2-4 audit: sanity-checks útiles pero hay casos legítimos (sync UI
+      // state con URL/route en useEffect, refs en flow setup async). Mantener
+      // como warning para visibilidad sin romper CI.
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/refs': 'warn',
+    },
   },
 ])

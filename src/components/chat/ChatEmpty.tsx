@@ -134,7 +134,7 @@ export function ChatEmpty({ userName = "Jesús" }: ChatEmptyProps) {
       <div className="flex flex-col items-center text-center max-w-xl mx-auto">
         <Sparkle size={48} animate className="mb-6" />
 
-        <p className="mono text-[11px] uppercase tracking-[0.16em] text-white/40 mb-4">
+        <p className="mono text-[11px] uppercase tracking-[0.16em] text-white/55 mb-4">
           {today}
         </p>
 

@@ -30,6 +30,12 @@ interface SidebarProps {
   onNewChat: () => void;
   onSelectConversation: (id: string) => void;
   onConversationsChanged?: () => void;
+  /**
+   * P1-3 audit: borrar conv pasa por useChat.deleteConversation que limpia
+   * activeId + messages si el chat borrado era el activo. Si NO se pasa,
+   * cae a apiDeleteConversation raw (genera ghost state — solo legacy).
+   */
+  onDeleteConversation?: (id: string) => Promise<void>;
   isMobile?: boolean;
   onCloseMobile?: () => void;
 }
@@ -52,6 +58,7 @@ export function Sidebar({
   onNewChat,
   onSelectConversation,
   onConversationsChanged,
+  onDeleteConversation,
   isMobile = false,
   onCloseMobile,
 }: SidebarProps) {
@@ -78,6 +85,7 @@ export function Sidebar({
           onCloseMobile?.();
         }}
         onConversationsChanged={onConversationsChanged}
+        onDeleteConversation={onDeleteConversation}
         onCollapse={onCloseMobile}
       />
     );
@@ -198,6 +206,7 @@ export function Sidebar({
                   setExpanded(false);
                 }}
                 onConversationsChanged={onConversationsChanged}
+                onDeleteConversation={onDeleteConversation}
                 onCollapse={() => setExpanded(false)}
               />
             </motion.aside>
@@ -221,6 +230,7 @@ interface SidebarContentProps {
   onNewChat: () => void;
   onSelectConversation: (id: string) => void;
   onConversationsChanged?: () => void;
+  onDeleteConversation?: (id: string) => Promise<void>;
   onCollapse?: () => void;
 }
 
@@ -233,6 +243,7 @@ function SidebarContent({
   onNewChat,
   onSelectConversation,
   onConversationsChanged,
+  onDeleteConversation,
   onCollapse,
 }: SidebarContentProps) {
   const recent = conversations.slice(0, 5);
@@ -252,8 +263,15 @@ function SidebarContent({
   const handleDelete = async (conv: Conversation) => {
     if (!window.confirm(`¿Borrar "${conv.title || "esta conversación"}"?`)) return;
     try {
-      await apiDeleteConversation(conv.id);
-      onConversationsChanged?.();
+      // P1-3 audit fix: si está disponible, usar useChat.deleteConversation
+      // que limpia activeId + messages cuando se borra la activa. Sino fallback
+      // al raw API (legacy, deja ghost state).
+      if (onDeleteConversation) {
+        await onDeleteConversation(conv.id);
+      } else {
+        await apiDeleteConversation(conv.id);
+        onConversationsChanged?.();
+      }
     } catch (err) {
       console.warn("[Sidebar] delete failed", err);
       window.alert("No se pudo borrar el chat.");
@@ -296,12 +314,12 @@ function SidebarContent({
 
       {/* Recientes */}
       <div className="flex-1 overflow-y-auto px-3 py-2 min-h-0">
-        <p className="mono text-[10px] uppercase tracking-[0.12em] text-white/40 px-2.5 mb-2 font-medium">
+        <p className="mono text-[10px] uppercase tracking-[0.12em] text-white/55 px-2.5 mb-2 font-medium">
           Recientes
         </p>
         <nav className="flex flex-col gap-0.5">
           {recent.length === 0 ? (
-            <p className="text-xs text-white/30 px-2.5 py-2">Sin conversaciones aún</p>
+            <p className="text-xs text-white/55 px-2.5 py-2">Sin conversaciones aún</p>
           ) : (
             recent.map((c) => {
               const isActive = c.id === activeConversationId;
@@ -415,7 +433,7 @@ function SidebarContent({
               )}
               <div className="flex-1 min-w-0 text-left">
                 <p className="text-sm text-white/95 truncate font-medium">{user.name}</p>
-                <p className="mono text-[11px] text-white/40 truncate tracking-tight">{user.email}</p>
+                <p className="mono text-[11px] text-white/55 truncate tracking-tight">{user.email}</p>
               </div>
             </button>
           }

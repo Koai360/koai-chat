@@ -24,8 +24,12 @@
   Cache-Control: public, max-age=86400
 
 # Security headers — aplicados a TODO el sitio
+# CSP validado 2026-05-25 con Playwright + flow autenticado completo (chat
+# user→noa stream + markdown render). Cero violations en consola con la misma
+# policy en modo Report-Only durante D1+D2+Sprint3+PIXEL deploys. Switch a
+# enforced ahora: cualquier inline script/style nuevo se bloquea por default.
 /*
-  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com https://*.gstatic.com; connect-src 'self' https://api.koai360.com wss://api.koai360.com https://accounts.google.com; img-src 'self' data: blob: https://cdn.koai360.com https://*.googleusercontent.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; frame-src https://accounts.google.com; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com https://*.gstatic.com; connect-src 'self' https://api.koai360.com wss://api.koai360.com https://accounts.google.com; img-src 'self' data: blob: https://cdn.koai360.com https://*.googleusercontent.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; frame-src https://accounts.google.com; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'
   X-Frame-Options: DENY
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
   Permissions-Policy: camera=(), geolocation=(), microphone=(self), payment=()

@@ -14,11 +14,16 @@
    ============================================================ */
 
 @theme {
-  /* === BACKGROUNDS · negro profundo === */
-  --color-bg: #000000;
-  --color-bg-elevated: #0a0a0c;
-  --color-bg-overlay: #14141a;
-  --color-bg-input: #0e0e12;
+  /* === BACKGROUNDS · "Ink Room V2" (PIXEL Visual sprint) ===
+     Anti-halation OLED: salimos del #000 puro a un negro azulado profundo
+     con cromaticidad mínima (~0.008 chroma) inspirado en Bloomberg Terminal +
+     Pentagram Abridge. La diferencia es sutil al ojo pero reduce halation en
+     OLED bajo uso nocturno prolongado y le da warmth editorial sin perder
+     contraste WCAG. */
+  --color-bg: oklch(0.08 0.008 260);          /* #0b0c0f bg-void (canvas chat) */
+  --color-bg-elevated: oklch(0.12 0.010 258); /* #131418 contenedores, sidebar, cards */
+  --color-bg-overlay: oklch(0.17 0.012 255);  /* #1f2126 modales, dropdowns, tooltips */
+  --color-bg-input: oklch(0.10 0.009 259);    /* #101216 inputs, slightly deeper than elevated */
 
   /* === GRADIENT STOPS · jewel-tone bottom-up === */
   --color-gradient-base: #000000;
@@ -56,6 +61,17 @@
   --color-purple: #6b3f8e;
   --color-purple-soft: rgba(107, 63, 142, 0.18);
   --color-purple-glow: rgba(107, 63, 142, 0.28);
+
+  /* === PIXEL CFO Trust System (70/30 KOAI Heritage + financial UX) ===
+     Gold accent reservado para señales de confianza/sincronización con Plaid:
+     - sync en curso (handshake con Chase)
+     - confirmación de balance fresco
+     - "verified" states de transacciones reconciliadas
+     Uso recomendado: max 8% del viewport. Lime sigue siendo el brand accent
+     principal — gold complementa, no compite. */
+  --color-gold: oklch(0.78 0.14 82);
+  --color-gold-soft: color-mix(in oklch, oklch(0.78 0.14 82) 14%, transparent);
+  --color-gold-dim: oklch(0.58 0.10 82);
 
   /* === ACCENT JEWEL GRADIENTS === */
   --color-sapphire: #1e3a8a;
@@ -127,6 +143,16 @@ body,
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+}
+
+/* PIXEL CFO Trust System: tabular-nums automático en mono y en cifras financieras.
+   Evita jitter de columnas en cards de balance/transacciones cuando los números
+   cambian dinámicamente (PIXEL spec). */
+.mono,
+.font-mono,
+[data-financial],
+.financial-figure {
+  font-variant-numeric: tabular-nums;
 }
 
 body {

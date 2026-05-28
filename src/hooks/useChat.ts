@@ -171,7 +171,13 @@ export function useChat(options: UseChatOptions): UseChatReturn {
 
   const sendMessage = useCallback(
     async (text: string, opts: Partial<SendMessagePayload> = {}) => {
-      if (!text.trim() || loading) return;
+      // S139 fix: permitir send con texto vacío SI hay attachment (image o file).
+      // Antes `if (!text.trim()) return` abortaba silencioso la 2ª+ imagen/archivo
+      // que el AppShell mandaba como mensajes separados sin texto.
+      const hasAttachment = Boolean(
+        opts.image_base64 || opts.file_base64 || opts.image_url,
+      );
+      if ((!text.trim() && !hasAttachment) || loading) return;
 
       // Garantizar conversación activa. Si no hay activa, creamos una pero
       // NO disparamos el load del useEffect — vamos a setear messages a mano
@@ -187,12 +193,25 @@ export function useChat(options: UseChatOptions): UseChatReturn {
         convId = conv.id;
       }
 
-      // Optimistic user message
+      // Optimistic user message — S139 fix: incluir image_base64 como data URL
+      // para que la imagen aparezca visualmente apenas el user envía, antes
+      // de que llegue la respuesta del backend.
+      const optimisticImage: string | undefined = opts.image_base64
+        ? (opts.image_base64.startsWith("data:")
+            ? opts.image_base64
+            : `data:image/png;base64,${opts.image_base64}`)
+        : opts.image_url || undefined;
+      const optimisticContent: string = text || (
+        opts.file_name
+          ? `📎 ${opts.file_name}`
+          : (opts.image_base64 || opts.image_url ? "" : "")
+      );
       const userMsg: ChatMessage = {
         id: `tmp-${Date.now()}`,
         conversation_id: convId,
         role: "user",
-        content: text,
+        content: optimisticContent,
+        image: optimisticImage,
         created_at: new Date().toISOString(),
       };
 

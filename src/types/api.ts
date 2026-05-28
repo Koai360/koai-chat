@@ -72,4 +72,8 @@ export interface SendMessagePayload {
   file_base64?: string;
   file_name?: string;
   file_type?: string;
+  // Multi-attachment S139: N imágenes + N archivos en 1 sola request.
+  // Backend procesa todo como Content user con parts=[text, m1, m2, ...].
+  images?: string[]; // base64 strings
+  files?: Array<{ base64: string; name: string; mime: string }>;
 }

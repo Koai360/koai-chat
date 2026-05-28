@@ -99,28 +99,33 @@ export function AppShell({ user, onLogout }: AppShellProps) {
   };
 
   const handleSend = async (text: string, attachments?: import("@/components/chat/ChatInput").AttachedFile[]) => {
-    // P1-1 audit fix: NO pre-creamos conversación acá. sendMessage la crea si
-    // no hay activa y dispara onConversationCreated → navigate. Eso garantiza
-    // que skipNextLoadRef se setee ANTES de que el useEffect[activeId] dispare.
-    // Backend acepta 1 image_base64 + 1 file_base64. Multi-file iteramos (cada uno como msg propio).
+    // S139: multi-attachment REAL — todo en 1 sola request. Backend recibe
+    // images[] + files[] como Content user con parts=[text, m1, m2, ...] y
+    // Noa los ve como UN turno unificado (mejor comprensión + 1 respuesta).
+    // Antes: cada attachment extra se mandaba como mensaje separado sin texto
+    // (Noa los procesaba aislados, respondiendo cosas raras o ignorando).
     if (!attachments || attachments.length === 0) {
       await sendMessage(text);
       return;
     }
-    // Primer attachment va con el texto. El resto como messages separados.
-    const [first, ...rest] = attachments;
-    const firstOpts =
-      first.kind === "image"
-        ? { image_base64: first.base64, image_mode: false }
-        : { file_base64: first.base64, file_name: first.name, file_type: first.mime };
-    await sendMessage(text, firstOpts as never);
-    for (const att of rest) {
-      const opts =
-        att.kind === "image"
-          ? { image_base64: att.base64, image_mode: false }
-          : { file_base64: att.base64, file_name: att.name, file_type: att.mime };
-      await sendMessage("", opts as never);
+    const images = attachments
+      .filter((a) => a.kind === "image")
+      .map((a) => a.base64);
+    const files = attachments
+      .filter((a) => a.kind === "doc")
+      .map((a) => ({ base64: a.base64, name: a.name, mime: a.mime }));
+    const opts: Record<string, unknown> = {};
+    // Mantener compat single-image: primer image va a image_base64 también
+    if (images.length > 0) opts.image_base64 = images[0];
+    if (images.length > 1) opts.images = images.slice(1);
+    // Mantener compat single-file: primer file va a file_base64 también
+    if (files.length > 0) {
+      opts.file_base64 = files[0].base64;
+      opts.file_name = files[0].name;
+      opts.file_type = files[0].mime;
     }
+    if (files.length > 1) opts.files = files.slice(1);
+    await sendMessage(text, opts as never);
   };
 
   return (

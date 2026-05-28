@@ -195,11 +195,14 @@ export function useChat(options: UseChatOptions): UseChatReturn {
 
       // Optimistic user message — S139 fix: incluir image_base64 como data URL
       // para que la imagen aparezca visualmente apenas el user envía, antes
-      // de que llegue la respuesta del backend.
+      // de que llegue la respuesta del backend. Multi-attachment: la 1ª imagen
+      // se muestra en este msg + setMessages append N-1 rows extra (1 por
+      // imagen adicional) + 1 row por file con placeholder 📎. Eso matchea
+      // el patrón de persistencia del backend (1 row text + N rows imagen).
+      const asDataUrl = (b64: string) =>
+        b64.startsWith("data:") ? b64 : `data:image/png;base64,${b64}`;
       const optimisticImage: string | undefined = opts.image_base64
-        ? (opts.image_base64.startsWith("data:")
-            ? opts.image_base64
-            : `data:image/png;base64,${opts.image_base64}`)
+        ? asDataUrl(opts.image_base64)
         : opts.image_url || undefined;
       const optimisticContent: string = text || (
         opts.file_name
@@ -214,6 +217,30 @@ export function useChat(options: UseChatOptions): UseChatReturn {
         image: optimisticImage,
         created_at: new Date().toISOString(),
       };
+      // Rows extra optimistic: 1 por imagen adicional + 1 por file adicional
+      const extraOptimisticMsgs: ChatMessage[] = [];
+      const baseTs = Date.now();
+      (opts.images || []).forEach((b64: string, i: number) => {
+        if (!b64) return;
+        extraOptimisticMsgs.push({
+          id: `tmp-${baseTs}-img-${i}`,
+          conversation_id: convId,
+          role: "user",
+          content: "",
+          image: asDataUrl(b64),
+          created_at: new Date(baseTs + i + 1).toISOString(),
+        });
+      });
+      (opts.files || []).forEach((f, i: number) => {
+        if (!f?.base64) return;
+        extraOptimisticMsgs.push({
+          id: `tmp-${baseTs}-file-${i}`,
+          conversation_id: convId,
+          role: "user",
+          content: `📎 ${f.name || "archivo"}`,
+          created_at: new Date(baseTs + 1000 + i).toISOString(),
+        });
+      });
 
       if (isNewConv) {
         // Conv recién creada: marcar para skipear el load, setear messages, activar conv,
@@ -222,11 +249,11 @@ export function useChat(options: UseChatOptions): UseChatReturn {
         // useEffect del [activeId] dispare getMessages([]) y pise el userMsg
         // optimista (bug P1-1 audit S139).
         skipNextLoadRef.current = convId;
-        setMessages([userMsg]);
+        setMessages([userMsg, ...extraOptimisticMsgs]);
         setActive(convId);
         onConversationCreated?.(convId);
       } else {
-        setMessages((prev) => [...prev, userMsg]);
+        setMessages((prev) => [...prev, userMsg, ...extraOptimisticMsgs]);
       }
       setLoading(true);
       setStreamingText("");

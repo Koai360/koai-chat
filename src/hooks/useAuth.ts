@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { getAuthToken, setAuthToken } from "@/lib/api";
+import { getAuthToken, setAuthToken, isJwtExpired } from "@/lib/api";
 import type { AuthUser } from "@/types/api";
 
 const USER_KEY = "noa.user";
@@ -113,7 +113,9 @@ export function useAuth(): UseAuthReturn {
   const [state, setState] = useState<AuthState>(() => {
     const token = getAuthToken();
     const rawUser = localStorage.getItem(USER_KEY);
-    if (token && rawUser) {
+    // Solo confiar en la sesión guardada si el token NO está expirado.
+    // Un token vencido dejaba la app "logueada" pero muerta (todo 401).
+    if (token && rawUser && !isJwtExpired(token)) {
       try {
         return { user: JSON.parse(rawUser) as AuthUser, loading: false, error: null };
       } catch {
@@ -127,13 +129,22 @@ export function useAuth(): UseAuthReturn {
   useEffect(() => {
     setState((prev) => {
       if (prev.user) return prev;
-      // Limpiar token huérfano si existe
+      // Limpiar token huérfano o expirado si existe
       if (getAuthToken()) {
         setAuthToken(null);
         localStorage.removeItem(USER_KEY);
       }
       return { user: null, loading: false, error: null };
     });
+  }, []);
+
+  // Sesión invalidada por el backend (401) en cualquier llamada → forzar login.
+  useEffect(() => {
+    const onUnauthorized = () => {
+      setState({ user: null, loading: false, error: null });
+    };
+    window.addEventListener("noa:unauthorized", onUnauthorized);
+    return () => window.removeEventListener("noa:unauthorized", onUnauthorized);
   }, []);
 
   const handleCredential = useCallback(async (credential: string) => {

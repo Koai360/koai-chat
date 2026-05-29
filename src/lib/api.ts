@@ -75,6 +75,8 @@ async function apiFetch(path: string, opts: FetchOpts = {}): Promise<Response> {
       const detail = (data as { detail: unknown }).detail;
       if (detail) message = String(detail);
     }
+    // Token expirado/inválido: forzar re-login en vez de fallar en silencio.
+    if (res.status === 401 && !skipAuth) handleUnauthorized();
     throw new ApiError(res.status, message, data);
   }
 
@@ -94,6 +96,35 @@ export function getAuthToken(): string | null {
 export function setAuthToken(token: string | null): void {
   if (token) localStorage.setItem(TOKEN_KEY, token);
   else localStorage.removeItem(TOKEN_KEY);
+}
+
+/**
+ * Chequea client-side si un JWT está expirado (o es ilegible) decodificando
+ * el claim `exp`. Margen de 30s para evitar carreras con el reloj del server.
+ * No valida la firma — eso lo hace el backend; aquí solo evitamos arrancar la
+ * app con un token muerto que haría fallar TODO con 401 en silencio.
+ */
+export function isJwtExpired(token: string | null): boolean {
+  if (!token) return true;
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    if (!payload?.exp) return false; // sin exp → dejamos que el backend decida
+    return Date.now() >= payload.exp * 1000 - 30_000;
+  } catch {
+    return true; // token corrupto → tratar como expirado
+  }
+}
+
+/**
+ * Sesión inválida (401 del backend o token expirado): limpia credenciales y
+ * dispara un evento global para que useAuth muestre la pantalla de login.
+ * Sin esto, un token vencido deja la app "logueada" pero muerta (sin historial,
+ * sin poder enviar) — exactamente el síntoma reportado.
+ */
+export function handleUnauthorized(): void {
+  setAuthToken(null);
+  localStorage.removeItem("noa.user");
+  window.dispatchEvent(new CustomEvent("noa:unauthorized"));
 }
 
 // ============================================================
@@ -180,6 +211,7 @@ export async function* streamMessage(
     } catch {
       /* noop */
     }
+    if (res.status === 401) handleUnauthorized();
     throw new ApiError(res.status, detail);
   }
 

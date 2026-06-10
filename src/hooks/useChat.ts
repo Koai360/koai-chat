@@ -83,6 +83,9 @@ export function useChat(options: UseChatOptions): UseChatReturn {
 
   const abortRef = useRef<AbortController | null>(null);
   const activeIdRef = useRef<string | null>(null);
+  // S158 (review Codex): secuencia de envíos — invalida refetchs diferidos de
+  // turnos viejos cuando arranca un send nuevo (race del setTimeout 2.5s).
+  const sendSeqRef = useRef(0);
   // Cuando sendMessage crea una conv nueva, NO queremos que el useEffect del
   // activeId resetee los messages — el optimistic user msg ya está seteado y
   // getMessages() devolvería [] (conv nueva sin nada en backend). Marcamos
@@ -117,6 +120,11 @@ export function useChat(options: UseChatOptions): UseChatReturn {
   // (sendMessage seteaba [userMsg] + setActiveId, y este effect arrasaba antes
   // de que el flag skipNext se aplicara). El usuario veía "Pensando…" sin su msg.
   useEffect(() => {
+    // S158 (review Codex): streamingText es estado global del hook — al cambiar
+    // de conversación limpiarlo para que el stream de la conv anterior no quede
+    // pintado en la nueva. Si se vuelve a la conv en stream, el próximo onDelta
+    // (con guard isCurrent) lo repinta.
+    setStreamingText("");
     if (!activeId) {
       setMessages([]);
       return;
@@ -138,6 +146,39 @@ export function useChat(options: UseChatOptions): UseChatReturn {
   const setActiveId = useCallback((id: string | null) => {
     setActive(id);
   }, [setActive]);
+
+  // S158 — iOS suspende la PWA en background y mata el fetch del stream sin
+  // aviso (el fallo #1 en iPhone: mandás mensaje, bloqueás pantalla, la
+  // respuesta "se pierde"). El backend ahora persiste la respuesta aunque el
+  // cliente se desconecte → al volver a foreground reconciliamos con refetch
+  // (resume-lite). Solo si NO hay stream vivo, para no pisar un turno activo.
+  useEffect(() => {
+    const reconcile = () => {
+      if (document.visibilityState !== "visible") return;
+      const id = activeIdRef.current;
+      if (!id) return;
+      if (abortRef.current) return; // stream activo — no tocar
+      const seqAtFetch = sendSeqRef.current;
+      getMessages(id)
+        .then((msgs) => {
+          if (activeIdRef.current !== id) return;
+          if (abortRef.current || sendSeqRef.current !== seqAtFetch) return; // send nuevo arrancó
+          // Merge conservador (review Codex): solo reemplazar si el server
+          // tiene al menos tantos mensajes como los locales — no pisar
+          // optimistas de un turno que el backend aún no terminó de persistir.
+          if (msgs.length > 0) {
+            setMessages((prev) => (msgs.length >= prev.length ? msgs : prev));
+          }
+        })
+        .catch(() => {});
+    };
+    document.addEventListener("visibilitychange", reconcile);
+    window.addEventListener("pageshow", reconcile);
+    return () => {
+      document.removeEventListener("visibilitychange", reconcile);
+      window.removeEventListener("pageshow", reconcile);
+    };
+  }, []);
 
   const newConversation = useCallback(async (): Promise<Conversation> => {
     const conv = await createConversation("noa");
@@ -179,6 +220,12 @@ export function useChat(options: UseChatOptions): UseChatReturn {
       );
       if ((!text.trim() && !hasAttachment) || loading) return;
 
+      // S158 — cerrar la ventana de doble-envío: setLoading(true) ANTES del
+      // await de createConversation. Antes, durante ese await (~300ms) loading
+      // seguía false → un segundo tap re-entraba y creaba conv/mensaje duplicado.
+      setLoading(true);
+      sendSeqRef.current += 1; // invalida refetchs diferidos de turnos previos
+
       // Garantizar conversación activa. Si no hay activa, creamos una pero
       // NO disparamos el load del useEffect — vamos a setear messages a mano
       // con el optimistic user msg + flag para skipear la próxima carga.
@@ -188,9 +235,15 @@ export function useChat(options: UseChatOptions): UseChatReturn {
       if (existingId) {
         convId = existingId;
       } else {
-        const conv = await createConversation("noa");
-        setConversations((prev) => [conv, ...prev]);
-        convId = conv.id;
+        try {
+          const conv = await createConversation("noa");
+          setConversations((prev) => [conv, ...prev]);
+          convId = conv.id;
+        } catch (err) {
+          console.error("[useChat] createConversation failed", err);
+          setLoading(false);
+          return;
+        }
       }
 
       // Optimistic user message — S139 fix: incluir image_base64 como data URL
@@ -255,7 +308,6 @@ export function useChat(options: UseChatOptions): UseChatReturn {
       } else {
         setMessages((prev) => [...prev, userMsg, ...extraOptimisticMsgs]);
       }
-      setLoading(true);
       setStreamingText("");
       setLoadingHint("Pensando…");
 
@@ -277,18 +329,28 @@ export function useChat(options: UseChatOptions): UseChatReturn {
 
       let accumulated = "";
       let imageUrl: string | null = null;
+      let sawDone = false;
+      let sawError = false;
+      // S158 — guard de conversación: si el usuario cambia de conversación
+      // mid-stream, los setState de este turno NO deben sangrar a la conv
+      // nueva (bug: respuesta aparecía en la conversación equivocada). El
+      // texto igual se persiste backend-side; al volver, getMessages lo trae.
+      const isCurrent = () => activeIdRef.current === convId;
       try {
         for await (const ev of streamMessage(payload, abort.signal)) {
           handleStreamEvent(ev, {
             onDelta: (delta) => {
               accumulated += delta;
+              if (!isCurrent()) return;
               setStreamingText(accumulated);
               setLoadingHint(null);
             },
-            onHint: (hint) => setLoadingHint(hint),
+            onHint: (hint) => {
+              if (isCurrent()) setLoadingHint(hint);
+            },
             onImage: (url) => {
               imageUrl = url;
-              setLoadingHint(null);
+              if (isCurrent()) setLoadingHint(null);
               // Notificar a la galería que hay imagen nueva → recarga primera página
               // (S136: sin esto, la imagen recién generada no aparece hasta que el user
               // navega manualmente a Galería y la página se re-monta).
@@ -299,8 +361,9 @@ export function useChat(options: UseChatOptions): UseChatReturn {
               }
             },
             onDone: () => {
+              sawDone = true;
               // Promovemos streamingText → message
-              if ((accumulated || imageUrl) && convId) {
+              if ((accumulated || imageUrl) && convId && isCurrent()) {
                 const assistantMsg: ChatMessage = {
                   id: `assistant-${Date.now()}`,
                   conversation_id: convId,
@@ -311,25 +374,65 @@ export function useChat(options: UseChatOptions): UseChatReturn {
                 };
                 setMessages((prev) => [...prev, assistantMsg]);
               }
-              setStreamingText("");
+              if (isCurrent()) setStreamingText("");
+            },
+            // S158 — antes `event: error` se descartaba en silencio (solo
+            // console.warn) → burbuja vacía/colgada. Ahora renderiza un
+            // mensaje visible si el turno no produjo texto.
+            onError: () => {
+              sawError = true;
+              if (!accumulated && !imageUrl && isCurrent()) {
+                const errMsg: ChatMessage = {
+                  id: `err-${Date.now()}`,
+                  conversation_id: convId,
+                  role: "assistant",
+                  content: `_Error al generar respuesta. Intentá de nuevo._`,
+                  created_at: new Date().toISOString(),
+                };
+                setMessages((prev) => [...prev, errMsg]);
+              }
+              if (isCurrent()) setLoadingHint(null);
             },
           });
         }
       } catch (err) {
-        if ((err as { name?: string })?.name !== "AbortError") {
+        if ((err as { name?: string })?.name === "AbortError") {
+          sawError = true; // stop deliberado del usuario — sin burbuja extra
+        } else {
           console.error("[useChat] stream error", err);
-          const errMsg: ChatMessage = {
-            id: `err-${Date.now()}`,
-            conversation_id: convId,
-            role: "assistant",
-            content: `_Error al generar respuesta. Intentá de nuevo._`,
-            created_at: new Date().toISOString(),
-          };
-          setMessages((prev) => [...prev, errMsg]);
+          sawError = true;
+          if (isCurrent()) {
+            const errMsg: ChatMessage = {
+              id: `err-${Date.now()}`,
+              conversation_id: convId,
+              role: "assistant",
+              content: `_Error al generar respuesta. Intentá de nuevo._`,
+              created_at: new Date().toISOString(),
+            };
+            setMessages((prev) => [...prev, errMsg]);
+          }
+          // S158 — el backend puede haber completado y persistido el turno
+          // aunque la conexión murió (iOS/red). Reconciliar en ~2.5s: si el
+          // server ya tiene la respuesta real, reemplaza la burbuja de error.
+          const refetchId = convId;
+          const seqAtError = sendSeqRef.current;
+          setTimeout(() => {
+            if (activeIdRef.current !== refetchId || abortRef.current) return;
+            if (sendSeqRef.current !== seqAtError) return; // send nuevo arrancó
+            getMessages(refetchId)
+              .then((msgs) => {
+                if (activeIdRef.current !== refetchId) return;
+                if (abortRef.current || sendSeqRef.current !== seqAtError) return;
+                if (msgs.length > 0) {
+                  setMessages((prev) => (msgs.length >= prev.length ? msgs : prev));
+                }
+              })
+              .catch(() => {});
+          }, 2500);
         }
       } finally {
         // Si el stream terminó sin enviar `done` (timeout, abort, error), flush manual
-        if (accumulated || imageUrl) {
+        if ((accumulated || imageUrl) && !sawDone && isCurrent()) {
           setMessages((prev) => {
             // Dedup: si onDone ya promovió, no agregar de nuevo
             if (prev.some((m) => m.role === "assistant" && m.content === accumulated && m.image === imageUrl)) {
@@ -348,7 +451,19 @@ export function useChat(options: UseChatOptions): UseChatReturn {
             ];
           });
         }
-        setStreamingText("");
+        // S158 — stream cerró sin texto, sin done y sin error renderizado →
+        // antes quedaba la nada absoluta ("Pensando…" desaparecía y ya).
+        if (!accumulated && !imageUrl && !sawDone && !sawError && isCurrent()) {
+          const silent: ChatMessage = {
+            id: `err-${Date.now()}`,
+            conversation_id: convId,
+            role: "assistant",
+            content: `_No llegó respuesta. Reintentá en un momento._`,
+            created_at: new Date().toISOString(),
+          };
+          setMessages((prev) => [...prev, silent]);
+        }
+        if (isCurrent()) setStreamingText("");
         setLoading(false);
         setLoadingHint(null);
         abortRef.current = null;
@@ -410,6 +525,7 @@ function handleStreamEvent(
     onHint: (hint: string) => void;
     onDone: () => void;
     onImage: (url: string) => void;
+    onError?: (message: string) => void;
   },
 ) {
   const data = ev.data;
@@ -476,9 +592,18 @@ function handleStreamEvent(
         }
       }
       break;
-    case "error":
+    case "error": {
+      // S158 — antes solo console.warn → el usuario veía una burbuja vacía.
       console.warn("[useChat] backend error event", data);
+      const msg =
+        typeof data === "string"
+          ? data
+          : (data as { error?: string; message?: string })?.error ??
+            (data as { error?: string; message?: string })?.message ??
+            "";
+      handlers.onError?.(msg);
       break;
+    }
     default:
       // Log no-mapeado para diagnosis sin romper el stream
       if (type !== "message") {

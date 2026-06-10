@@ -1,10 +1,30 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
+import fs from "fs";
+
+// S158 — el SW tenía VERSION hardcodeada "noa-v3.0.0": al nunca cambiar los
+// bytes de sw.js, el browser jamás re-instalaba el worker → precache del index
+// congelado → iOS corría bundles viejos tras cada deploy. Este plugin estampa
+// una versión única por build en dist/sw.js (post-copy de public/).
+function stampServiceWorkerVersion(): Plugin {
+  return {
+    name: "stamp-sw-version",
+    apply: "build",
+    closeBundle() {
+      const swPath = path.resolve(__dirname, "dist/sw.js");
+      if (!fs.existsSync(swPath)) return;
+      const stamp = `noa-v3-${new Date().toISOString().replace(/[:.]/g, "-")}`;
+      const src = fs.readFileSync(swPath, "utf8");
+      fs.writeFileSync(swPath, src.replace(/__SW_VERSION__/g, stamp));
+      console.log(`[sw] versión estampada: ${stamp}`);
+    },
+  };
+}
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), stampServiceWorkerVersion()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),

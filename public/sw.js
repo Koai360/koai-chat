@@ -9,7 +9,11 @@
  * - Push notifications: solo si app no está visible
  */
 
-const VERSION = "noa-v3.0.0";
+// __SW_VERSION__ se estampa por build (vite.config.ts:stampServiceWorkerVersion).
+// En dev (public/ servido directo) queda el placeholder — inofensivo.
+// S158: antes era "noa-v3.0.0" fijo → el SW nunca se re-instalaba → index
+// precacheado congelado → bundles viejos corriendo en iOS tras cada deploy.
+const VERSION = "__SW_VERSION__";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
@@ -24,7 +28,11 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(STATIC_CACHE)
-      .then((cache) => cache.addAll(PRECACHE_URLS))
+      // cache: "reload" → bypass del HTTP cache del browser; el precache
+      // siempre baja el index/manifest frescos del server, no una copia stale.
+      .then((cache) =>
+        cache.addAll(PRECACHE_URLS.map((u) => new Request(u, { cache: "reload" })))
+      )
       .catch(() => {})
   );
   self.skipWaiting();
@@ -33,11 +41,12 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
-      // Limpia caches viejos
+      // Limpia caches viejos — SOLO los propios (prefijo noa-), no cualquier
+      // cache del origin (review Codex S158).
       const keys = await caches.keys();
       await Promise.all(
         keys
-          .filter((k) => !k.startsWith(VERSION))
+          .filter((k) => k.startsWith("noa-") && !k.startsWith(VERSION))
           .map((k) => caches.delete(k))
       );
       await self.clients.claim();

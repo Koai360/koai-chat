@@ -34,49 +34,19 @@ export default defineConfig({
     target: "es2022",
     cssCodeSplit: true,
     chunkSizeWarningLimit: 800,
-    // No preloadear chunks no críticos del first paint (login screen):
-    // - `pages` solo entra al navegar a Galería/Historial/Settings
-    // - `markdown` solo entra cuando hay mensaje del asistente
-    // - `cards` solo entra cuando un mensaje contiene markers card:
-    // El browser los descarga on-demand. P1-7 audit.
-    modulePreload: {
-      resolveDependencies: (_url, deps) =>
-        deps.filter((d) => !/(pages|markdown|cards)-[A-Za-z0-9_-]+\.js$/.test(d)),
-    },
-    rollupOptions: {
-      output: {
-        // NO splitamos node_modules — split agresivo causa race conditions con
-        // libs que dependen de React (Radix, framer-motion, sonner, vaul):
-        // si Radix carga antes que React core esté inicializado, falla con
-        // "Cannot read properties of undefined (reading 'useLayoutEffect')".
-        // Dejamos que rollup haga su pesado de imports natural.
-        //
-        // Sí splitimos surfaces propias para lazy loading:
-        manualChunks(id) {
-          // Markdown ecosystem se puede aislar porque NO depende de React
-          // como peer crítico (renderiza children como tree React, no lo
-          // necesita en module-init time)
-          if (id.includes("node_modules")) {
-            if (
-              id.includes("react-markdown") ||
-              id.includes("rehype") ||
-              id.includes("/lowlight/") ||
-              id.includes("/highlight.js/") ||
-              id.includes("/micromark") ||
-              id.includes("/mdast-")
-            ) {
-              return "markdown";
-            }
-            // Resto: vendor único — rollup ordena cargas
-            return undefined;
-          }
-          // Code-split por surface — P1-7 audit: ahora cargadas vía React.lazy()
-          // desde AppShell, así pages no entra en first-load. cards sigue eager
-          // porque MessageBubble los importa estático (renderiza inline).
-          if (id.includes("/components/pages/")) return "pages";
-          if (id.includes("/components/cards/")) return "cards";
-        },
-      },
-    },
+    // S158-b (audit P1): el filtro de modulePreload + manualChunks de
+    // pages/cards estaban ROTOS en el build real — rollup colocaba vendors
+    // compartidos (React incluido) dentro de los chunks "pages"/"cards", que
+    // por eso terminaban importados ESTÁTICAMENTE por index sin preload hints
+    // → waterfall secuencial de ~1.05MB que bloqueaba hasta el login.
+    // Fix: sin filtro de preload (los hints paralelos eliminan el waterfall) y
+    // sin manualChunks de app code — pages se splitea solo vía React.lazy
+    // (AppShell) y markdown vía el wrapper lazy de NoaMarkdown.
+    // Sin manualChunks: el split natural de rollup respeta los boundaries
+    // dinámicos (React.lazy de pages + LazyNoaMarkdown) — forzar chunks con
+    // manualChunks colocaba vendors compartidos dentro de "pages"/"cards"/
+    // "markdown" y los volvía imports ESTÁTICOS de index (waterfall). NO
+    // re-agregar split agresivo de node_modules (race conditions con libs
+    // que dependen de React: Radix, framer-motion, sonner, vaul).
   },
 });

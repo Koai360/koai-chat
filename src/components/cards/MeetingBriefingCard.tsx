@@ -59,7 +59,7 @@ export function MeetingBriefingCard({ data, pending }: MeetingBriefingCardProps)
             <div className="grid grid-cols-2 gap-2 mt-2">
               {data.kpis.map((kpi, i) => (
                 <div key={i} className="bg-white/[0.03] rounded-lg p-2">
-                  <p className="text-xs text-white/45">{kpi.label}</p>
+                  <p className="text-xs text-white/55">{kpi.label}</p>
                   <p className="mono text-[14px] text-white/95 font-medium">{kpi.value}</p>
                 </div>
               ))}
@@ -108,8 +108,8 @@ export function MeetingBriefingCard({ data, pending }: MeetingBriefingCardProps)
         )}
       </div>
 
-      <div className="px-5 pb-4 pt-1 -mx-5">
-        <Button variant="secondary" size="sm" className="ml-5">
+      <div className="pt-3">
+        <Button variant="secondary" size="sm">
           Abrir briefing completo →
         </Button>
       </div>
@@ -136,7 +136,7 @@ function Section({
       >
         <span className="font-medium">{label}</span>
         <ChevronRight
-          className={cn("size-4 text-white/45 transition-transform", open && "rotate-90")}
+          className={cn("size-4 text-white/55 transition-transform", open && "rotate-90")}
         />
       </button>
       {open && <div className="overflow-hidden">{children}</div>}

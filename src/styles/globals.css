@@ -179,7 +179,8 @@ textarea {
 }
 
 ::selection {
-  background: var(--color-noa-soft);
+  /* S158-b: lime 30% — el token noa-soft (12%) era casi invisible */
+  background: color-mix(in oklab, var(--color-noa) 30%, transparent);
   color: var(--color-text);
 }
 
@@ -486,6 +487,12 @@ select:focus-visible {
   border-collapse: collapse;
   margin: 0.75rem 0;
   font-size: 0.9em;
+  /* S158-b: remark-gfm activado hoy — tablas anchas scrollean en mobile en
+     vez de desbordar el mensaje (body tiene overflow:hidden) */
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .prose-noa th,
@@ -651,7 +658,9 @@ select:focus-visible {
 }
 
 .copy-block-btn[data-copied] {
-  color: #ffffff;
+  /* S158-b: negro sobre lime (~13:1) — blanco sobre lime era 1.5:1 ilegible
+     e inconsistente con Button primary */
+  color: #0b0c0f;
   background: var(--color-noa);
   border-color: var(--color-noa);
 }
@@ -718,6 +727,19 @@ select:focus-visible {
   opacity: 1;
 }
 
+/* S158-b: en touch no hay hover — el botón copiar era invisible/inusable
+   en iPhone (los usuarios primarios). Visible siempre + target ~42px. */
+@media (hover: none) {
+  .code-block-btn {
+    opacity: 1;
+  }
+}
+@media (pointer: coarse) {
+  .code-block-btn {
+    padding: 0.65rem;
+  }
+}
+
 .code-block-btn:hover {
   color: var(--color-noa);
   background: rgba(255, 255, 255, 0.08);
@@ -729,4 +751,18 @@ select:focus-visible {
   color: var(--color-noa);
   border-color: var(--color-noa);
   background: color-mix(in oklch, var(--color-noa) 15%, transparent);
+}
+
+/* S158-b — fluidez: el browser saltea layout/paint de mensajes fuera del
+   viewport en conversaciones largas (usado por ChatSurface en cada burbuja). */
+.msg-cv {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 120px;
+}
+
+/* S158-b — iOS: sin scroll chaining del shell ni pull-to-refresh accidental
+   al scrollear el thread (el PWA no tiene concepto de "refrescar página"). */
+html,
+body {
+  overscroll-behavior-y: none;
 }

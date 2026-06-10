@@ -62,6 +62,9 @@ export interface UseDeepgramStreamReturn {
   start: () => Promise<void>;
   stop: () => void;
   reset: () => void;
+  /** S158-b: texto FRESCO desde refs (final + interim) — el estado React en
+   *  closures queda congelado al tap y corta el dictado a mitad de frase. */
+  getLatestText: () => string;
 }
 
 function pickAudioMime(): string {
@@ -324,6 +327,14 @@ export function useDeepgramStream(opts: UseDeepgramStreamOpts = {}): UseDeepgram
     setError(null);
   }, []);
 
+  // S158-b: getter FRESCO desde refs (los refs SÍ se actualizan en ws.onmessage
+  // hasta el último momento). El estado React capturado en closures quedaba
+  // congelado al tap → se descartaba el último 'final' + el tail interim que
+  // el usuario YA VEÍA en pantalla (dictados cortados a mitad de frase).
+  const getLatestText = useCallback(() => {
+    return (finalRef.current + " " + interimRef.current).trim();
+  }, []);
+
   return {
     supported,
     listening,
@@ -334,5 +345,6 @@ export function useDeepgramStream(opts: UseDeepgramStreamOpts = {}): UseDeepgram
     start,
     stop,
     reset,
+    getLatestText,
   };
 }

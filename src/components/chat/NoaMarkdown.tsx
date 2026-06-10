@@ -1,5 +1,6 @@
 import { memo, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
@@ -48,11 +49,17 @@ export const NoaMarkdown = memo(function NoaMarkdown({
 }: NoaMarkdownProps) {
   if (plain) {
     // Path para burbujas user (sin rehype-raw, sin preprocess, plain text + basic md).
-    return <ReactMarkdown>{content}</ReactMarkdown>;
+    // S158-b: remark-gfm también acá para que saltos de línea/listas del user
+    // no se rendericen pegados.
+    return <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>;
   }
 
   return (
     <ReactMarkdown
+      // S158-b: remark-gfm — sin esto las TABLAS markdown nunca renderizaban
+      // (crítico: Noa responde datos financieros tabulares). El CSS de tablas
+      // en globals.css era código muerto hasta hoy.
+      remarkPlugins={[remarkGfm]}
       rehypePlugins={[
         rehypeRaw as never,
         [rehypeSanitize, noaSanitizeSchema] as never,

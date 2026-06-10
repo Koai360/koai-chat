@@ -141,7 +141,13 @@ export function useAuth(): UseAuthReturn {
   // Sesión invalidada por el backend (401) en cualquier llamada → forzar login.
   useEffect(() => {
     const onUnauthorized = () => {
-      setState({ user: null, loading: false, error: null });
+      // S158-b: antes el kick al login era sin explicación — el usuario no
+      // sabía si era bug o sesión vencida
+      setState({
+        user: null,
+        loading: false,
+        error: "Tu sesión expiró — iniciá sesión de nuevo.",
+      });
     };
     window.addEventListener("noa:unauthorized", onUnauthorized);
     return () => window.removeEventListener("noa:unauthorized", onUnauthorized);

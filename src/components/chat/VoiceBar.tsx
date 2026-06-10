@@ -64,12 +64,15 @@ export function VoiceBar({ onTranscript, onCancel }: VoiceBarProps) {
 
   const handleConfirm = () => {
     stream.stop();
-    // Pequeño delay para esperar el último 'final' del DG antes de entregar
+    // S158-b: 500ms (> los 350ms del cleanup de stop) para capturar el último
+    // 'final' de Deepgram, y getLatestText() lee los REFS frescos — el estado
+    // del closure quedaba congelado al tap y cortaba el dictado a mitad de
+    // frase (descartaba el tail interim que el usuario ya veía en pantalla).
     setTimeout(() => {
-      const text = stream.finalTranscript || stream.transcript;
+      const text = stream.getLatestText();
       if (text.trim()) onTranscript(text.trim());
       else onCancel();
-    }, 400);
+    }, 500);
   };
 
   const mm = Math.floor(elapsed / 60).toString().padStart(2, "0");
@@ -192,13 +195,16 @@ function Waveform({ level, active }: WaveformProps) {
         const h = baseHeight + animLevel * (maxHeight - baseHeight);
 
         return (
+          /* S158-b: scaleY (GPU, sin layout) en vez de height — 38 barras
+             animando height a 60Hz forzaban layout continuo durante el dictado */
           <motion.div
             key={i}
             initial={false}
-            animate={{ height: h }}
+            animate={{ scaleY: h / maxHeight }}
             transition={{ type: "spring", stiffness: 600, damping: 22 }}
-            className="w-[2px] rounded-full bg-white/85"
+            className="w-[2px] rounded-full bg-white/85 origin-center"
             style={{
+              height: maxHeight,
               opacity: active ? 0.6 + animLevel * 0.4 : 0.25,
             }}
           />

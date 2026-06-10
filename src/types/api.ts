@@ -30,6 +30,9 @@ export interface ChatMessage {
   content: string;
   image?: string | null;
   engine?: string | null;
+  /** Dims persistidas por el backend (S136) — reservan aspect-ratio sin CLS */
+  image_width?: number | null;
+  image_height?: number | null;
   created_at: string;
 }
 

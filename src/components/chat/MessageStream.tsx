@@ -1,7 +1,7 @@
 import { Sparkle } from "./Sparkle";
 import { parseCards } from "@/lib/cards";
 import { CardRenderer } from "./CardRenderer";
-import { NoaMarkdown } from "./NoaMarkdown";
+import { LazyNoaMarkdown as NoaMarkdown } from "./LazyNoaMarkdown";
 
 interface MessageStreamProps {
   streamingText: string;

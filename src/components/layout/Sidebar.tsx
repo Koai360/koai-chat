@@ -274,6 +274,7 @@ function SidebarContent({
 
   const handleDelete = async (conv: Conversation) => {
     if (!window.confirm(`¿Borrar "${conv.title || "esta conversación"}"?`)) return;
+    const wasActive = conv.id === activeConversationId;
     try {
       // P1-3 audit fix: si está disponible, usar useChat.deleteConversation
       // que limpia activeId + messages cuando se borra la activa. Sino fallback
@@ -284,6 +285,9 @@ function SidebarContent({
         await apiDeleteConversation(conv.id);
         onConversationsChanged?.();
       }
+      // S158-b: si se borró la conversación ACTIVA, sincronizar la URL a chat
+      // vacío — sino el hash apunta a una conv inexistente
+      if (wasActive) navigate({ kind: "chat" });
     } catch (err) {
       console.warn("[Sidebar] delete failed", err);
       window.alert("No se pudo borrar el chat.");

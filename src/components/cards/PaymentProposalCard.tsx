@@ -62,7 +62,7 @@ export function PaymentProposalCard({
                 <>
                   <span className="mono text-[13px]">{data.evidence}</span>
                   {data.evidence_source && (
-                    <span className="text-white/45 ml-2">({data.evidence_source})</span>
+                    <span className="text-white/55 ml-2">({data.evidence_source})</span>
                   )}
                 </>
               }
@@ -74,11 +74,11 @@ export function PaymentProposalCard({
         </div>
       </div>
 
-      <div className="px-5 pb-4 pt-1 flex flex-wrap gap-2 -mx-5">
+      <div className="pt-3 flex flex-wrap gap-2">
         <Button
           variant="primary"
           size="sm"
-          className="ml-5"
+
           leadingIcon={<ShieldCheck className="size-4" />}
           onClick={() => onConfirm?.(proposalId)}
         >
@@ -108,7 +108,7 @@ function Row({
 }) {
   return (
     <div className="flex items-baseline gap-2">
-      <span className="text-white/45 shrink-0 w-20 text-[13px]">{label}:</span>
+      <span className="text-white/55 shrink-0 w-20 text-[13px]">{label}:</span>
       <span className={mono ? "mono text-white/90 text-[13px]" : "text-white/90 text-[14px]"}>
         {value}
       </span>

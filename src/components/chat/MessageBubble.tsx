@@ -1,8 +1,9 @@
 import { memo } from "react";
 import { Sparkle } from "./Sparkle";
 import { CardRenderer } from "./CardRenderer";
-import { NoaMarkdown } from "./NoaMarkdown";
+import { LazyNoaMarkdown as NoaMarkdown } from "./LazyNoaMarkdown";
 import { parseCards } from "@/lib/cards";
+import { cfImageVariant } from "@/lib/imageTransform";
 import { cn } from "@/lib/cn";
 import type { ChatMessage } from "@/types/api";
 
@@ -27,8 +28,10 @@ export const MessageBubble = memo(function MessageBubble({
           {message.image && (
             <div className="mt-2 flex justify-end">
               <img
-                src={message.image}
+                src={cfImageVariant(message.image, 560)}
                 alt=""
+                loading="lazy"
+                decoding="async"
                 className="block w-full max-w-[280px] h-auto rounded-xl border border-white/[0.06]"
               />
             </div>
@@ -62,10 +65,20 @@ export const MessageBubble = memo(function MessageBubble({
           ),
         )}
         {message.image && (
+          /* S158-b: variante 960px (no el PNG original multi-MB), lazy, y
+             aspect-ratio reservado → sin salto de layout al cargar (las
+             generadas son ~95% cuadradas, mismo supuesto que GalleryPage) */
           <img
-            src={message.image}
+            src={cfImageVariant(message.image, 960)}
             alt=""
-            className="block w-full max-w-[480px] h-auto rounded-xl border border-white/[0.06]"
+            loading="lazy"
+            decoding="async"
+            style={
+              message.image_width && message.image_height
+                ? { aspectRatio: `${message.image_width} / ${message.image_height}` }
+                : { aspectRatio: "1 / 1" }
+            }
+            className="block w-full max-w-[480px] h-auto rounded-xl border border-white/[0.06] object-cover"
           />
         )}
       </div>

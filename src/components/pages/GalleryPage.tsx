@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { EyeOff, Eye, Image as ImageIcon, Lock, X } from "lucide-react";
 import { listImages, fetchRatingsMap, hideImage } from "@/lib/api";
+import { cfImageVariant } from "@/lib/imageTransform";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { usePrivateMode } from "@/hooks/usePrivateMode";
 import type { ChatImage } from "@/types/api";
@@ -26,6 +27,11 @@ export function GalleryPage() {
   const [cursor, setCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [done, setDone] = useState(false);
+  // S158-b: errores ya no se disfrazan de empty state — error real + retry
+  const [loadError, setLoadError] = useState(false);
+  const [pageError, setPageError] = useState(false);
+  // S158-b: race guard Todas↔Privadas — respuesta vieja no pisa la vista nueva
+  const viewRef = useRef<View>(view);
   const [ratings, setRatings] = useState<Record<string, number>>({});
   const [modalImage, setModalImage] = useState<ChatImage | null>(null);
   const observerRef = useRef<HTMLDivElement>(null);
@@ -43,14 +49,25 @@ export function GalleryPage() {
           before,
           hidden: currentView === "private",
         });
+        // S158-b: si el usuario ya cambió de pestaña, descartar esta respuesta
+        if (viewRef.current !== currentView) return;
         setItems((prev) => (before ? [...prev, ...newItems] : newItems));
         setCursor(next_cursor || null);
-        if (!next_cursor) setDone(true);
+        setLoadError(false);
+        setPageError(false);
+        // review Codex: re-abrir el infinite scroll si vuelve a haber cursor
+        // (ej. noa:image-generated refresca cuando done ya era true)
+        setDone(!next_cursor);
       } catch (err) {
         console.warn("[GalleryPage] load failed", err);
-        setDone(true);
+        if (viewRef.current !== currentView) return;
+        // S158-b: carga inicial fallida → estado de error con Reintentar (antes
+        // se mostraba "Sin imágenes aún" — parecía pérdida de datos). Fallo de
+        // paginación → botón "Cargar más" manual, NO done=true.
+        if (before) setPageError(true);
+        else setLoadError(true);
       } finally {
-        setLoading(false);
+        if (viewRef.current === currentView) setLoading(false);
       }
     },
     [view],
@@ -58,9 +75,12 @@ export function GalleryPage() {
 
   // Reset + reload cuando cambia view
   useEffect(() => {
+    viewRef.current = view;
     setItems([]);
     setCursor(null);
     setDone(false);
+    setLoadError(false);
+    setPageError(false);
     setLoading(true);
     loadPage(undefined, view);
   }, [view, loadPage]);
@@ -154,26 +174,31 @@ export function GalleryPage() {
       <div className="flex-1 overflow-y-auto px-3 md:px-6 pb-6">
         {items.length === 0 && loading ? (
           <SkeletonMasonry />
+        ) : items.length === 0 && loadError ? (
+          <ErrorState onRetry={() => { setLoadError(false); setLoading(true); loadPage(undefined, view); }} />
         ) : items.length === 0 ? (
           <EmptyState view={view} hasPin={hasPin} />
         ) : (
           <>
-            {/* P1-4 audit fix: column-fill: auto sobre contenedor de altura auto
-                tira TODO el contenido a la 1ª columna (2 y 3 vacías). Volvemos a
-                column-fill: balance (default) y hacemos columnas responsive:
-                mobile 2 col, tablet 3, desktop 4. Las tiles con aspect-ratio
-                garantizan que el rebalance en load-more no produzca jank. */}
-            <div className="columns-2 md:columns-3 xl:columns-4 gap-2 md:gap-3">
-              {items.map((img) => (
-                <GalleryTile
-                  key={img.id}
-                  image={img}
-                  rating={ratings[img.id]}
-                  onClick={() => setModalImage(img)}
-                />
-              ))}
-            </div>
-            {!done && (
+            {/* S158-b: masonry con columnas JS (shortest-column) en vez de CSS
+                multicol — multicol REBALANCEA y reordena los tiles existentes
+                en cada página del infinite scroll. La distribución por prefijo
+                es determinística: el append nunca mueve lo ya pintado. */}
+            <MasonryColumns
+              items={items}
+              ratings={ratings}
+              onSelect={setModalImage}
+            />
+            {pageError ? (
+              <div className="h-20 flex items-center justify-center">
+                <button
+                  onClick={() => { setPageError(false); setLoading(true); loadPage(cursor ?? undefined, view); }}
+                  className="px-4 py-2 rounded-full bg-white/[0.08] hover:bg-white/[0.14] text-white/85 text-[13px] transition-colors"
+                >
+                  Cargar más
+                </button>
+              </div>
+            ) : !done && (
               <div ref={observerRef} className="h-20 flex items-center justify-center">
                 {loading && <Skeleton width={100} height={12} className="rounded-full" />}
               </div>
@@ -182,14 +207,19 @@ export function GalleryPage() {
         )}
       </div>
 
-      {modalImage && (
-        <ImageViewer
-          image={modalImage}
-          onClose={() => setModalImage(null)}
-          canMoveToPrivate={hasPin}
-          onToggleHidden={handleToggleHidden}
-        />
-      )}
+      {/* S158-b: AnimatePresence — el exit fade del viewer estaba muerto
+          (desmontaba de golpe pese a tener exit definido) */}
+      <AnimatePresence>
+        {modalImage && (
+          <ImageViewer
+            key="image-viewer"
+            image={modalImage}
+            onClose={() => setModalImage(null)}
+            canMoveToPrivate={hasPin}
+            onToggleHidden={handleToggleHidden}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -221,6 +251,87 @@ function ViewTab({
   );
 }
 
+/** S158-b: distribución shortest-column estable — append nunca reordena. */
+function MasonryColumns({
+  items,
+  ratings,
+  onSelect,
+}: {
+  items: ChatImage[];
+  ratings: Record<string, number>;
+  onSelect: (img: ChatImage) => void;
+}) {
+  const cols = useColumnCount();
+  const columns: ChatImage[][] = Array.from({ length: cols }, () => []);
+  const heights = new Array(cols).fill(0);
+  for (const img of items) {
+    // Altura estimada ∝ h/w (las legacy sin dims asumen 1:1, mismo supuesto
+    // que el placeholder del tile)
+    const ratio =
+      img.width && img.height && img.width > 0 ? img.height / img.width : 1;
+    let target = 0;
+    for (let c = 1; c < cols; c++) if (heights[c] < heights[target]) target = c;
+    columns[target].push(img);
+    heights[target] += ratio;
+  }
+  return (
+    <div className="flex gap-2 md:gap-3 items-start">
+      {columns.map((col, ci) => (
+        <div key={ci} className="flex-1 min-w-0">
+          {col.map((img) => (
+            <GalleryTile
+              key={img.id}
+              image={img}
+              rating={ratings[img.id]}
+              onClick={() => onSelect(img)}
+            />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function useColumnCount(): number {
+  const get = () => {
+    if (typeof window === "undefined") return 2;
+    if (window.matchMedia("(min-width: 1280px)").matches) return 4;
+    if (window.matchMedia("(min-width: 768px)").matches) return 3;
+    return 2;
+  };
+  const [cols, setCols] = useState(get);
+  useEffect(() => {
+    const mq3 = window.matchMedia("(min-width: 768px)");
+    const mq4 = window.matchMedia("(min-width: 1280px)");
+    const update = () => setCols(get());
+    mq3.addEventListener("change", update);
+    mq4.addEventListener("change", update);
+    return () => {
+      mq3.removeEventListener("change", update);
+      mq4.removeEventListener("change", update);
+    };
+  }, []);
+  return cols;
+}
+
+function ErrorState({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-24 text-center">
+      <ImageIcon className="size-12 text-white/20 mb-3" />
+      <h2 className="text-lg text-white/85 mb-1">No se pudo cargar la galería</h2>
+      <p className="text-sm text-white/45 max-w-sm mb-4">
+        Revisá tu conexión e intentá de nuevo.
+      </p>
+      <button
+        onClick={onRetry}
+        className="px-4 py-2 rounded-full bg-white/[0.08] hover:bg-white/[0.14] text-white/90 text-[14px] transition-colors"
+      >
+        Reintentar
+      </button>
+    </div>
+  );
+}
+
 function GalleryTile({
   image,
   rating,
@@ -231,18 +342,8 @@ function GalleryTile({
   onClick: () => void;
 }) {
   const url = image.url || "";
-  // Supabase Storage: rewriter a /render/image para thumb optimizado (regla S104).
-  // R2 (cdn.koai360.com): CF Image Transformations via /cdn-cgi/image/.
-  let thumbUrl = url;
-  if (url.includes("/storage/v1/object/public/")) {
-    thumbUrl = url.replace(
-      "/storage/v1/object/public/",
-      "/storage/v1/render/image/public/?width=800&quality=85&resize=contain&path=",
-    );
-  } else if (url.startsWith("https://cdn.koai360.com/")) {
-    const rest = url.replace("https://cdn.koai360.com/", "");
-    thumbUrl = `https://cdn.koai360.com/cdn-cgi/image/width=800,quality=85,format=auto/${rest}`;
-  }
+  // S158-b: helper compartido (MessageBubble/ImageViewer usan el mismo)
+  const thumbUrl = cfImageVariant(url, 800);
 
   // S136 — Pinterest masonry sin layout shift:
   // 1) Imágenes nuevas: backend persiste width/height → usar aspect-ratio = w/h
@@ -415,8 +516,9 @@ function ImageViewer({
         </div>
       )}
 
+      {/* S158-b: variante 1600px — el viewer bajaba el PNG original multi-MB */}
       <img
-        src={image.url}
+        src={cfImageVariant(image.url || "", 1600, 90)}
         alt={image.prompt || ""}
         className="max-w-full max-h-full object-contain rounded-lg"
         onClick={(e) => e.stopPropagation()}

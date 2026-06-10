@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import {
   createConversation,
   deleteConversation as apiDeleteConversation,
@@ -28,10 +29,14 @@ export interface UseChatReturn {
   messages: ChatMessage[];
   loading: boolean;
   loadingHint: string | null;
+  /** S158-b: getMessages falló — la UI muestra banner con Reintentar */
+  loadError: boolean;
+  retryLoad: () => void;
   streamingText: string;
   modelMode: ModelMode;
   setModelMode: (mode: ModelMode) => void;
-  sendMessage: (text: string, opts?: Partial<SendMessagePayload>) => Promise<void>;
+  /** Retorna false si el envío NO fue aceptado (ej. falló crear la conversación) */
+  sendMessage: (text: string, opts?: Partial<SendMessagePayload>) => Promise<boolean>;
   stopGeneration: () => void;
   newConversation: () => Promise<Conversation>;
   deleteConversation: (id: string) => Promise<void>;
@@ -67,6 +72,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveIdState] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [loadError, setLoadError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingHint, setLoadingHint] = useState<string | null>(null);
   const [streamingText, setStreamingText] = useState("");
@@ -86,6 +92,9 @@ export function useChat(options: UseChatOptions): UseChatReturn {
   // S158 (review Codex): secuencia de envíos — invalida refetchs diferidos de
   // turnos viejos cuando arranca un send nuevo (race del setTimeout 2.5s).
   const sendSeqRef = useRef(0);
+  // S158-b (review Codex): guard SINCRÓNICO anti doble-envío — `loading` es
+  // estado React y dos taps en el mismo frame entran ambos con loading=false.
+  const sendInFlightRef = useRef(false);
   // Cuando sendMessage crea una conv nueva, NO queremos que el useEffect del
   // activeId resetee los messages — el optimistic user msg ya está seteado y
   // getMessages() devolvería [] (conv nueva sin nada en backend). Marcamos
@@ -133,6 +142,13 @@ export function useChat(options: UseChatOptions): UseChatReturn {
       skipNextLoadRef.current = null;
       return; // sendMessage ya seteó messages con el optimistic user msg
     }
+    setLoadError(false);
+    // review Codex S158-b: al cambiar a OTRA conversación, no dejar visibles
+    // los mensajes de la anterior mientras carga (y un loadError encima de
+    // mensajes ajenos era confuso). Solo limpia si lo visible es de otra conv.
+    setMessages((prev) =>
+      prev.length > 0 && prev[0]?.conversation_id !== activeId ? [] : prev,
+    );
     getMessages(activeId)
       .then((msgs) => {
         if (activeIdRef.current !== activeId) return;
@@ -140,8 +156,28 @@ export function useChat(options: UseChatOptions): UseChatReturn {
         // Sino el optimistic user msg se borra mid-stream.
         setMessages((prev) => (msgs.length === 0 && prev.length > 0 ? prev : msgs));
       })
-      .catch((err) => console.warn("[useChat] getMessages failed", err));
+      .catch((err) => {
+        console.warn("[useChat] getMessages failed", err);
+        // S158-b: antes fallaba en silencio → conversación "en blanco" sin
+        // explicación. Ahora la UI muestra banner con Reintentar.
+        if (activeIdRef.current === activeId) setLoadError(true);
+      });
   }, [activeId]);
+
+  // S158-b: re-disparo manual del load tras un error (banner "Reintentar")
+  const retryLoad = useCallback(() => {
+    const id = activeIdRef.current;
+    if (!id) return;
+    setLoadError(false);
+    getMessages(id)
+      .then((msgs) => {
+        if (activeIdRef.current !== id) return;
+        setMessages((prev) => (msgs.length === 0 && prev.length > 0 ? prev : msgs));
+      })
+      .catch(() => {
+        if (activeIdRef.current === id) setLoadError(true);
+      });
+  }, []);
 
   const setActiveId = useCallback((id: string | null) => {
     setActive(id);
@@ -189,10 +225,14 @@ export function useChat(options: UseChatOptions): UseChatReturn {
 
   const deleteConversation = useCallback(
     async (id: string) => {
+      // S158-b: rollback — antes el catch tragaba el error y borraba local
+      // igual, y la conversación "resucitaba" en el próximo refresh.
       try {
         await apiDeleteConversation(id);
       } catch (err) {
         console.warn("[useChat] delete failed", err);
+        toast.error("No se pudo borrar la conversación. Intentá de nuevo.");
+        throw err;
       }
       setConversations((prev) => prev.filter((c) => c.id !== id));
       if (activeIdRef.current === id) {
@@ -218,7 +258,8 @@ export function useChat(options: UseChatOptions): UseChatReturn {
       const hasAttachment = Boolean(
         opts.image_base64 || opts.file_base64 || opts.image_url,
       );
-      if ((!text.trim() && !hasAttachment) || loading) return;
+      if ((!text.trim() && !hasAttachment) || loading || sendInFlightRef.current) return false;
+      sendInFlightRef.current = true;
 
       // S158 — cerrar la ventana de doble-envío: setLoading(true) ANTES del
       // await de createConversation. Antes, durante ese await (~300ms) loading
@@ -240,9 +281,13 @@ export function useChat(options: UseChatOptions): UseChatReturn {
           setConversations((prev) => [conv, ...prev]);
           convId = conv.id;
         } catch (err) {
+          // S158-b: antes el mensaje tipeado se perdía en silencio total.
+          // Toast visible + return false → ChatInput restaura el texto.
           console.error("[useChat] createConversation failed", err);
+          toast.error("No se pudo enviar — sin conexión con Noa. Intentá de nuevo.");
           setLoading(false);
-          return;
+          sendInFlightRef.current = false;
+          return false;
         }
       }
 
@@ -331,18 +376,31 @@ export function useChat(options: UseChatOptions): UseChatReturn {
       let imageUrl: string | null = null;
       let sawDone = false;
       let sawError = false;
+      let streamClosed = false;
+      let flushPending = false;
       // S158 — guard de conversación: si el usuario cambia de conversación
       // mid-stream, los setState de este turno NO deben sangrar a la conv
       // nueva (bug: respuesta aparecía en la conversación equivocada). El
       // texto igual se persiste backend-side; al volver, getMessages lo trae.
       const isCurrent = () => activeIdRef.current === convId;
+      // S158-b: throttle de render del stream a ~12fps — antes CADA delta SSE
+      // re-parseaba TODO el markdown acumulado (O(n²) en respuestas largas).
+      // Mismo look visual, fracción del costo.
+      const flushStream = () => {
+        flushPending = false;
+        if (streamClosed || !isCurrent()) return;
+        setStreamingText(accumulated);
+      };
       try {
         for await (const ev of streamMessage(payload, abort.signal)) {
           handleStreamEvent(ev, {
             onDelta: (delta) => {
               accumulated += delta;
               if (!isCurrent()) return;
-              setStreamingText(accumulated);
+              if (!flushPending) {
+                flushPending = true;
+                setTimeout(flushStream, 80);
+              }
               setLoadingHint(null);
             },
             onHint: (hint) => {
@@ -431,6 +489,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
           }, 2500);
         }
       } finally {
+        streamClosed = true; // S158-b: invalida flushes diferidos del throttle
         // Si el stream terminó sin enviar `done` (timeout, abort, error), flush manual
         if ((accumulated || imageUrl) && !sawDone && isCurrent()) {
           setMessages((prev) => {
@@ -467,6 +526,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
         setLoading(false);
         setLoadingHint(null);
         abortRef.current = null;
+        sendInFlightRef.current = false;
 
         // Auto-title: el backend genera título en ~5-8s tras el primer turno.
         // Refrescamos la lista a los 7s para que el sidebar tome el nuevo título.
@@ -485,6 +545,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
           }, 7000);
         }
       }
+      return true; // envío aceptado — ChatInput puede descartar el texto
     },
     // P3-7 audit: messages y newConversation no se usan en el body — sacarlos
     // evita re-create de sendMessage en cada streaming delta.
@@ -507,6 +568,8 @@ export function useChat(options: UseChatOptions): UseChatReturn {
     messages,
     loading,
     loadingHint,
+    loadError,
+    retryLoad,
     streamingText,
     modelMode,
     setModelMode,

@@ -34,10 +34,14 @@ export class ApiError extends Error {
 interface FetchOpts extends RequestInit {
   json?: unknown;
   skipAuth?: boolean;
+  /** S158-b: NO disparar el logout global ante 401 — para endpoints donde el
+   *  401 significa otra cosa (ej. verify-pin: "PIN incorrecto", no sesión
+   *  inválida). Antes un PIN mal tipeado deslogueaba al usuario de toda la app. */
+  skip401Handler?: boolean;
 }
 
 async function apiFetch(path: string, opts: FetchOpts = {}): Promise<Response> {
-  const { json, skipAuth, headers, ...rest } = opts;
+  const { json, skipAuth, skip401Handler, headers, ...rest } = opts;
 
   const finalHeaders: Record<string, string> = {
     ...(headers as Record<string, string>),
@@ -76,7 +80,7 @@ async function apiFetch(path: string, opts: FetchOpts = {}): Promise<Response> {
       if (detail) message = String(detail);
     }
     // Token expirado/inválido: forzar re-login en vez de fallar en silencio.
-    if (res.status === 401 && !skipAuth) handleUnauthorized();
+    if (res.status === 401 && !skipAuth && !skip401Handler) handleUnauthorized();
     throw new ApiError(res.status, message, data);
   }
 
@@ -312,6 +316,9 @@ export async function verifyPrivatePin(pin: string): Promise<boolean> {
     const res = await apiFetch("/api/chat/private/verify-pin", {
       method: "POST",
       json: { pin },
+      // 401 acá = "PIN incorrecto", NO sesión inválida — sin esto un PIN mal
+      // tipeado deslogueaba de TODA la app (P1 audit S158-b)
+      skip401Handler: true,
     });
     const data = await res.json();
     return data.ok === true;
@@ -325,6 +332,7 @@ export async function setPrivatePin(pin: string, oldPin?: string): Promise<void>
   await apiFetch("/api/chat/private/set-pin", {
     method: "POST",
     json: oldPin ? { pin, old_pin: oldPin } : { pin },
+    skip401Handler: true, // 401 = old_pin incorrecto, no sesión inválida
   });
 }
 

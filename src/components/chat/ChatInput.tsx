@@ -15,7 +15,9 @@ export interface AttachedFile {
 }
 
 interface ChatInputProps {
-  onSend: (text: string, attachments?: AttachedFile[]) => void;
+  /** Retornar `false` (o Promise<false>) si el envío NO fue aceptado — el
+   *  input restaura el texto/adjuntos para no perder lo tipeado (S158-b). */
+  onSend: (text: string, attachments?: AttachedFile[]) => void | boolean | Promise<void | boolean>;
   onStop?: () => void;
   loading?: boolean;
   privateMode?: boolean;
@@ -70,12 +72,17 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
       setVoiceActive(false);
       if (autoSendVoice) {
         // Send directo sin mostrar texto en el input — UX más rápida
-        onSend(text, attachments.length > 0 ? attachments : undefined);
+        void onSend(text, attachments.length > 0 ? attachments : undefined);
         setAttachments([]);
       } else {
         // Populate el input para que el user edite antes de send
         setValue((prev) => (prev ? `${prev} ${text}` : text));
-        requestAnimationFrame(() => textareaRef.current?.focus());
+        // S158-b: en iOS Safari field-sizing no existe → sin adjustHeight el
+        // textarea no crece con el dictado y el texto queda oculto
+        requestAnimationFrame(() => {
+          textareaRef.current?.focus();
+          adjustHeight();
+        });
       }
     };
 
@@ -133,21 +140,35 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
     };
 
     const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+      // S158-b: guard de composición — dictado iOS/autocorrect/IME con marked
+      // text activo disparaba send con texto a medio commit (mensajes cortados)
+      if (e.nativeEvent.isComposing || e.keyCode === 229) return;
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
-        send();
+        void send();
       }
     };
 
-    const send = () => {
+    const send = async () => {
       const text = value.trim();
       if ((!text && attachments.length === 0) || loading) return;
-      onSend(text, attachments.length > 0 ? attachments : undefined);
+      // Limpieza optimista (UX instantánea) + restore si el envío falla —
+      // antes un fallo de createConversation perdía el mensaje tipeado (S158-b)
+      const prevValue = value;
+      const prevAttachments = attachments;
       setValue("");
       setAttachments([]);
       requestAnimationFrame(() => {
         if (textareaRef.current) textareaRef.current.style.height = "auto";
       });
+      const ok = await Promise.resolve(
+        onSend(text, prevAttachments.length > 0 ? prevAttachments : undefined),
+      ).catch(() => false);
+      if (ok === false) {
+        setValue(prevValue);
+        setAttachments(prevAttachments);
+        requestAnimationFrame(adjustHeight);
+      }
     };
 
     return (
@@ -224,6 +245,7 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
               onKeyDown={handleKeyDown}
               placeholder={placeholder}
               rows={1}
+              enterKeyHint="send"
               className={cn(
                 "flex-1 resize-none bg-transparent text-white",
                 "placeholder:text-white/55 placeholder:font-mono placeholder:text-[14px] placeholder:tracking-tight",
@@ -361,7 +383,9 @@ function AttachmentChip({ att, onRemove }: AttachmentChipProps) {
       </div>
       <button
         onClick={onRemove}
-        className="shrink-0 size-5 rounded-full bg-white/[0.06] hover:bg-white/[0.15] flex items-center justify-center"
+        // S158-b: hit area extendida a ~36px via pseudo-element (el visual
+        // sigue 20px) — antes el target real era 20px, frustrante en touch
+        className="relative shrink-0 size-5 rounded-full bg-white/[0.06] hover:bg-white/[0.15] flex items-center justify-center after:absolute after:-inset-2 after:content-['']"
         aria-label="Quitar archivo"
       >
         <X className="size-3 text-white/70" />

@@ -97,12 +97,11 @@ export function RecurringTaskCard({
         )}
       </div>
 
-      <div className="px-5 pb-4 pt-1 flex flex-wrap gap-2 -mx-5">
+      <div className="pt-3 flex flex-wrap gap-2">
         {status === "active" && (
           <Button
             variant="secondary"
             size="sm"
-            className="ml-5"
             leadingIcon={<Pause className="size-4" />}
             onClick={() => onPause?.(id)}
           >
@@ -113,7 +112,6 @@ export function RecurringTaskCard({
           <Button
             variant="secondary"
             size="sm"
-            className="ml-5"
             leadingIcon={<Play className="size-4" />}
             onClick={() => onResume?.(id)}
           >
@@ -126,7 +124,6 @@ export function RecurringTaskCard({
             size="sm"
             leadingIcon={<X className="size-4" />}
             onClick={() => onCancel?.(id)}
-            className={status === "active" ? "" : "ml-5"}
           >
             Cancelar
           </Button>

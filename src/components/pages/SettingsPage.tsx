@@ -276,8 +276,10 @@ function KbTab() {
       <p className="text-sm text-white/55">
         Próximamente — accederás aquí a tu knowledge base.
       </p>
-      <Button variant="secondary" size="sm" className="mt-3" trailingIcon={<ChevronRight className="size-4" />}>
-        Abrir KB Manager
+      {/* S158-b: botón sin onClick parecía habilitado y no hacía nada —
+          deshabilitado honesto hasta que exista la feature */}
+      <Button variant="secondary" size="sm" className="mt-3 opacity-50 cursor-not-allowed" disabled trailingIcon={<ChevronRight className="size-4" />}>
+        Próximamente
       </Button>
     </Section>
   );
@@ -391,8 +393,16 @@ function PrivacyTab() {
         setPinValue("");
         inputRefs.current[0]?.focus();
       }
-    } catch {
-      setError("Error al verificar");
+    } catch (err) {
+      // S158-b: 429 = bloqueo temporal por intentos — mostrar el tiempo real
+      // del backend en vez de un genérico
+      const apiErr = err as { status?: number; message?: string };
+      if (apiErr?.status === 429 && apiErr.message) {
+        setError(apiErr.message);
+      } else {
+        setError("Error al verificar");
+      }
+      setPinValue("");
     } finally {
       setBusy(false);
     }

@@ -37,7 +37,7 @@ export function DraftEmailCard({ data, pending, onSend, onEdit, onDiscard }: Dra
       <div className="space-y-3">
         {data.subject && (
           <div className="flex gap-2 text-[14px]">
-            <span className="text-white/45 shrink-0 w-16">Asunto:</span>
+            <span className="text-white/55 shrink-0 w-16">Asunto:</span>
             <span className="text-white/95 truncate">{data.subject}</span>
           </div>
         )}
@@ -63,11 +63,11 @@ export function DraftEmailCard({ data, pending, onSend, onEdit, onDiscard }: Dra
         </div>
       </div>
 
-      <div className="px-5 pb-4 pt-1 flex flex-wrap gap-2 -mx-5">
+      <div className="pt-3 flex flex-wrap gap-2">
         <Button
           variant="primary"
           size="sm"
-          className="ml-5"
+
           leadingIcon={<Check className="size-4" />}
           onClick={() => onSend?.(draftId)}
         >

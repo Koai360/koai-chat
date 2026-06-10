@@ -56,8 +56,8 @@ export function Client360Card({ data, pending }: Client360CardProps) {
         </div>
       </div>
 
-      <div className="px-5 pb-4 pt-1 flex flex-wrap gap-2 -mx-5">
-        <Button variant="secondary" size="sm" className="ml-5">
+      <div className="pt-3 flex flex-wrap gap-2">
+        <Button variant="secondary" size="sm">
           Abrir 360 →
         </Button>
         <Button
@@ -75,7 +75,7 @@ export function Client360Card({ data, pending }: Client360CardProps) {
 function StatCell({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-white/[0.03] rounded-lg p-2.5 border border-white/[0.04]">
-      <p className="text-[11px] text-white/45 uppercase tracking-wide">{label}</p>
+      <p className="text-[11px] text-white/55 uppercase tracking-wide">{label}</p>
       <p className="mono text-[14px] text-white font-medium mt-0.5">{value}</p>
     </div>
   );

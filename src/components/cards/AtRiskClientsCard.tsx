@@ -62,14 +62,14 @@ export function AtRiskClientsCard({ data, pending }: AtRiskClientsCardProps) {
           ))
         )}
         {remaining > 0 && (
-          <p className="text-xs text-white/45 px-2.5 pt-2">
+          <p className="text-xs text-white/55 px-2.5 pt-2">
             + {remaining} más
           </p>
         )}
       </div>
 
-      <div className="px-5 pb-4 pt-1 flex flex-wrap gap-2 -mx-5">
-        <Button variant="secondary" size="sm" className="ml-5">
+      <div className="pt-3 flex flex-wrap gap-2">
+        <Button variant="secondary" size="sm">
           Ver todos →
         </Button>
         <Button variant="ghost" size="sm">

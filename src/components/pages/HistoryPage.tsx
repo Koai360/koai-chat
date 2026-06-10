@@ -25,14 +25,20 @@ interface HistoryPageProps {
 export function HistoryPage({ onDeleteConversation }: HistoryPageProps = {}) {
   const [items, setItems] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [query, setQuery] = useState("");
 
-  useEffect(() => {
+  // S158-b: antes el catch silencioso mostraba "Sin conversaciones aún" ante
+  // un error de red — parecía pérdida de datos. Ahora error real + retry.
+  const load = () => {
+    setLoading(true);
+    setLoadError(false);
     listConversations()
       .then(setItems)
-      .catch(() => {})
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
-  }, []);
+  };
+  useEffect(load, []);
 
   const filtered = useMemo(() => {
     if (!query.trim()) return items;
@@ -100,6 +106,17 @@ export function HistoryPage({ onDeleteConversation }: HistoryPageProps = {}) {
               {Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} variant="rect" height={56} className="rounded-xl" />
               ))}
+            </div>
+          ) : items.length === 0 && loadError ? (
+            <div className="flex flex-col items-center py-16 text-center">
+              <p className="text-white/75 text-[15px] mb-1">No se pudo cargar el historial.</p>
+              <p className="text-white/45 text-[13px] mb-4">Revisá tu conexión e intentá de nuevo.</p>
+              <button
+                onClick={load}
+                className="px-4 py-2 rounded-full bg-white/[0.08] hover:bg-white/[0.14] text-white/90 text-[14px] transition-colors"
+              >
+                Reintentar
+              </button>
             </div>
           ) : items.length === 0 ? (
             <EmptyState />

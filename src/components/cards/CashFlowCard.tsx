@@ -37,7 +37,7 @@ export function CashFlowCard({ data, pending }: CashFlowCardProps) {
         {/* Net + sparkline */}
         <div className="flex items-end justify-between gap-4">
           <div>
-            <p className="text-xs text-white/45 mb-1">Net</p>
+            <p className="text-xs text-white/55 mb-1">Net</p>
             <p
               className={cn(
                 "mono text-[28px] font-medium leading-none",
@@ -63,7 +63,7 @@ export function CashFlowCard({ data, pending }: CashFlowCardProps) {
           <div className="flex items-center gap-2">
             <TrendingUp className="size-4 text-[var(--color-success)]" />
             <div>
-              <p className="text-xs text-white/45">Entradas</p>
+              <p className="text-xs text-white/55">Entradas</p>
               <p className="mono text-[15px] text-white font-medium">
                 {formatMoney(data.inflows)}
               </p>
@@ -72,7 +72,7 @@ export function CashFlowCard({ data, pending }: CashFlowCardProps) {
           <div className="flex items-center gap-2">
             <TrendingDown className="size-4 text-[var(--color-danger)]" />
             <div>
-              <p className="text-xs text-white/45">Salidas</p>
+              <p className="text-xs text-white/55">Salidas</p>
               <p className="mono text-[15px] text-white font-medium">
                 {formatMoney(data.outflows)}
               </p>
@@ -110,8 +110,8 @@ export function CashFlowCard({ data, pending }: CashFlowCardProps) {
         )}
       </div>
 
-      <div className="px-5 pb-4 pt-1 flex gap-2 -mx-5">
-        <Button variant="secondary" size="sm" className="ml-5">
+      <div className="pt-3 flex gap-2 flex-wrap">
+        <Button variant="secondary" size="sm">
           Forecast 30d →
         </Button>
         <Button variant="ghost" size="sm">

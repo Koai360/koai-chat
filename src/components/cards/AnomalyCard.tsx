@@ -33,7 +33,7 @@ export function AnomalyCard({ data, pending, onInvestigate, onDismiss }: Anomaly
     >
       <div className="space-y-3">
         <div>
-          <p className="text-xs text-white/45">Monto</p>
+          <p className="text-xs text-white/55">Monto</p>
           <p className="mono text-[22px] text-[var(--color-danger)] font-medium leading-none">
             {formatMoney(data.amount)}
           </p>
@@ -57,11 +57,11 @@ export function AnomalyCard({ data, pending, onInvestigate, onDismiss }: Anomaly
         </div>
       </div>
 
-      <div className="px-5 pb-4 pt-1 flex flex-wrap gap-2 -mx-5">
+      <div className="pt-3 flex flex-wrap gap-2">
         <Button
           variant="secondary"
           size="sm"
-          className="ml-5"
+
           leadingIcon={<Search className="size-4" />}
           onClick={onInvestigate}
         >
@@ -83,7 +83,7 @@ export function AnomalyCard({ data, pending, onInvestigate, onDismiss }: Anomaly
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-baseline gap-2">
-      <span className="text-white/45 w-20 shrink-0 text-[13px]">{label}:</span>
+      <span className="text-white/55 w-20 shrink-0 text-[13px]">{label}:</span>
       <span className="text-white/90 text-[13px]">{value}</span>
     </div>
   );

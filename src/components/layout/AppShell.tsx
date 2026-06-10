@@ -57,6 +57,8 @@ export function AppShell({ user, onLogout }: AppShellProps) {
     messages,
     loading,
     loadingHint,
+    loadError,
+    retryLoad,
     streamingText,
     modelMode,
     setModelMode,
@@ -104,9 +106,9 @@ export function AppShell({ user, onLogout }: AppShellProps) {
     // Noa los ve como UN turno unificado (mejor comprensión + 1 respuesta).
     // Antes: cada attachment extra se mandaba como mensaje separado sin texto
     // (Noa los procesaba aislados, respondiendo cosas raras o ignorando).
+    // S158-b: propagar el boolean — ChatInput restaura el texto si es false.
     if (!attachments || attachments.length === 0) {
-      await sendMessage(text);
-      return;
+      return sendMessage(text);
     }
     const images = attachments
       .filter((a) => a.kind === "image")
@@ -125,7 +127,7 @@ export function AppShell({ user, onLogout }: AppShellProps) {
       opts.file_type = files[0].mime;
     }
     if (files.length > 1) opts.files = files.slice(1);
-    await sendMessage(text, opts as never);
+    return sendMessage(text, opts as never);
   };
 
   return (
@@ -134,6 +136,8 @@ export function AppShell({ user, onLogout }: AppShellProps) {
 
       <div className="relative z-10 flex h-full">
         {/* Desktop sidebar */}
+        {/* S158-b: onDeleteConversation faltaba en desktop (el mobile sí lo
+            tenía) — borrar la conv activa dejaba estado fantasma */}
         <Sidebar
           user={user}
           route={route}
@@ -143,6 +147,7 @@ export function AppShell({ user, onLogout }: AppShellProps) {
           onNewChat={handleNewChat}
           onSelectConversation={handleSelectConversation}
           onConversationsChanged={refresh}
+          onDeleteConversation={deleteConversation}
         />
 
         {/* Mobile drawer */}
@@ -179,6 +184,8 @@ export function AppShell({ user, onLogout }: AppShellProps) {
                 loading={loading}
                 loadingHint={loadingHint}
                 userName={user.name?.split(" ")[0]}
+                loadError={loadError}
+                onRetryLoad={retryLoad}
               />
             )}
             {route.kind === "galeria" && (

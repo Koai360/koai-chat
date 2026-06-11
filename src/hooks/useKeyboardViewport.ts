@@ -2,20 +2,23 @@ import { useEffect } from "react";
 
 /**
  * S161: teclado iOS en PWA standalone — WebKit NO reduce el layout viewport
- * al abrir el teclado: "empuja" la ventana entera hacia arriba. Resultado:
- * el TopBar desaparece de pantalla, el contenido se monta sobre el status
- * bar (saludo bajo el reloj) y al cerrar el teclado la página puede quedar
- * corrida.
+ * al abrir el teclado: "empuja" la ventana entera hacia arriba (TopBar fuera
+ * de pantalla, contenido sobre el status bar, página corrida al cerrar).
  *
- * Fix: cuando visualViewport detecta teclado (Δ altura > 150px), encogemos
- * html/body/#root a la altura visible (var --vvh, ver globals.css) y
- * anclamos window.scrollTo(0,0). Así TODO el layout (header + thread +
- * input) vive en el área visible sobre el teclado, como app nativa. Al
- * cerrar, restauramos altura y des-corremos el scroll.
+ * Fix: cuando el visualViewport se achica (teclado), encogemos html/body/#root
+ * a la altura visible (var --vvh, ver globals.css) y deshacemos el push de iOS.
+ * Header + thread + input quedan en pantalla, como app nativa.
  *
- * Solo corre en touch (pointer: coarse) — en desktop el teclado no overlay.
- * Detección por GEOMETRÍA del visualViewport (no focusin/focusout: el focus
- * no dice cuánto mide el teclado, y el accessory bar de iOS varía).
+ * v2 (mismo día, tras probar en device):
+ * - Baseline robusta: window.innerHeight NO es confiable en iOS 26 standalone
+ *   (a veces sigue al visual viewport → Δ≈0 y el teclado no se detectaba →
+ *   input tapado). El teclado solo puede ACHICAR vv.height, así que la
+ *   baseline es el MÁXIMO vv.height visto; se resetea al rotar.
+ * - scrollTo(0,0) SOLO en transiciones abre/cierra + post-focus. Hacerlo en
+ *   cada evento de vv peleaba con el scroll elástico de iOS y se sentía como
+ *   un tirón al tocar la pantalla.
+ *
+ * Solo corre en touch (pointer: coarse) — en desktop no hay teclado overlay.
  */
 export function useKeyboardViewport() {
   useEffect(() => {
@@ -25,35 +28,56 @@ export function useKeyboardViewport() {
 
     const root = document.documentElement;
     let rafId = 0;
+    let baseline = vv.height;
+    let wasOpen = false;
 
     const apply = () => {
       rafId = 0;
-      const kbHeight = window.innerHeight - vv.height;
-      const open = kbHeight > 150;
+      if (vv.height > baseline) baseline = vv.height;
+      const open = baseline - vv.height > 150;
       if (open) {
         root.style.setProperty("--vvh", `${Math.round(vv.height)}px`);
         root.dataset.keyboard = "open";
-        // WebKit corre la ventana al enfocar el input — anclar en 0 para que
-        // el layout encogido quede alineado con la zona visible
-        if (window.scrollY !== 0) window.scrollTo(0, 0);
       } else {
         root.dataset.keyboard = "closed";
         root.style.removeProperty("--vvh");
-        // Página corrida tras cerrar teclado (bug clásico iOS) → restaurar
+      }
+      if (open !== wasOpen) {
+        wasOpen = open;
+        // Deshacer el push de WebKit al abrir / página corrida al cerrar
         if (window.scrollY !== 0) window.scrollTo(0, 0);
       }
     };
 
-    // rAF-coalesced: iOS dispara resize/scroll en ráfaga durante la animación
     const schedule = () => {
       if (!rafId) rafId = requestAnimationFrame(apply);
     };
 
+    // iOS auto-scrollea el window al enfocar un input aunque el layout ya
+    // quepa entero — deshacerlo cuando el teclado termina de animar (~300ms)
+    const onFocusIn = (e: FocusEvent) => {
+      const t = e.target as HTMLElement | null;
+      const editable =
+        t && (/^(INPUT|TEXTAREA)$/.test(t.tagName) || t.isContentEditable);
+      if (!editable) return;
+      window.setTimeout(() => {
+        if (window.scrollY !== 0) window.scrollTo(0, 0);
+        schedule();
+      }, 350);
+    };
+
+    const onOrientation = () => {
+      baseline = 0; // re-aprender la altura en la orientación nueva
+      schedule();
+    };
+
     vv.addEventListener("resize", schedule);
-    vv.addEventListener("scroll", schedule);
+    window.addEventListener("focusin", onFocusIn);
+    window.addEventListener("orientationchange", onOrientation);
     return () => {
       vv.removeEventListener("resize", schedule);
-      vv.removeEventListener("scroll", schedule);
+      window.removeEventListener("focusin", onFocusIn);
+      window.removeEventListener("orientationchange", onOrientation);
       if (rafId) cancelAnimationFrame(rafId);
       delete root.dataset.keyboard;
       root.style.removeProperty("--vvh");

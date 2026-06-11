@@ -792,8 +792,18 @@ select:focus-visible {
 }
 
 /* S158-b — iOS: sin scroll chaining del shell ni pull-to-refresh accidental
-   al scrollear el thread (el PWA no tiene concepto de "refrescar página"). */
+   al scrollear el thread (el PWA no tiene concepto de "refrescar página").
+   S161: ambos ejes (el rubber band lateral también revelaba el canvas). */
 html,
 body {
-  overscroll-behavior-y: none;
+  overscroll-behavior: none;
+}
+
+/* S161: el canvas (lo que el teclado translúcido de iOS blurrea detrás, y lo
+   que se revela en el rubber band) toma el background del elemento raíz.
+   --color-bg tiene matiz azul (hue 260) → el teclado se veía azulado.
+   Negro puro = teclado neutro + rebotes invisibles. El interior de la app
+   sigue pintando --color-bg/AppBackground (body y #root no cambian). */
+html {
+  background: #000;
 }

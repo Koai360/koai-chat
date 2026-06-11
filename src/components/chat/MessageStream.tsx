@@ -22,11 +22,16 @@ interface MessageStreamProps {
  */
 export function MessageStream({ streamingText, hint }: MessageStreamProps) {
   const segments = streamingText ? parseCards(streamingText) : [];
+  const lastTextIdx = segments.reduce(
+    (acc, seg, i) => (seg.kind === "text" ? i : acc),
+    -1,
+  );
 
   return (
     <div className="flex gap-3 px-4 md:px-6 py-2">
       <div className="shrink-0 mt-1">
-        <Sparkle size={22} animate />
+        {/* S161: sparkle viva — respira mientras piensa, gira mientras escribe */}
+        <Sparkle size={22} mode={streamingText ? "streaming" : "thinking"} />
       </div>
       <div className="flex-1 min-w-0 space-y-3">
         {!streamingText && hint && (
@@ -36,7 +41,11 @@ export function MessageStream({ streamingText, hint }: MessageStreamProps) {
           seg.kind === "text" ? (
             <div
               key={i}
-              className="prose-noa text-white/95 text-[15px] leading-[1.65]"
+              className={
+                "prose-noa text-white/95 text-[15px] leading-[1.65]" +
+                // S161: caret lime pulsante al final del último bloque de texto
+                (i === lastTextIdx ? " stream-caret" : "")
+              }
             >
               <NoaMarkdown content={seg.content} />
             </div>

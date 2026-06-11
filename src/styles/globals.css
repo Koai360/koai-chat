@@ -183,13 +183,20 @@ body {
   overflow: hidden;
 }
 
-button {
-  font-family: inherit;
-  background: none;
-  border: none;
-  padding: 0;
-  color: inherit;
-  cursor: pointer;
+/* S161 — BUG raíz de touch targets: este reset estaba SIN @layer, y el CSS
+   sin capa le gana a TODAS las utilidades de Tailwind (@layer utilities) →
+   p-*/px-*/py-* en <button> estaban MUERTOS en toda la app (botones de 30px
+   en touch). En @layer base las utilidades vuelven a ganar, que es el patrón
+   preflight oficial de Tailwind. */
+@layer base {
+  button {
+    font-family: inherit;
+    background: none;
+    border: none;
+    padding: 0;
+    color: inherit;
+    cursor: pointer;
+  }
 }
 
 input,
@@ -795,10 +802,22 @@ select:focus-visible {
 }
 
 /* S158-b — fluidez: el browser saltea layout/paint de mensajes fuera del
-   viewport en conversaciones largas (usado por ChatSurface en cada burbuja). */
+   viewport en conversaciones largas (usado por ChatSurface en cada burbuja).
+   S161: entrada con spring sutil (solo transform/opacity, GPU). */
 .msg-cv {
   content-visibility: auto;
   contain-intrinsic-size: auto 120px;
+  animation: msgIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes msgIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* S158-b — iOS: sin scroll chaining del shell ni pull-to-refresh accidental
@@ -816,4 +835,124 @@ body {
    sigue pintando --color-bg/AppBackground (body y #root no cambian). */
 html {
   background: #000;
+}
+
+/* ============================================================
+   NOA ALIVE · S161 — motion pack
+   Reglas: solo transform/opacity/filter en elementos chicos,
+   prefers-reduced-motion respetado al final del bloque.
+   ============================================================ */
+
+/* ── Sparkle viva ─────────────────────────────────────────── */
+@keyframes sparklePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(0.96); }
+}
+@keyframes sparkleThink {
+  0%, 100% { transform: scale(0.9) rotate(-10deg); filter: drop-shadow(0 0 3px rgba(200, 221, 74, 0.3)); }
+  50% { transform: scale(1.12) rotate(10deg); filter: drop-shadow(0 0 12px rgba(200, 221, 74, 0.8)); }
+}
+@keyframes sparkleStream {
+  from { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(45deg) scale(1.1); }
+  to { transform: rotate(90deg) scale(1); }
+}
+.sparkle-idle { animation: sparklePulse 2.4s ease-in-out infinite; }
+.sparkle-think { animation: sparkleThink 1.5s ease-in-out infinite; will-change: transform; }
+.sparkle-stream {
+  animation: sparkleStream 1s linear infinite;
+  filter: drop-shadow(0 0 8px rgba(200, 221, 74, 0.55));
+  will-change: transform;
+}
+
+/* ── Caret del stream: el texto "nace" con un cursor lime ──── */
+.stream-caret > :where(p, h1, h2, h3, ul, ol, blockquote):last-child::after {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 15px;
+  margin-left: 3px;
+  border-radius: 2px;
+  vertical-align: -2px;
+  background: var(--color-noa);
+  animation: caretPulse 0.9s ease-in-out infinite;
+}
+@keyframes caretPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+/* ── Aurora reactiva: la app "se enciende" cuando Noa trabaja ─
+   data-noa lo setea AppShell (idle | live). Capa extra ::after
+   con glow lime+violeta que respira más rápido en live. */
+.app-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1s ease;
+  background: radial-gradient(
+    ellipse 90% 55% at 50% 108%,
+    rgba(200, 221, 74, 0.05) 0%,
+    rgba(107, 63, 142, 0.16) 35%,
+    rgba(30, 58, 138, 0.1) 60%,
+    transparent 80%
+  );
+}
+html[data-noa="live"] .app-bg::after {
+  opacity: 1;
+  animation: breathe 4.5s ease-in-out infinite;
+}
+
+/* ── Borde mágico del input (conic gradient rotando) ───────── */
+@property --noa-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+.magic-border {
+  position: relative;
+}
+.magic-border::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 27px;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--noa-angle),
+    transparent 0deg,
+    rgba(200, 221, 74, 0.9) 40deg,
+    transparent 115deg,
+    rgba(139, 92, 246, 0.75) 205deg,
+    transparent 285deg
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+.magic-border:focus-within::before {
+  opacity: 1;
+  animation: noaSpin 3.2s linear infinite;
+}
+@keyframes noaSpin {
+  to { --noa-angle: 360deg; }
+}
+
+/* ── Reduced motion: todo el pack se apaga ─────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .sparkle-idle,
+  .sparkle-think,
+  .sparkle-stream,
+  .msg-cv,
+  .magic-border:focus-within::before,
+  html[data-noa="live"] .app-bg::after,
+  .stream-caret > :last-child::after {
+    animation: none !important;
+  }
 }

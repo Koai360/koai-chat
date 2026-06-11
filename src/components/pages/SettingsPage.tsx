@@ -9,6 +9,7 @@ import {
   BookOpen,
   Wrench,
   LogOut,
+  ChevronLeft,
   ChevronRight,
   Lock,
   Shield,
@@ -43,9 +44,105 @@ const TABS: Array<{ id: string; label: string; icon: ReactNode }> = [
   { id: "tools", label: "Herramientas", icon: <Wrench className="size-4" /> },
 ];
 
-export function SettingsPage({ user, tab, onLogout }: SettingsPageProps) {
-  const activeTab = tab && TABS.some((t) => t.id === tab) ? tab : "cuenta";
+/** md breakpoint reactivo — decide entre lista mobile y sidebar desktop */
+function useIsDesktop(): boolean {
+  const [isDesktop, setIsDesktop] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const update = () => setIsDesktop(mq.matches);
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+  return isDesktop;
+}
 
+export function SettingsPage({ user, tab, onLogout }: SettingsPageProps) {
+  const isDesktop = useIsDesktop();
+  const validTab = tab && TABS.some((t) => t.id === tab) ? tab : undefined;
+  const activeTab = validTab ?? "cuenta";
+
+  const renderTab = (id: string) => (
+    <>
+      {id === "cuenta" && <AccountTab user={user} onLogout={onLogout} />}
+      {id === "tema" && <ThemeTab />}
+      {id === "voz" && <VoiceTab />}
+      {id === "notificaciones" && <NotificationsTab />}
+      {id === "privacidad" && <PrivacyTab />}
+      {id === "memoria" && <MemoryTab />}
+      {id === "kb" && <KbTab />}
+      {id === "tools" && <ToolsTab />}
+    </>
+  );
+
+  // ── Mobile (S161): los 8 tabs en scroll horizontal eran inutilizables en
+  // touch — ahora lista estilo iOS → sub-página con "volver" ──
+  if (!isDesktop) {
+    if (!validTab) {
+      return (
+        <div className="h-full overflow-y-auto">
+          <header className="px-5 pt-6 pb-4">
+            <h1 className="display text-[24px] font-semibold text-white mb-1">
+              Configuración
+            </h1>
+            <p className="text-sm text-white/45">Personalizá tu experiencia con Noa</p>
+          </header>
+          <nav className="px-3 pb-8">
+            <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] divide-y divide-white/[0.05] overflow-hidden">
+              {TABS.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => {
+                    window.location.hash = `#/config/${t.id}`;
+                  }}
+                  className="w-full flex items-center gap-3.5 px-4 py-3.5 text-left active:bg-white/[0.06] transition-colors"
+                >
+                  <span className="size-8 rounded-lg bg-white/[0.06] flex items-center justify-center text-white/80 shrink-0">
+                    {t.icon}
+                  </span>
+                  <span className="flex-1 text-[15px] text-white/90">{t.label}</span>
+                  <ChevronRight className="size-4 text-white/30 shrink-0" />
+                </button>
+              ))}
+            </div>
+          </nav>
+        </div>
+      );
+    }
+
+    const current = TABS.find((t) => t.id === validTab)!;
+    return (
+      <div className="h-full flex flex-col">
+        <header className="px-3 pt-4 pb-2 shrink-0">
+          <button
+            onClick={() => {
+              window.location.hash = "#/config";
+            }}
+            className="flex items-center gap-1 text-[15px] text-white/70 active:text-white py-1.5 pr-3"
+          >
+            <ChevronLeft className="size-5" />
+            Configuración
+          </button>
+          <h1 className="display text-[22px] font-semibold text-white px-1.5 pt-1">
+            {current.label}
+          </h1>
+        </header>
+        <div className="flex-1 overflow-y-auto px-5 py-3">
+          <motion.div
+            key={validTab}
+            initial={{ opacity: 0, x: 16 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.18 }}
+          >
+            {renderTab(validTab)}
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Desktop: sidebar + contenido ──
   return (
     <div className="h-full flex flex-col">
       <header className="px-6 pt-6 pb-3">
@@ -55,10 +152,10 @@ export function SettingsPage({ user, tab, onLogout }: SettingsPageProps) {
         <p className="text-sm text-white/45">Personalizá tu experiencia con Noa</p>
       </header>
 
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+      <div className="flex-1 flex flex-row overflow-hidden">
         {/* Tab nav */}
-        <nav className="md:w-60 shrink-0 px-3 md:px-6 pt-2 md:pt-4 md:pr-2 overflow-x-auto md:overflow-y-auto md:border-r border-white/[0.04]">
-          <div className="flex md:flex-col gap-1 pb-3 md:pb-6">
+        <nav className="w-60 shrink-0 px-6 pt-4 pr-2 overflow-y-auto border-r border-white/[0.04]">
+          <div className="flex flex-col gap-1 pb-6">
             {TABS.map((t) => (
               <button
                 key={t.id}
@@ -80,7 +177,7 @@ export function SettingsPage({ user, tab, onLogout }: SettingsPageProps) {
         </nav>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 md:py-6">
+        <div className="flex-1 overflow-y-auto px-6 py-6">
           <div className="max-w-2xl">
             <AnimatePresence mode="wait">
               <motion.div
@@ -90,14 +187,7 @@ export function SettingsPage({ user, tab, onLogout }: SettingsPageProps) {
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.18 }}
               >
-                {activeTab === "cuenta" && <AccountTab user={user} onLogout={onLogout} />}
-                {activeTab === "tema" && <ThemeTab />}
-                {activeTab === "voz" && <VoiceTab />}
-                {activeTab === "notificaciones" && <NotificationsTab />}
-                {activeTab === "privacidad" && <PrivacyTab />}
-                {activeTab === "memoria" && <MemoryTab />}
-                {activeTab === "kb" && <KbTab />}
-                {activeTab === "tools" && <ToolsTab />}
+                {renderTab(activeTab)}
               </motion.div>
             </AnimatePresence>
           </div>

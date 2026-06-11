@@ -227,7 +227,9 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
               "flex items-end gap-1.5 px-2.5 py-2",
               "bg-[var(--color-bg-input)] border border-[var(--color-border-hi)]",
               "rounded-[26px] transition-all duration-200",
-              "focus-within:border-[var(--color-noa)]/40 focus-within:shadow-[0_0_0_3px_var(--color-noa-soft)]",
+              // S161: magic-border = conic gradient lime/violeta rotando al
+              // enfocar (globals.css §motion pack); reemplaza el ring estático
+              "magic-border focus-within:border-transparent",
             )}
           >
             {/* Attach + (multiple files) */}
@@ -317,6 +319,7 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
                     variant="primary"
                     size="md"
                     onClick={send}
+                    className="active:scale-90"
                   />
                 </motion.div>
               ) : null}

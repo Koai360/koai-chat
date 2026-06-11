@@ -399,7 +399,10 @@ function GalleryTile({
       // arrancar con cuadrado como placeholder. Cuando probe complete, transitions.
       style={{ aspectRatio: aspectRatio ?? "1 / 1" }}
     >
-      <img
+      {/* S161: layoutId compartido con el viewer → el tile se EXPANDE
+          físicamente al abrir (shared element transition) */}
+      <motion.img
+        layoutId={`gimg-${image.id}`}
         src={thumbUrl}
         alt={image.prompt || ""}
         loading="lazy"
@@ -588,8 +591,11 @@ function ImageViewer({
         )}
       </div>
 
-      {/* S158-b: variante 1600px — el viewer bajaba el PNG original multi-MB */}
-      <img
+      {/* S158-b: variante 1600px — el viewer bajaba el PNG original multi-MB.
+          S161: layoutId = el tile de la grilla se expande hasta acá (morph). */}
+      <motion.img
+        layoutId={`gimg-${image.id}`}
+        transition={{ type: "spring", stiffness: 320, damping: 32 }}
         src={cfImageVariant(image.url || "", 1600, 90)}
         alt={image.prompt || ""}
         className="max-w-full max-h-full object-contain rounded-lg"

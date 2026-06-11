@@ -77,6 +77,16 @@ export function AppShell({ user, onLogout }: AppShellProps) {
     onConversationCreated: (id) => navigate({ kind: "chat", conversationId: id }),
   });
 
+  // S161 "Noa Alive": aurora reactiva — la app "se enciende" mientras Noa
+  // trabaja (capa .app-bg::after en globals.css responde a html[data-noa])
+  useEffect(() => {
+    const live = loading || Boolean(streamingText);
+    document.documentElement.dataset.noa = live ? "live" : "idle";
+    return () => {
+      delete document.documentElement.dataset.noa;
+    };
+  }, [loading, streamingText]);
+
   // Sync activeId con la ruta URL
   useEffect(() => {
     if (route.kind === "chat") {

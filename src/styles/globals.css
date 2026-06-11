@@ -251,6 +251,16 @@ pre {
     #000000;
 }
 
+/* S161: con teclado abierto, .app-bg (fixed) seguía cubriendo la pantalla
+   COMPLETA — su zona índigo/violeta inferior quedaba detrás del teclado
+   translúcido de iOS → teclado azulado. Encogerla al área visible: el glow
+   queda sobre el teclado (diseño intacto) y detrás del teclado pinta el
+   canvas negro puro (html background). */
+html[data-keyboard="open"] .app-bg {
+  bottom: auto;
+  height: var(--vvh, 100vh);
+}
+
 .app-bg::before {
   content: "";
   position: absolute;

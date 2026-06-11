@@ -71,8 +71,11 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
     const handleVoiceTranscript = (text: string) => {
       setVoiceActive(false);
       if (autoSendVoice) {
-        // Send directo sin mostrar texto en el input — UX más rápida
-        void onSend(text, attachments.length > 0 ? attachments : undefined);
+        // Send directo sin mostrar texto en el input — UX más rápida.
+        // Si ya había texto tipeado, se combina (no se descarta).
+        const combined = value.trim() ? `${value.trim()} ${text}` : text;
+        void onSend(combined, attachments.length > 0 ? attachments : undefined);
+        setValue("");
         setAttachments([]);
       } else {
         // Populate el input para que el user edite antes de send
@@ -185,8 +188,9 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
             aria-hidden
           />
 
-          {/* Attachments chips arriba del input */}
-          {!voiceActive && attachments.length > 0 && (
+          {/* Attachments chips arriba del input — visibles también durante el
+              dictado (S161: que se vea que la imagen sigue adjunta) */}
+          {attachments.length > 0 && (
             <div className="flex items-center gap-2 flex-wrap mb-2 px-1">
               {attachments.map((att, i) => (
                 <AttachmentChip key={`${att.name}-${i}`} att={att} onRemove={() => removeAttachment(i)} />
@@ -256,7 +260,18 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
               style={{ fieldSizing: "content" } as React.CSSProperties}
             />
 
-            {/* Right actions */}
+            {/* Right actions — mic SIEMPRE disponible (S161: antes desaparecía
+                con texto/adjuntos y no se podía seguir dictando) */}
+            {!loading && (
+              <IconButton
+                icon={<Mic className="size-[18px]" />}
+                label="Hablar a Noa"
+                variant="ghost"
+                size="md"
+                onClick={handleVoiceStart}
+                className="shrink-0"
+              />
+            )}
             <AnimatePresence mode="wait" initial={false}>
               {loading ? (
                 <motion.div
@@ -292,24 +307,7 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
                     onClick={send}
                   />
                 </motion.div>
-              ) : (
-                <motion.div
-                  key="voice"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  transition={{ duration: 0.15 }}
-                  className="shrink-0"
-                >
-                  <IconButton
-                    icon={<Mic className="size-[18px]" />}
-                    label="Hablar a Noa"
-                    variant="ghost"
-                    size="md"
-                    onClick={handleVoiceStart}
-                  />
-                </motion.div>
-              )}
+              ) : null}
             </AnimatePresence>
           </div>
           )}

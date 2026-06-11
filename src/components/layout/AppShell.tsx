@@ -66,6 +66,7 @@ export function AppShell({ user, onLogout }: AppShellProps) {
     modelMode,
     setModelMode,
     sendMessage,
+    queuedCount,
     stopGeneration,
     deleteConversation,
     refresh,
@@ -223,6 +224,7 @@ export function AppShell({ user, onLogout }: AppShellProps) {
               onSend={handleSend}
               onStop={stopGeneration}
               loading={loading}
+              queuedCount={queuedCount}
             />
           )}
         </div>

@@ -37,6 +37,8 @@ export interface UseChatReturn {
   setModelMode: (mode: ModelMode) => void;
   /** Retorna false si el envío NO fue aceptado (ej. falló crear la conversación) */
   sendMessage: (text: string, opts?: Partial<SendMessagePayload>) => Promise<boolean>;
+  /** S163: mensajes encolados mientras Noa responde — se auto-envían al terminar */
+  queuedCount: number;
   stopGeneration: () => void;
   newConversation: () => Promise<Conversation>;
   deleteConversation: (id: string) => Promise<void>;
@@ -100,6 +102,16 @@ export function useChat(options: UseChatOptions): UseChatReturn {
   // getMessages() devolvería [] (conv nueva sin nada en backend). Marcamos
   // el id aquí para que el effect lo skipee una sola vez.
   const skipNextLoadRef = useRef<string | null>(null);
+  // S163: cola de mensajes tipeados MIENTRAS Noa responde. Antes el guard de
+  // loading los rechazaba (input bloqueado hasta fin del stream). Ahora se
+  // encolan y el finally del turno en curso los despacha en orden. El stream
+  // del backend es 1 turno por request — encolar client-side evita dos
+  // streams paralelos pisándose la persistencia de la misma conversación.
+  const queueRef = useRef<Array<{ text: string; opts: Partial<SendMessagePayload> }>>([]);
+  const [queuedCount, setQueuedCount] = useState(0);
+  const sendMessageRef = useRef<
+    ((text: string, opts?: Partial<SendMessagePayload>) => Promise<boolean>) | null
+  >(null);
 
   useEffect(() => {
     activeIdRef.current = activeId;
@@ -258,7 +270,14 @@ export function useChat(options: UseChatOptions): UseChatReturn {
       const hasAttachment = Boolean(
         opts.image_base64 || opts.file_base64 || opts.image_url,
       );
-      if ((!text.trim() && !hasAttachment) || loading || sendInFlightRef.current) return false;
+      if (!text.trim() && !hasAttachment) return false;
+      // S163: Noa todavía está respondiendo → encolar en vez de rechazar.
+      // El finally del turno en curso lo despacha apenas termine el stream.
+      if (loading || sendInFlightRef.current) {
+        queueRef.current.push({ text, opts });
+        setQueuedCount(queueRef.current.length);
+        return true; // aceptado — el input se limpia, el mensaje NO se pierde
+      }
       sendInFlightRef.current = true;
 
       // S158 — cerrar la ventana de doble-envío: setLoading(true) ANTES del
@@ -528,6 +547,17 @@ export function useChat(options: UseChatOptions): UseChatReturn {
         abortRef.current = null;
         sendInFlightRef.current = false;
 
+        // S163: despachar el siguiente mensaje encolado (tipeado mid-stream).
+        // setTimeout deja que el setLoading(false) re-renderice antes — el
+        // sendMessage fresco (via ref) ya ve loading=false y entra directo.
+        const next = queueRef.current.shift();
+        setQueuedCount(queueRef.current.length);
+        if (next) {
+          setTimeout(() => {
+            void sendMessageRef.current?.(next.text, next.opts);
+          }, 120);
+        }
+
         // Auto-title: el backend genera título en ~5-8s tras el primer turno.
         // Refrescamos la lista a los 7s para que el sidebar tome el nuevo título.
         // Solo si la conversación actual todavía tiene el title default.
@@ -552,6 +582,12 @@ export function useChat(options: UseChatOptions): UseChatReturn {
     [loading, modelMode, conversations, onConversationCreated, setActive],
   );
 
+  // S163: ref siempre apuntando al sendMessage fresco — el dispatcher de la
+  // cola (finally del turno previo) lo invoca fuera del closure viejo.
+  useEffect(() => {
+    sendMessageRef.current = sendMessage;
+  }, [sendMessage]);
+
   const refresh = useCallback(async () => {
     try {
       const list = await listConversations();
@@ -574,6 +610,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
     modelMode,
     setModelMode,
     sendMessage,
+    queuedCount,
     stopGeneration,
     newConversation,
     deleteConversation,

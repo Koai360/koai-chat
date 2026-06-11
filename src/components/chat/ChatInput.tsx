@@ -20,6 +20,8 @@ interface ChatInputProps {
   onSend: (text: string, attachments?: AttachedFile[]) => void | boolean | Promise<void | boolean>;
   onStop?: () => void;
   loading?: boolean;
+  /** S163: mensajes en cola (tipeados mientras Noa respondía) */
+  queuedCount?: number;
   privateMode?: boolean;
   onTogglePrivate?: () => void;
   placeholder?: string;
@@ -58,6 +60,7 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
       onSend,
       onStop,
       loading = false,
+      queuedCount = 0,
       privateMode = false,
       onTogglePrivate,
       placeholder = "Pregúntale a Noa",
@@ -164,7 +167,9 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 
     const send = async () => {
       const text = value.trim();
-      if ((!text && attachments.length === 0) || loading) return;
+      // S163: ya NO bloqueamos por loading — useChat encola el mensaje y lo
+      // envía cuando Noa termine el turno en curso.
+      if (!text && attachments.length === 0) return;
       // Limpieza optimista (UX instantánea) + restore si el envío falla —
       // antes un fallo de createConversation perdía el mensaje tipeado (S158-b)
       const prevValue = value;
@@ -199,6 +204,18 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
             className="hidden"
             aria-hidden
           />
+
+          {/* S163: badge de cola — mensajes tipeados mientras Noa respondía */}
+          {queuedCount > 0 && (
+            <div className="flex items-center gap-1.5 mb-1.5 px-2">
+              <span className="size-1.5 rounded-full bg-[var(--color-noa)] animate-pulse" />
+              <span className="text-[11px] text-white/60 mono tracking-tight">
+                {queuedCount === 1
+                  ? "1 mensaje en cola — se envía cuando Noa termine"
+                  : `${queuedCount} mensajes en cola — se envían cuando Noa termine`}
+              </span>
+            </div>
+          )}
 
           {/* Attachments chips arriba del input — visibles también durante el
               dictado (S161: que se vea que la imagen sigue adjunta) */}
@@ -287,7 +304,9 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
               />
             )}
             <AnimatePresence mode="wait" initial={false}>
-              {loading ? (
+              {loading && !hasContent ? (
+                // S163: stop solo cuando NO hay texto tipeado — si el user
+                // escribe mid-stream, el botón vuelve a ser send (encola).
                 <motion.div
                   key="stop"
                   initial={{ opacity: 0, scale: 0.8 }}

@@ -160,6 +160,15 @@ body,
   }
 }
 
+/* S161: teclado abierto (lo setea useKeyboardViewport via visualViewport) →
+   la app entera se encoge al área visible sobre el teclado. Header + thread
+   + input quedan en pantalla, como app nativa. */
+html[data-keyboard="open"],
+html[data-keyboard="open"] body,
+html[data-keyboard="open"] #root {
+  height: var(--vvh, 100vh);
+}
+
 /* PIXEL CFO Trust System: tabular-nums automático en mono y en cifras financieras.
    Evita jitter de columnas en cards de balance/transacciones cuando los números
    cambian dinámicamente (PIXEL spec). */

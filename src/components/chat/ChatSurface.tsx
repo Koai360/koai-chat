@@ -74,6 +74,20 @@ export function ChatSurface({
     }
   }, [visibleCount]);
 
+  // S161: si el contenedor cambia de alto (textarea autogrow, teclado iOS
+  // abre/cierra) y el usuario estaba al fondo → mantener el fondo visible.
+  // Antes: escribías 3+ líneas y el input tapaba los últimos mensajes.
+  const isEmptyState = messages.length === 0 && !streamingText && !loading;
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => {
+      if (pinnedRef.current) el.scrollTop = el.scrollHeight;
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [isEmptyState]);
+
   // Auto-scroll a bottom (con guard de posición)
   useEffect(() => {
     if (!bottomRef.current) return;

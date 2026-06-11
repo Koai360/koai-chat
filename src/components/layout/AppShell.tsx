@@ -8,6 +8,7 @@ import { ChatInput } from "@/components/chat/ChatInput";
 import { Sparkle } from "@/components/chat/Sparkle";
 import { useRoute } from "@/hooks/useRoute";
 import { useChat } from "@/hooks/useChat";
+import { useKeyboardViewport } from "@/hooks/useKeyboardViewport";
 import { navigate } from "@/lib/routing";
 import type { AuthUser } from "@/types/api";
 
@@ -49,6 +50,8 @@ interface AppShellProps {
 export function AppShell({ user, onLogout }: AppShellProps) {
   const route = useRoute();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // S161: teclado iOS — encoger la app al área visible (header siempre en pantalla)
+  useKeyboardViewport();
 
   const {
     conversations,

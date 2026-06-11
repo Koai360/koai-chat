@@ -30,6 +30,14 @@ interface ChatInputProps {
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB safety cap
 const IMAGE_MIMES = ["image/png", "image/jpeg", "image/webp", "image/gif", "image/heic", "image/heif"];
 
+// S161: en pantallas táctiles Enter NUNCA envía — el teclado iOS con
+// autocorrect/dictado dispara Enter fantasma a medio commit y mandaba
+// mensajes incompletos pese al guard isComposing (S158-b). En touch el
+// envío es SOLO con el botón →; el return hace salto de línea.
+const isCoarsePointer =
+  typeof window !== "undefined" &&
+  window.matchMedia?.("(pointer: coarse)").matches === true;
+
 /**
  * ChatInput — pill premium con icons + autogrow textarea.
  *
@@ -143,6 +151,8 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
     };
 
     const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+      // S161: touch = Enter inserta newline, nunca envía (ver isCoarsePointer)
+      if (isCoarsePointer) return;
       // S158-b: guard de composición — dictado iOS/autocorrect/IME con marked
       // text activo disparaba send con texto a medio commit (mensajes cortados)
       if (e.nativeEvent.isComposing || e.keyCode === 229) return;
@@ -249,7 +259,7 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
               onKeyDown={handleKeyDown}
               placeholder={placeholder}
               rows={1}
-              enterKeyHint="send"
+              enterKeyHint={isCoarsePointer ? "enter" : "send"}
               className={cn(
                 "flex-1 resize-none bg-transparent text-white",
                 "placeholder:text-white/55 placeholder:font-mono placeholder:text-[14px] placeholder:tracking-tight",

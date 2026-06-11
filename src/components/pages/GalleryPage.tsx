@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { EyeOff, Eye, Image as ImageIcon, Lock, X } from "lucide-react";
-import { listImages, fetchRatingsMap, hideImage } from "@/lib/api";
+import { EyeOff, Eye, Image as ImageIcon, Lock, Trash2, X } from "lucide-react";
+import { listImages, fetchRatingsMap, hideImage, deleteImage } from "@/lib/api";
 import { cfImageVariant } from "@/lib/imageTransform";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { usePrivateMode } from "@/hooks/usePrivateMode";
@@ -138,6 +138,20 @@ export function GalleryPage() {
     [],
   );
 
+  // S161: borrar imagen desde el viewer (icono → confirmar → delete)
+  const handleDelete = useCallback(async (image: ChatImage) => {
+    try {
+      await deleteImage(image.id);
+      toast.success("Imagen eliminada");
+      setItems((prev) => prev.filter((i) => i.id !== image.id));
+      setModalImage(null);
+    } catch (err) {
+      toast.error("No se pudo eliminar la imagen");
+      console.warn("[GalleryPage] delete failed", err);
+      throw err;
+    }
+  }, []);
+
   const showPrivateTab = hasPin && isUnlocked;
 
   return (
@@ -217,6 +231,7 @@ export function GalleryPage() {
             onClose={() => setModalImage(null)}
             canMoveToPrivate={hasPin}
             onToggleHidden={handleToggleHidden}
+            onDelete={handleDelete}
           />
         )}
       </AnimatePresence>
@@ -452,12 +467,18 @@ function ImageViewer({
   onClose,
   canMoveToPrivate,
   onToggleHidden,
+  onDelete,
 }: {
   image: ChatImage;
   onClose: () => void;
   canMoveToPrivate: boolean;
   onToggleHidden: (img: ChatImage) => void;
+  onDelete: (img: ChatImage) => Promise<void>;
 }) {
+  // S161: flujo eliminar — icono 🗑 → barra de confirmación → delete
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
   // Escape to close
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -466,6 +487,21 @@ function ImageViewer({
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
+
+  // No hace falta reset por cambio de imagen: el viewer se desmonta al cerrar
+  // (AnimatePresence) y no hay navegación entre imágenes dentro del modal.
+
+  const handleConfirmDelete = async () => {
+    if (deleting) return;
+    setDeleting(true);
+    try {
+      await onDelete(image);
+      // onDelete cierra el modal en éxito; en error tira y reseteamos abajo
+    } catch {
+      setDeleting(false);
+      setConfirmingDelete(false);
+    }
+  };
 
   const showToggle = canMoveToPrivate || image.hidden;
   const isHidden = !!image.hidden;
@@ -515,6 +551,42 @@ function ImageViewer({
           <Lock className="size-3" /> Privada
         </div>
       )}
+
+      {/* S161: eliminar imagen — icono abajo a la derecha, confirmación inline */}
+      <div
+        className="absolute right-4 bottom-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {confirmingDelete ? (
+          <div className="flex items-center gap-2 h-11 pl-4 pr-1.5 rounded-full bg-black/80 backdrop-blur-xl border border-red-500/40 shadow-[0_4px_20px_rgba(0,0,0,0.55)]">
+            <span className="text-[13px] font-medium text-white whitespace-nowrap">
+              ¿Eliminar imagen?
+            </span>
+            <button
+              onClick={() => setConfirmingDelete(false)}
+              disabled={deleting}
+              className="h-8 px-3 rounded-full text-[13px] font-medium text-white/75 hover:text-white hover:bg-white/[0.08] transition-colors disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleConfirmDelete}
+              disabled={deleting}
+              className="h-8 px-3.5 rounded-full bg-red-500/90 hover:bg-red-500 text-[13px] font-semibold text-white transition-colors disabled:opacity-60"
+            >
+              {deleting ? "Eliminando…" : "Eliminar"}
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmingDelete(true)}
+            className="size-11 rounded-full bg-black/65 hover:bg-red-500/25 backdrop-blur-xl border border-white/15 hover:border-red-500/50 shadow-[0_4px_20px_rgba(0,0,0,0.55)] flex items-center justify-center transition-all active:scale-95"
+            aria-label="Eliminar imagen"
+          >
+            <Trash2 className="size-5 text-white" strokeWidth={2.2} />
+          </button>
+        )}
+      </div>
 
       {/* S158-b: variante 1600px — el viewer bajaba el PNG original multi-MB */}
       <img

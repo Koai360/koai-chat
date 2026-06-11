@@ -286,6 +286,16 @@ export async function deleteImage(messageId: string): Promise<void> {
   await apiFetch(`/api/chat/images/${messageId}`, { method: "DELETE" });
 }
 
+/** S163: blob de una imagen del CDN vía proxy de la API.
+ *  cdn.koai360.com no expone CORS → fetch directo falla cross-origin; el
+ *  proxy /api/chat/images/download la sirve con CORS del API. */
+export async function fetchImageBlob(url: string): Promise<Blob> {
+  const res = await apiFetch(
+    `/api/chat/images/download?url=${encodeURIComponent(url)}`,
+  );
+  return res.blob();
+}
+
 export async function rateImage(messageId: string, rating: 1 | 2 | 3 | 4 | 5): Promise<void> {
   await apiFetch(`/api/chat/images/${messageId}/like`, {
     method: "POST",

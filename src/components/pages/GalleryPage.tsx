@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { EyeOff, Eye, Image as ImageIcon, Lock, Trash2, X } from "lucide-react";
+import { Download, EyeOff, Eye, Image as ImageIcon, Lock, Trash2, X } from "lucide-react";
 import { listImages, fetchRatingsMap, hideImage, deleteImage } from "@/lib/api";
+import { downloadOrShareImage } from "@/lib/downloadImage";
 import { cfImageVariant } from "@/lib/imageTransform";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { usePrivateMode } from "@/hooks/usePrivateMode";
@@ -481,6 +482,24 @@ function ImageViewer({
   // S161: flujo eliminar — icono 🗑 → barra de confirmación → delete
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  // S163: descargar/compartir (share sheet iOS → "Guardar imagen")
+  const [saving, setSaving] = useState(false);
+
+  const handleDownload = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (saving) return;
+    setSaving(true);
+    try {
+      const result = await downloadOrShareImage(image.url);
+      if (result === "downloaded") toast.success("Imagen descargada");
+      if (result === "opened")
+        toast.info("Abrí la imagen — mantenela presionada para guardarla");
+    } catch {
+      toast.error("No se pudo descargar — intentá de nuevo");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // Escape to close
   useEffect(() => {
@@ -554,6 +573,16 @@ function ImageViewer({
           <Lock className="size-3" /> Privada
         </div>
       )}
+
+      {/* S163: descargar — botón centro-abajo (share sheet iOS / a[download]) */}
+      <button
+        onClick={handleDownload}
+        disabled={saving}
+        className="absolute left-1/2 -translate-x-1/2 bottom-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] flex items-center gap-2 h-11 px-5 rounded-full bg-black/65 hover:bg-black/85 backdrop-blur-xl border border-white/15 shadow-[0_4px_20px_rgba(0,0,0,0.55)] transition-all active:scale-95 text-[13px] font-medium text-white disabled:opacity-60"
+      >
+        <Download className="size-4" />
+        <span>{saving ? "Guardando…" : "Descargar"}</span>
+      </button>
 
       {/* S161: eliminar imagen — icono abajo a la derecha, confirmación inline */}
       <div

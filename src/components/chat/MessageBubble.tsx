@@ -1,7 +1,9 @@
-import { memo } from "react";
+import { memo, useState } from "react";
+import { AnimatePresence } from "framer-motion";
 import { Sparkle } from "./Sparkle";
 import { CardRenderer } from "./CardRenderer";
 import { LazyNoaMarkdown as NoaMarkdown } from "./LazyNoaMarkdown";
+import { ImageLightbox } from "@/components/shared/ImageLightbox";
 import { parseCards } from "@/lib/cards";
 import { cfImageVariant } from "@/lib/imageTransform";
 import { cn } from "@/lib/cn";
@@ -17,6 +19,8 @@ export const MessageBubble = memo(function MessageBubble({
   showAvatar,
 }: MessageBubbleProps) {
   const isUser = message.role === "user";
+  // S163: tap en imagen → lightbox con botón Descargar (share sheet iOS)
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   if (isUser) {
     return (
@@ -32,11 +36,17 @@ export const MessageBubble = memo(function MessageBubble({
                 alt=""
                 loading="lazy"
                 decoding="async"
-                className="block w-full max-w-[280px] h-auto rounded-xl border border-white/[0.06]"
+                onClick={() => setLightboxUrl(message.image!)}
+                className="block w-full max-w-[280px] h-auto rounded-xl border border-white/[0.06] cursor-zoom-in"
               />
             </div>
           )}
         </div>
+        <AnimatePresence>
+          {lightboxUrl && (
+            <ImageLightbox url={lightboxUrl} onClose={() => setLightboxUrl(null)} />
+          )}
+        </AnimatePresence>
       </div>
     );
   }
@@ -73,15 +83,21 @@ export const MessageBubble = memo(function MessageBubble({
             alt=""
             loading="lazy"
             decoding="async"
+            onClick={() => setLightboxUrl(message.image!)}
             style={
               message.image_width && message.image_height
                 ? { aspectRatio: `${message.image_width} / ${message.image_height}` }
                 : { aspectRatio: "1 / 1" }
             }
-            className="block w-full max-w-[480px] h-auto rounded-xl border border-white/[0.06] object-cover"
+            className="block w-full max-w-[480px] h-auto rounded-xl border border-white/[0.06] object-cover cursor-zoom-in"
           />
         )}
       </div>
+      <AnimatePresence>
+        {lightboxUrl && (
+          <ImageLightbox url={lightboxUrl} onClose={() => setLightboxUrl(null)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 });

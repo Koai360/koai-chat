@@ -26,6 +26,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { relativeTime } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { usePrivateMode } from "@/hooks/usePrivateMode";
+import { navigate } from "@/lib/routing";
 
 interface SettingsPageProps {
   user: AuthUser;
@@ -94,7 +95,7 @@ export function SettingsPage({ user, tab, onLogout }: SettingsPageProps) {
                 <button
                   key={t.id}
                   onClick={() => {
-                    window.location.hash = `#/config/${t.id}`;
+                    navigate({ kind: "config", tab: t.id });
                   }}
                   className="w-full flex items-center gap-3.5 px-4 py-3.5 text-left active:bg-white/[0.06] transition-colors"
                 >
@@ -117,7 +118,7 @@ export function SettingsPage({ user, tab, onLogout }: SettingsPageProps) {
         <header className="px-3 pt-4 pb-2 shrink-0">
           <button
             onClick={() => {
-              window.location.hash = "#/config";
+              navigate({ kind: "config" });
             }}
             className="flex items-center gap-1 text-[15px] text-white/70 active:text-white py-1.5 pr-3"
           >
@@ -160,7 +161,7 @@ export function SettingsPage({ user, tab, onLogout }: SettingsPageProps) {
               <button
                 key={t.id}
                 onClick={() => {
-                  window.location.hash = `#/config/${t.id}`;
+                  navigate({ kind: "config", tab: t.id });
                 }}
                 className={cn(
                   "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm whitespace-nowrap transition",

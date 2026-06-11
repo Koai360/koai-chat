@@ -6,8 +6,17 @@ export function useRoute(): Route {
 
   useEffect(() => {
     const handler = () => setRoute(parseHash(window.location.hash));
+    // hashchange: edición manual de URL / links externos.
+    // popstate: back/forward sobre las entries de pushState.
+    // noa:navigate: navigate() interno (pushState, ver routing.ts S161).
     window.addEventListener("hashchange", handler);
-    return () => window.removeEventListener("hashchange", handler);
+    window.addEventListener("popstate", handler);
+    window.addEventListener("noa:navigate", handler);
+    return () => {
+      window.removeEventListener("hashchange", handler);
+      window.removeEventListener("popstate", handler);
+      window.removeEventListener("noa:navigate", handler);
+    };
   }, []);
 
   return route;

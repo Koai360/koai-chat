@@ -133,6 +133,11 @@ html,
 body,
 #root {
   height: 100dvh;
+  /* S161: el padding del input no era el problema — era ESTO: en PWA
+     standalone iOS, 100dvh arranca MAL en cold start (no se recalcula hasta
+     rotar el device) → la app quedaba ~40-60pt más corta que la pantalla y
+     dejaba un colchón negro bajo el input. En standalone 100vh es correcto
+     desde el arranque (no hay toolbar dinámica). Safari tab sigue con dvh. */
   margin: 0;
   padding: 0;
   background: var(--color-bg);
@@ -143,6 +148,16 @@ body,
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+}
+
+/* S161: PWA instalada → 100vh (correcto desde cold start, pantalla completa).
+   Ver comentario en el bloque de arriba. */
+@media (display-mode: standalone) {
+  html,
+  body,
+  #root {
+    height: 100vh;
+  }
 }
 
 /* PIXEL CFO Trust System: tabular-nums automático en mono y en cifras financieras.

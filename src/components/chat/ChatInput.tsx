@@ -185,7 +185,9 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
     };
 
     return (
-      <div className="px-3 md:px-6 pb-3 md:pb-5 safe-bottom">
+      // S161: barra más abajo estilo X — pb-0.5 + safe-bottom-tight
+      // (mobile: ~22px bajo el pill vs 46px antes; desktop igual que antes)
+      <div className="px-3 md:px-6 pb-0.5 md:pb-3 safe-bottom-tight">
         <div className="mx-auto max-w-3xl">
           {/* Hidden file input — multiple, image + doc */}
           <input

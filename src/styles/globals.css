@@ -311,6 +311,13 @@ pre {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+/* S161: variante "pegada" para el ChatInput — recorta el colchón del
+   safe-area para que la barra quede más abajo (estilo X). El pill sigue
+   librando el home indicator. Con teclado abierto env()=0 → min 8px. */
+.safe-bottom-tight {
+  padding-bottom: max(calc(env(safe-area-inset-bottom) - 14px), 8px);
+}
+
 .safe-left {
   padding-left: env(safe-area-inset-left);
 }

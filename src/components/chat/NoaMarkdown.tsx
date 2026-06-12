@@ -93,6 +93,9 @@ export const NoaMarkdown = memo(function NoaMarkdown({
         // S164: imágenes markdown del modelo — antes renderizaban el PNG
         // original multi-MB sin constraint (overflow + data). Variante CF
         // 960px para cdn.koai360.com + estilos acotados.
+        // S164-b: el modelo a veces INVENTA la URL (ej. sufijo "_edited" que
+        // no existe → 404) → quedaba una imagen rota "que no carga" en la
+        // burbuja mientras la real vive en message.image. onError la oculta.
         img({ src, alt }) {
           const url = typeof src === "string" ? src : "";
           if (!url) return null;
@@ -105,6 +108,9 @@ export const NoaMarkdown = memo(function NoaMarkdown({
               alt={alt || ""}
               loading="lazy"
               decoding="async"
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+              }}
               className="block w-full max-w-[480px] h-auto rounded-xl border border-white/[0.06] my-2"
             />
           );

@@ -439,6 +439,11 @@ export function useChat(options: UseChatOptions): UseChatReturn {
             },
             onDone: () => {
               sawDone = true;
+              // S164-b: cerrar el stream ANTES de promover — el timer del
+              // throttle (+80ms) podía disparar flushStream DESPUÉS de done
+              // y re-pintar streamingText completo debajo del mensaje ya
+              // promovido → "efecto de carga doble" que reportó Jesús.
+              streamClosed = true;
               // Promovemos streamingText → message
               if ((accumulated || imageUrl) && convId && isCurrent()) {
                 const assistantMsg: ChatMessage = {

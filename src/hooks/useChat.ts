@@ -201,7 +201,20 @@ export function useChat(options: UseChatOptions): UseChatReturn {
   // cliente se desconecte → al volver a foreground reconciliamos con refetch
   // (resume-lite). Solo si NO hay stream vivo, para no pisar un turno activo.
   useEffect(() => {
-    const reconcile = () => {
+    // S164-b: el reconcile de una sola pasada no alcanzaba — si el backend
+    // SIGUE generando cuando el user vuelve (imagen tarda 30-90s; el runner
+    // desacoplado corre hasta 600s), el refetch único no encontraba nada y el
+    // turno se veía "muerto" ("se apaga la pantalla y se detiene el proceso").
+    // Ahora: si el último mensaje del server es del user (turno incompleto),
+    // re-chequear cada 6s hasta ~2 min hasta que llegue la respuesta.
+    let retryTimer: number | null = null;
+    const cancelRetry = () => {
+      if (retryTimer !== null) {
+        clearTimeout(retryTimer);
+        retryTimer = null;
+      }
+    };
+    const attempt = (retriesLeft: number) => {
       if (document.visibilityState !== "visible") return;
       const id = activeIdRef.current;
       if (!id) return;
@@ -217,12 +230,22 @@ export function useChat(options: UseChatOptions): UseChatReturn {
           if (msgs.length > 0) {
             setMessages((prev) => (msgs.length >= prev.length ? msgs : prev));
           }
+          const last = msgs[msgs.length - 1];
+          const turnIncomplete = !!last && last.role === "user";
+          if (turnIncomplete && retriesLeft > 0) {
+            retryTimer = window.setTimeout(() => attempt(retriesLeft - 1), 6000);
+          }
         })
         .catch(() => {});
+    };
+    const reconcile = () => {
+      cancelRetry();
+      attempt(20); // 20 × 6s ≈ 2 min de cobertura (imagen + tools largos)
     };
     document.addEventListener("visibilitychange", reconcile);
     window.addEventListener("pageshow", reconcile);
     return () => {
+      cancelRetry();
       document.removeEventListener("visibilitychange", reconcile);
       window.removeEventListener("pageshow", reconcile);
     };

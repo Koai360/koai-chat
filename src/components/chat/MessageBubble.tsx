@@ -51,8 +51,18 @@ export const MessageBubble = memo(function MessageBubble({
     );
   }
 
+  // S164: el modelo a veces incrusta la imagen generada TAMBIÉN como markdown
+  // ![...](url) en su texto → se veía DOBLE en la burbuja (markdown + bloque
+  // message.image). Si la URL coincide con message.image, sacarla del texto.
+  const dedupedContent = message.image
+    ? message.content.replace(
+        /!\[[^\]]*\]\(\s*<?([^)\s]+)>?\s*\)/g,
+        (full, url: string) => (url === message.image ? "" : full),
+      )
+    : message.content;
+
   // Assistant: parsear card markers
-  const segments = parseCards(message.content);
+  const segments = parseCards(dedupedContent);
 
   return (
     <div className={cn("flex gap-3 px-4 md:px-6 py-2", !showAvatar && "pl-12 md:pl-14")}>

@@ -6,6 +6,7 @@ import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
 import { CopyBlock } from "./CopyBlock";
 import { CodeBlock } from "./CodeBlock";
+import { cfImageVariant } from "@/lib/imageTransform";
 import { preprocessMarkdown } from "@/lib/markdownPreprocess";
 import { noaSanitizeSchema } from "@/lib/markdownSanitizeSchema";
 import { noaHighlightLanguages } from "@/lib/highlightLanguages";
@@ -87,6 +88,25 @@ export const NoaMarkdown = memo(function NoaMarkdown({
             <CodeBlock language={lang || undefined} raw={rawText}>
               {children}
             </CodeBlock>
+          );
+        },
+        // S164: imágenes markdown del modelo — antes renderizaban el PNG
+        // original multi-MB sin constraint (overflow + data). Variante CF
+        // 960px para cdn.koai360.com + estilos acotados.
+        img({ src, alt }) {
+          const url = typeof src === "string" ? src : "";
+          if (!url) return null;
+          const display = url.includes("cdn.koai360.com")
+            ? cfImageVariant(url, 960)
+            : url;
+          return (
+            <img
+              src={display}
+              alt={alt || ""}
+              loading="lazy"
+              decoding="async"
+              className="block w-full max-w-[480px] h-auto rounded-xl border border-white/[0.06] my-2"
+            />
           );
         },
       }}

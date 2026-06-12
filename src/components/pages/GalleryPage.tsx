@@ -6,6 +6,7 @@ import { downloadOrShareImage } from "@/lib/downloadImage";
 import { cfImageVariant } from "@/lib/imageTransform";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { usePrivateMode } from "@/hooks/usePrivateMode";
+import { useModalBack } from "@/hooks/useModalBack";
 import type { ChatImage } from "@/types/api";
 import { cn } from "@/lib/cn";
 import { toast } from "sonner";
@@ -484,6 +485,8 @@ function ImageViewer({
   const [deleting, setDeleting] = useState(false);
   // S163: descargar/compartir (share sheet iOS → "Guardar imagen")
   const [saving, setSaving] = useState(false);
+  // S164: gesto "atrás" de iOS cierra el viewer en vez de navegar la app
+  const close = useModalBack(onClose);
 
   const handleDownload = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -501,14 +504,19 @@ function ImageViewer({
     }
   };
 
-  // Escape to close
+  // Escape to close + scroll-lock del documento (S164)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") close();
     };
     window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [onClose]);
+    const prevOverflow = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", handler);
+      document.documentElement.style.overflow = prevOverflow;
+    };
+  }, [close]);
 
   // No hace falta reset por cambio de imagen: el viewer se desmonta al cerrar
   // (AnimatePresence) y no hay navegación entre imágenes dentro del modal.
@@ -534,12 +542,16 @@ function ImageViewer({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex items-center justify-center p-4"
-      onClick={onClose}
+      style={{ touchAction: "none", overscrollBehavior: "contain" }}
+      onClick={close}
     >
       {/* Botones flotantes — fondo oscuro garantizado + border + shadow para
           legibilidad sobre cualquier imagen (clara u oscura). Pattern iOS clásico. */}
       <button
-        onClick={onClose}
+        onClick={(e) => {
+          e.stopPropagation();
+          close();
+        }}
         className="absolute right-4 size-11 rounded-full bg-black/65 hover:bg-black/85 backdrop-blur-xl border border-white/15 shadow-[0_4px_20px_rgba(0,0,0,0.55)] flex items-center justify-center transition-all active:scale-95 top-[calc(env(safe-area-inset-top,0px)+1rem)]"
         aria-label="Cerrar"
       >

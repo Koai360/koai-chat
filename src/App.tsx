@@ -37,9 +37,18 @@ export default function App() {
     <>
       <AppShell user={user} onLogout={logout} />
       <UpdateBanner />
+      {/* Brief Noa 07-05: en mobile el toast top-right caía SOBRE los íconos del
+          TopBar (safe-area + 64px) — tapaba los botones y se veía "pisado" por el
+          blur del header. mobileOffset lo baja por debajo del header; el toast
+          flota libre sin pisar ni ser pisado. */}
       <Toaster
         theme="dark"
         position="top-right"
+        mobileOffset={{
+          top: "calc(env(safe-area-inset-top, 0px) + 76px)",
+          right: 12,
+          left: 12,
+        }}
         toastOptions={{
           style: {
             background: "var(--color-bg-overlay)",

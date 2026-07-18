@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, EyeOff, Eye, Image as ImageIcon, Lock, Trash2, X } from "lucide-react";
+import { Check, Download, EyeOff, Eye, Image as ImageIcon, Lock, Trash2, X } from "lucide-react";
 import { listImages, fetchRatingsMap, hideImage, deleteImage } from "@/lib/api";
 import { downloadOrShareImage } from "@/lib/downloadImage";
 import { cfImageVariant } from "@/lib/imageTransform";
@@ -37,6 +37,11 @@ export function GalleryPage() {
   const [ratings, setRatings] = useState<Record<string, number>>({});
   const [modalImage, setModalImage] = useState<ChatImage | null>(null);
   const observerRef = useRef<HTMLDivElement>(null);
+  // Brief Noa 07-05: selección múltiple — botón "Seleccionar" o long-press
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [confirmingBulk, setConfirmingBulk] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   // Si la galería privada se bloquea mientras estoy viendo "Privadas", volvé a "Todas"
   useEffect(() => {
@@ -84,6 +89,9 @@ export function GalleryPage() {
     setLoadError(false);
     setPageError(false);
     setLoading(true);
+    setSelectMode(false);
+    setSelected(new Set());
+    setConfirmingBulk(false);
     loadPage(undefined, view);
   }, [view, loadPage]);
 
@@ -154,6 +162,77 @@ export function GalleryPage() {
     }
   }, []);
 
+  // ── Selección múltiple (brief Noa 07-05) ──────────────────────────────
+  const exitSelectMode = useCallback(() => {
+    setSelectMode(false);
+    setSelected(new Set());
+    setConfirmingBulk(false);
+  }, []);
+
+  const toggleSelected = useCallback((img: ChatImage) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(img.id)) next.delete(img.id);
+      else next.add(img.id);
+      return next;
+    });
+    setConfirmingBulk(false);
+  }, []);
+
+  // Long-press sobre un tile activa el modo y selecciona ese tile
+  const enterSelectWith = useCallback((img: ChatImage) => {
+    setSelectMode(true);
+    setSelected(new Set([img.id]));
+  }, []);
+
+  // Escape sale del modo selección (desktop)
+  useEffect(() => {
+    if (!selectMode) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") exitSelectMode();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [selectMode, exitSelectMode]);
+
+  // Bulk sobre los seleccionados: allSettled → los que fallan quedan en la
+  // grilla y se reporta el conteo (nunca "todo OK" si algo falló).
+  const runBulk = useCallback(
+    async (op: (id: string) => Promise<void>, okMsg: (n: number) => string, failMsg: (n: number) => string) => {
+      if (bulkBusy || selected.size === 0) return;
+      setBulkBusy(true);
+      const ids = Array.from(selected);
+      const results = await Promise.allSettled(ids.map((id) => op(id)));
+      const okIds = new Set(ids.filter((_, i) => results[i].status === "fulfilled"));
+      const failedCount = ids.length - okIds.size;
+      if (okIds.size > 0) setItems((prev) => prev.filter((i) => !okIds.has(i.id)));
+      if (okIds.size > 0) toast.success(okMsg(okIds.size));
+      if (failedCount > 0) toast.error(failMsg(failedCount));
+      setBulkBusy(false);
+      exitSelectMode();
+    },
+    [bulkBusy, selected, exitSelectMode],
+  );
+
+  const handleBulkDelete = () =>
+    runBulk(
+      (id) => deleteImage(id),
+      (n) => (n === 1 ? "1 imagen eliminada" : `${n} imágenes eliminadas`),
+      (n) => (n === 1 ? "1 imagen no se pudo eliminar" : `${n} imágenes no se pudieron eliminar`),
+    );
+
+  const handleBulkHide = () => {
+    const nextHidden = view === "all";
+    return runBulk(
+      (id) => hideImage(id, nextHidden),
+      (n) =>
+        nextHidden
+          ? n === 1 ? "1 imagen movida a privada" : `${n} imágenes movidas a privada`
+          : n === 1 ? "1 imagen movida a galería normal" : `${n} imágenes movidas a galería normal`,
+      (n) => (n === 1 ? "1 imagen no se pudo mover" : `${n} imágenes no se pudieron mover`),
+    );
+  };
+
   const showPrivateTab = hasPin && isUnlocked;
 
   return (
@@ -173,17 +252,33 @@ export function GalleryPage() {
             </p>
           </div>
 
-          {showPrivateTab && (
-            <div className="flex gap-1 bg-[var(--color-bg-elevated)] p-1 rounded-full border border-white/[0.08] shadow-[0_2px_12px_rgba(0,0,0,0.30)]">
-              <ViewTab active={view === "all"} onClick={() => setView("all")} label="Todas" />
-              <ViewTab
-                active={view === "private"}
-                onClick={() => setView("private")}
-                label="Privadas"
-                icon={<EyeOff className="size-4" />}
-              />
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {items.length > 0 && (
+              <button
+                onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
+                className={cn(
+                  "h-11 px-4 rounded-full text-[14px] font-medium transition-all border",
+                  selectMode
+                    ? "bg-white text-black border-white"
+                    : "bg-[var(--color-bg-elevated)] text-white/75 hover:text-white border-white/[0.08]",
+                )}
+              >
+                {selectMode ? "Listo" : "Seleccionar"}
+              </button>
+            )}
+
+            {showPrivateTab && (
+              <div className="flex gap-1 bg-[var(--color-bg-elevated)] p-1 rounded-full border border-white/[0.08] shadow-[0_2px_12px_rgba(0,0,0,0.30)]">
+                <ViewTab active={view === "all"} onClick={() => setView("all")} label="Todas" />
+                <ViewTab
+                  active={view === "private"}
+                  onClick={() => setView("private")}
+                  label="Privadas"
+                  icon={<EyeOff className="size-4" />}
+                />
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -203,7 +298,10 @@ export function GalleryPage() {
             <MasonryColumns
               items={items}
               ratings={ratings}
-              onSelect={setModalImage}
+              selectMode={selectMode}
+              selectedIds={selected}
+              onTap={(img) => (selectMode ? toggleSelected(img) : setModalImage(img))}
+              onLongPress={enterSelectWith}
             />
             {pageError ? (
               <div className="h-20 flex items-center justify-center">
@@ -222,6 +320,80 @@ export function GalleryPage() {
           </>
         )}
       </div>
+
+      {/* Barra flotante de acciones bulk (brief Noa 07-05) */}
+      <AnimatePresence>
+        {selectMode && (
+          <motion.div
+            key="selection-bar"
+            initial={{ y: 72, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 72, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 380, damping: 32 }}
+            className="fixed left-1/2 -translate-x-1/2 z-40 bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] max-w-[calc(100vw-1.5rem)]"
+          >
+            {confirmingBulk ? (
+              <div className="flex items-center gap-2 h-12 pl-4 pr-1.5 rounded-full bg-black/80 backdrop-blur-xl border border-red-500/40 shadow-[0_4px_20px_rgba(0,0,0,0.55)]">
+                <span className="text-[13px] font-medium text-white whitespace-nowrap">
+                  ¿Eliminar {selected.size === 1 ? "1 imagen" : `${selected.size} imágenes`}?
+                </span>
+                <button
+                  onClick={() => setConfirmingBulk(false)}
+                  disabled={bulkBusy}
+                  className="h-9 px-3 rounded-full text-[13px] font-medium text-white/75 hover:text-white hover:bg-white/[0.08] transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleBulkDelete}
+                  disabled={bulkBusy}
+                  className="h-9 px-3.5 rounded-full bg-red-500/90 hover:bg-red-500 text-[13px] font-semibold text-white transition-colors disabled:opacity-60"
+                >
+                  {bulkBusy ? "Eliminando…" : "Eliminar"}
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 h-12 pl-4 pr-1.5 rounded-full bg-black/80 backdrop-blur-xl border border-white/15 shadow-[0_4px_20px_rgba(0,0,0,0.55)]">
+                <span className="text-[13px] font-medium text-white whitespace-nowrap tabular-nums">
+                  {selected.size === 0
+                    ? "Tocá para seleccionar"
+                    : selected.size === 1
+                      ? "1 seleccionada"
+                      : `${selected.size} seleccionadas`}
+                </span>
+                {(view === "private" || hasPin) && (
+                  <button
+                    onClick={handleBulkHide}
+                    disabled={bulkBusy || selected.size === 0}
+                    className="flex items-center gap-1.5 h-9 px-3 rounded-full text-[13px] font-medium text-white/85 hover:text-white hover:bg-white/[0.10] transition-colors disabled:opacity-40"
+                  >
+                    {view === "private" ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
+                    <span className="hidden sm:inline">
+                      {view === "private" ? "A normal" : "A privada"}
+                    </span>
+                  </button>
+                )}
+                <button
+                  onClick={() => setConfirmingBulk(true)}
+                  disabled={bulkBusy || selected.size === 0}
+                  className="flex items-center gap-1.5 h-9 px-3 rounded-full text-[13px] font-medium text-red-400 hover:text-red-300 hover:bg-red-500/[0.12] transition-colors disabled:opacity-40"
+                >
+                  <Trash2 className="size-4" />
+                  <span className="hidden sm:inline">Eliminar</span>
+                </button>
+                <button
+                  onClick={exitSelectMode}
+                  disabled={bulkBusy}
+                  className="size-9 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.10] transition-colors disabled:opacity-40"
+                  aria-label="Salir de selección"
+                >
+                  <X className="size-4" strokeWidth={2.5} />
+                </button>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* S158-b: AnimatePresence — el exit fade del viewer estaba muerto
           (desmontaba de golpe pese a tener exit definido) */}
@@ -272,11 +444,17 @@ function ViewTab({
 function MasonryColumns({
   items,
   ratings,
-  onSelect,
+  selectMode,
+  selectedIds,
+  onTap,
+  onLongPress,
 }: {
   items: ChatImage[];
   ratings: Record<string, number>;
-  onSelect: (img: ChatImage) => void;
+  selectMode: boolean;
+  selectedIds: Set<string>;
+  onTap: (img: ChatImage) => void;
+  onLongPress: (img: ChatImage) => void;
 }) {
   const cols = useColumnCount();
   const columns: ChatImage[][] = Array.from({ length: cols }, () => []);
@@ -300,7 +478,10 @@ function MasonryColumns({
               key={img.id}
               image={img}
               rating={ratings[img.id]}
-              onClick={() => onSelect(img)}
+              selectMode={selectMode}
+              selected={selectedIds.has(img.id)}
+              onTap={() => onTap(img)}
+              onLongPress={() => onLongPress(img)}
             />
           ))}
         </div>
@@ -352,15 +533,62 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
 function GalleryTile({
   image,
   rating,
-  onClick,
+  selectMode,
+  selected,
+  onTap,
+  onLongPress,
 }: {
   image: ChatImage;
   rating?: number;
-  onClick: () => void;
+  selectMode: boolean;
+  selected: boolean;
+  onTap: () => void;
+  onLongPress: () => void;
 }) {
   const url = image.url || "";
   // S158-b: helper compartido (MessageBubble/ImageViewer usan el mismo)
   const thumbUrl = cfImageVariant(url, 800);
+
+  // Long-press (~450ms, tolerancia 10px de movimiento) → entra a selección.
+  // pointer events cubren touch + mouse; el flag suprime el click fantasma
+  // que algunos browsers disparan al soltar después del long-press.
+  const pressTimer = useRef<number | null>(null);
+  const pressOrigin = useRef<{ x: number; y: number } | null>(null);
+  const longPressFired = useRef(false);
+
+  const clearPress = () => {
+    if (pressTimer.current !== null) {
+      window.clearTimeout(pressTimer.current);
+      pressTimer.current = null;
+    }
+    pressOrigin.current = null;
+  };
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (selectMode) return; // ya en selección: tap simple alcanza
+    pressOrigin.current = { x: e.clientX, y: e.clientY };
+    longPressFired.current = false;
+    pressTimer.current = window.setTimeout(() => {
+      longPressFired.current = true;
+      clearPress();
+      onLongPress();
+    }, 450);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!pressOrigin.current) return;
+    const dx = e.clientX - pressOrigin.current.x;
+    const dy = e.clientY - pressOrigin.current.y;
+    if (dx * dx + dy * dy > 100) clearPress(); // scroll/drag: no es long-press
+  };
+
+  const handleClick = () => {
+    if (longPressFired.current) {
+      longPressFired.current = false;
+      return;
+    }
+    onTap();
+  };
 
   // S136 — Pinterest masonry sin layout shift:
   // 1) Imágenes nuevas: backend persiste width/height → usar aspect-ratio = w/h
@@ -390,16 +618,28 @@ function GalleryTile({
 
   return (
     <button
-      onClick={onClick}
+      onClick={handleClick}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={clearPress}
+      onPointerCancel={clearPress}
+      onPointerLeave={clearPress}
+      onContextMenu={(e) => {
+        // long-press en iOS/desktop no debe abrir menú contextual del browser
+        if (selectMode || pressTimer.current !== null) e.preventDefault();
+      }}
+      aria-pressed={selectMode ? selected : undefined}
       className={cn(
         "group relative w-full mb-2 md:mb-3 break-inside-avoid rounded-xl overflow-hidden",
-        "bg-[var(--color-bg-elevated)] border border-white/[0.06]",
-        "hover:border-white/[0.16] transition-colors",
-        "block text-left",
+        "bg-[var(--color-bg-elevated)] border transition-colors",
+        "block text-left select-none",
+        selected
+          ? "border-white/90 ring-2 ring-white/80"
+          : "border-white/[0.06] hover:border-white/[0.16]",
       )}
       // Si aún no sabemos el aspect (no vino del backend ni probe completó),
       // arrancar con cuadrado como placeholder. Cuando probe complete, transitions.
-      style={{ aspectRatio: aspectRatio ?? "1 / 1" }}
+      style={{ aspectRatio: aspectRatio ?? "1 / 1", WebkitTouchCallout: "none" }}
     >
       {/* S161: layoutId compartido con el viewer → el tile se EXPANDE
           físicamente al abrir (shared element transition) */}
@@ -409,14 +649,31 @@ function GalleryTile({
         alt={image.prompt || ""}
         loading="lazy"
         decoding="async"
-        className="absolute inset-0 w-full h-full object-cover block"
+        draggable={false}
+        className={cn(
+          "absolute inset-0 w-full h-full object-cover block transition-[transform,opacity] duration-150",
+          selected && "scale-[0.94] opacity-80 rounded-lg",
+        )}
       />
+      {/* Indicador de selección (brief Noa 07-05) */}
+      {selectMode && (
+        <div
+          className={cn(
+            "absolute top-2 right-2 size-6 rounded-full flex items-center justify-center border-2 transition-colors",
+            selected
+              ? "bg-white border-white"
+              : "bg-black/40 border-white/70 backdrop-blur-sm",
+          )}
+        >
+          {selected && <Check className="size-4 text-black" strokeWidth={3} />}
+        </div>
+      )}
       {image.hidden && (
         <div className="absolute top-1.5 left-1.5 bg-black/70 backdrop-blur-sm rounded-full size-6 flex items-center justify-center">
           <EyeOff className="size-3 text-white" />
         </div>
       )}
-      {rating && rating > 0 && (
+      {rating && rating > 0 && !selectMode && (
         <div className="absolute top-1.5 right-1.5 bg-black/70 backdrop-blur-sm rounded-full px-1.5 py-0.5 text-[10px] text-white mono">
           ★ {rating}
         </div>

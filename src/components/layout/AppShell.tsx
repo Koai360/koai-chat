@@ -18,6 +18,9 @@ const GalleryPage = lazy(() =>
 const HistoryPage = lazy(() =>
   import("@/components/pages/HistoryPage").then((m) => ({ default: m.HistoryPage })),
 );
+const InboxPage = lazy(() =>
+  import("@/components/pages/InboxPage").then((m) => ({ default: m.InboxPage })),
+);
 const SettingsPage = lazy(() =>
   import("@/components/pages/SettingsPage").then((m) => ({ default: m.SettingsPage })),
 );
@@ -210,6 +213,11 @@ export function AppShell({ user, onLogout }: AppShellProps) {
             {route.kind === "historial" && (
               <Suspense fallback={<PageFallback />}>
                 <HistoryPage onDeleteConversation={deleteConversation} />
+              </Suspense>
+            )}
+            {route.kind === "bandeja" && (
+              <Suspense fallback={<PageFallback />}>
+                <InboxPage />
               </Suspense>
             )}
             {route.kind === "config" && (

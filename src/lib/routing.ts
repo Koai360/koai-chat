@@ -14,6 +14,7 @@ export type Route =
   | { kind: "chat"; conversationId?: string }
   | { kind: "galeria" }
   | { kind: "historial" }
+  | { kind: "bandeja" }
   | { kind: "config"; tab?: string };
 
 export function parseHash(hash: string): Route {
@@ -28,6 +29,7 @@ export function parseHash(hash: string): Route {
 
   if (head === "galeria") return { kind: "galeria" };
   if (head === "historial") return { kind: "historial" };
+  if (head === "bandeja") return { kind: "bandeja" };
 
   if (head === "config") {
     return { kind: "config", tab: rest[0] };
@@ -44,6 +46,8 @@ export function routeToHash(route: Route): string {
       return "#/galeria";
     case "historial":
       return "#/historial";
+    case "bandeja":
+      return "#/bandeja";
     case "config":
       return route.tab ? `#/config/${route.tab}` : "#/config";
   }

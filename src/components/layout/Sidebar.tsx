@@ -6,6 +6,7 @@ import {
   SquarePen,
   Image as ImageIcon,
   Clock,
+  Inbox,
   Settings,
   LogOut,
   User,
@@ -19,7 +20,32 @@ import { Dropdown, DropdownItem, DropdownSeparator } from "@/components/ui/Dropd
 import { cn } from "@/lib/cn";
 import type { AuthUser, Conversation } from "@/types/api";
 import { navigate, type Route } from "@/lib/routing";
-import { renameConversation as apiRenameConversation, deleteConversation as apiDeleteConversation } from "@/lib/api";
+import { renameConversation as apiRenameConversation, deleteConversation as apiDeleteConversation, listInbox } from "@/lib/api";
+
+/** Cuenta de dudas pendientes en la Bandeja para el badge del nav (poll 60s +
+ *  refresco al navegar, ej. al salir de la Bandeja tras resolver). */
+function useInboxCount(): number {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    const refresh = () => {
+      listInbox()
+        .then((items) => { if (alive) setCount(items.length); })
+        .catch(() => { /* silencioso: el badge no es crítico */ });
+    };
+    refresh();
+    const t = setInterval(refresh, 60_000);
+    window.addEventListener("noa:navigate", refresh);
+    window.addEventListener("noa:inbox-changed", refresh);
+    return () => {
+      alive = false;
+      clearInterval(t);
+      window.removeEventListener("noa:navigate", refresh);
+      window.removeEventListener("noa:inbox-changed", refresh);
+    };
+  }, []);
+  return count;
+}
 
 interface SidebarProps {
   user: AuthUser;
@@ -259,6 +285,7 @@ function SidebarContent({
   onCollapse,
 }: SidebarContentProps) {
   const recent = conversations.slice(0, 5);
+  const inboxCount = useInboxCount();
 
   const handleRename = async (conv: Conversation) => {
     const next = window.prompt("Nuevo nombre del chat:", conv.title || "");
@@ -414,6 +441,13 @@ function SidebarContent({
       {/* Footer utilities — touch targets generosos */}
       <div className="border-t border-[var(--color-border)] px-2 py-2 space-y-0.5">
         <FooterLink
+          icon={<Inbox className="size-[18px]" />}
+          label="Bandeja"
+          active={route.kind === "bandeja"}
+          badge={inboxCount}
+          onClick={() => navigate({ kind: "bandeja" })}
+        />
+        <FooterLink
           icon={<ImageIcon className="size-[18px]" />}
           label="Galería"
           active={route.kind === "galeria"}
@@ -483,11 +517,13 @@ function FooterLink({
   label,
   active,
   onClick,
+  badge = 0,
 }: {
   icon: React.ReactNode;
   label: string;
   active: boolean;
   onClick: () => void;
+  badge?: number;
 }) {
   return (
     <button
@@ -500,7 +536,12 @@ function FooterLink({
       )}
     >
       {icon}
-      <span>{label}</span>
+      <span className="flex-1 text-left">{label}</span>
+      {badge > 0 && (
+        <span className="min-w-5 h-5 px-1.5 rounded-full bg-[var(--color-warning)] text-black text-[11px] font-semibold flex items-center justify-center tabular-nums">
+          {badge > 99 ? "99+" : badge}
+        </span>
+      )}
     </button>
   );
 }

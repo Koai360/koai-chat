@@ -174,6 +174,79 @@ export async function renameConversation(id: string, title: string): Promise<voi
 }
 
 // ============================================================
+// BANDEJA — dudas que Kira escaló al equipo
+// ============================================================
+
+export interface InboxQuestion {
+  id: string;
+  contact_name: string;
+  contact_phone?: string | null;
+  question: string;
+  context?: string | null;
+  channel_id?: number | null;
+  created_at?: string;
+  waiting?: string;
+}
+
+export interface ComposeResult {
+  status: "draft";
+  escalation_id: string;
+  contact_name: string;
+  draft: string;
+  confident: boolean;
+  reason?: string;
+}
+
+export interface SendResult {
+  status: "sent" | "taken" | "standby" | "error";
+  message?: string;
+  contact_name?: string;
+}
+
+/** Lista las dudas pendientes (más viejas primero). */
+export async function listInbox(): Promise<InboxQuestion[]> {
+  const res = await apiFetch("/api/escalations/pending");
+  const data = await res.json();
+  return Array.isArray(data.items) ? data.items : [];
+}
+
+/** Paso 1: el motor compone un borrador desde el volcado del equipo. No envía.
+ *  Lanza ApiError; 404/409 = la duda cambió de estado (la maneja el componente). */
+export async function composeReply(id: string, respuesta: string): Promise<ComposeResult> {
+  const res = await apiFetch(`/api/escalations/${id}/compose`, {
+    method: "POST",
+    json: { respuesta },
+  });
+  return res.json();
+}
+
+/** Paso 2: envía el texto EXACTO revisado al cliente. Devuelve el estado (sent/
+ *  taken/standby/error) incluso en 409/502 — esos son flujos esperados, no throw.
+ *  Un 401 (token vencido) SÍ propaga → logout global. */
+export async function sendReply(id: string, message: string, rawInput = ""): Promise<SendResult> {
+  try {
+    const res = await apiFetch(`/api/escalations/${id}/send`, {
+      method: "POST",
+      json: { message, raw_input: rawInput },
+    });
+    return res.json();
+  } catch (e) {
+    // Solo los estados esperados (409 taken/standby, 502 error de envío) se
+    // devuelven como SendResult; el resto (401/500/red) propaga.
+    if (e instanceof ApiError && (e.status === 409 || e.status === 502)
+        && e.data && typeof e.data === "object" && "status" in e.data) {
+      return e.data as SendResult;
+    }
+    throw e;
+  }
+}
+
+/** 'Esto lo manejo yo directo' — saca a Kira de pausa sin enviar. */
+export async function declineEscalation(id: string): Promise<void> {
+  await apiFetch(`/api/escalations/${id}/decline`, { method: "POST" });
+}
+
+// ============================================================
 // CHAT STREAMING
 // ============================================================
 

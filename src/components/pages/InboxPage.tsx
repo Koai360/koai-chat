@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { Inbox, Mic, Send, MessageSquare, CheckCircle2, HandMetal, ArrowLeft } from "lucide-react";
+import { Inbox, Mic, Send, MessageSquare, CheckCircle2, HandMetal, ArrowLeft, ArrowDownUp } from "lucide-react";
 import { toast } from "sonner";
 import {
   listInbox,
@@ -26,10 +26,19 @@ import { cn } from "@/lib/cn";
  * en la voz de Kira, y —tras revisar— se envía por WhatsApp. Flujo 2 pasos:
  *   Responder → (voz/texto) → Preparar → ver/editar borrador → Enviar.
  */
+type SortDir = "oldest" | "newest";
+
 export function InboxPage() {
   const [items, setItems] = useState<InboxQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [sortDir, setSortDir] = useState<SortDir>("oldest");
+
+  const sortedItems = useMemo(() => {
+    const ts = (q: InboxQuestion) => new Date(q.created_at || 0).getTime();
+    const arr = [...items].sort((a, b) => ts(a) - ts(b)); // asc = más viejas primero
+    return sortDir === "newest" ? arr.reverse() : arr;
+  }, [items, sortDir]);
 
   const load = () => {
     setLoading(true);
@@ -49,15 +58,30 @@ export function InboxPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <header className="px-6 pt-6 pb-3">
-        <h1 className="display text-[24px] md:text-[28px] font-semibold text-white mb-1">
-          Bandeja
-        </h1>
-        <p className="text-sm text-white/45">
-          {items.length > 0
-            ? `${items.length} ${items.length === 1 ? "duda" : "dudas"} que Kira te escaló`
-            : "Dudas que Kira escala cuando no sabe la respuesta"}
-        </p>
+      <header className="px-6 pt-6 pb-3 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="display text-[24px] md:text-[28px] font-semibold text-white mb-1">
+            Bandeja
+          </h1>
+          <p className="text-sm text-white/45">
+            {items.length > 0
+              ? `${items.length} ${items.length === 1 ? "duda" : "dudas"} que Kira te escaló`
+              : "Dudas que Kira escala cuando no sabe la respuesta"}
+          </p>
+        </div>
+        {items.length > 1 && (
+          <button
+            onClick={() => setSortDir((d) => (d === "oldest" ? "newest" : "oldest"))}
+            className="shrink-0 flex items-center gap-1.5 h-9 px-3 rounded-full bg-[var(--color-bg-elevated)] border border-white/[0.08] text-[13px] text-white/80 hover:text-white hover:border-white/20 transition"
+            aria-label="Cambiar orden"
+            title="Cambiar orden"
+          >
+            <ArrowDownUp className="size-3.5" />
+            <span className="hidden sm:inline">
+              {sortDir === "oldest" ? "Más antiguas" : "Más recientes"}
+            </span>
+          </button>
+        )}
       </header>
 
       <div className="flex-1 overflow-y-auto px-6 pb-8">
@@ -82,7 +106,7 @@ export function InboxPage() {
           ) : items.length === 0 ? (
             <EmptyState />
           ) : (
-            items.map((q) => (
+            sortedItems.map((q) => (
               <InboxItem key={q.id} q={q} onResolved={() => removeItem(q.id)} />
             ))
           )}

@@ -40,6 +40,15 @@ const isCoarsePointer =
   typeof window !== "undefined" &&
   window.matchMedia?.("(pointer: coarse)").matches === true;
 
+// S200: el textarea crecía con DOS sistemas a la vez — `field-sizing: content`
+// (CSS nativo, Chrome/Edge/Android) + `adjustHeight()` en JS. Con texto largo se
+// pisaban: adjustHeight hace height="auto" para medir, pero con field-sizing el
+// textarea NO colapsa → scrollHeight se mide mal → altura incorrecta ("se ve mal"
+// al pegar una transcripción larga). Fix: si el browser soporta field-sizing, lo
+// dejamos manejar solo; el JS queda como fallback SOLO para iOS Safari/Firefox.
+const SUPPORTS_FIELD_SIZING =
+  typeof CSS !== "undefined" && CSS.supports?.("field-sizing", "content") === true;
+
 /**
  * ChatInput — pill premium con icons + autogrow textarea.
  *
@@ -92,10 +101,17 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
         // Populate el input para que el user edite antes de send
         setValue((prev) => (prev ? `${prev} ${text}` : text));
         // S158-b: en iOS Safari field-sizing no existe → sin adjustHeight el
-        // textarea no crece con el dictado y el texto queda oculto
+        // textarea no crece con el dictado y el texto queda oculto.
+        // S200: tras insertar una transcripción larga, llevar el scroll al final
+        // (cursor incluido) para que el user vea dónde quedó, no el inicio.
         requestAnimationFrame(() => {
-          textareaRef.current?.focus();
+          const el = textareaRef.current;
+          if (!el) return;
+          el.focus();
           adjustHeight();
+          el.scrollTop = el.scrollHeight;
+          const end = el.value.length;
+          el.setSelectionRange(end, end);
         });
       }
     };
@@ -143,6 +159,11 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
     const adjustHeight = () => {
       const el = textareaRef.current;
       if (!el) return;
+      // Chrome/Edge/Android: field-sizing:content ya dimensiona el textarea solo.
+      // Meter style.height acá pelea con el sizing nativo (medía scrollHeight sobre
+      // un textarea ya expandido → altura mal con texto largo). Salir y dejar al CSS.
+      if (SUPPORTS_FIELD_SIZING) return;
+      // Fallback iOS Safari / Firefox (sin field-sizing): resize manual.
       el.style.height = "auto";
       const max = 160; // ~6 líneas
       el.style.height = `${Math.min(el.scrollHeight, max)}px`;

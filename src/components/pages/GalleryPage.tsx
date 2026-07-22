@@ -330,7 +330,7 @@ export function GalleryPage() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 72, opacity: 0 }}
             transition={{ type: "spring", stiffness: 380, damping: 32 }}
-            className="fixed left-1/2 -translate-x-1/2 z-40 bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] max-w-[calc(100vw-1.5rem)]"
+            className="fixed left-1/2 -translate-x-1/2 z-40 bottom-[calc(var(--sab)+1rem)] max-w-[calc(100vw-1.5rem)]"
           >
             {confirmingBulk ? (
               <div className="flex items-center gap-2 h-12 pl-4 pr-1.5 rounded-full bg-black/80 backdrop-blur-xl border border-red-500/40 shadow-[0_4px_20px_rgba(0,0,0,0.55)]">
@@ -809,7 +809,7 @@ function ImageViewer({
           e.stopPropagation();
           close();
         }}
-        className="absolute right-4 size-11 rounded-full bg-black/65 hover:bg-black/85 backdrop-blur-xl border border-white/15 shadow-[0_4px_20px_rgba(0,0,0,0.55)] flex items-center justify-center transition-all active:scale-95 top-[calc(env(safe-area-inset-top,0px)+1rem)]"
+        className="absolute right-4 size-11 rounded-full bg-black/65 hover:bg-black/85 backdrop-blur-xl border border-white/15 shadow-[0_4px_20px_rgba(0,0,0,0.55)] flex items-center justify-center transition-all active:scale-95 top-[calc(var(--sat)+1rem)]"
         aria-label="Cerrar"
       >
         <X className="size-5 text-white" strokeWidth={2.5} />
@@ -821,7 +821,7 @@ function ImageViewer({
             e.stopPropagation();
             onToggleHidden(image);
           }}
-          className="absolute left-4 flex items-center gap-2 h-11 px-4 rounded-full bg-black/65 hover:bg-black/85 backdrop-blur-xl border border-white/15 shadow-[0_4px_20px_rgba(0,0,0,0.55)] transition-all active:scale-95 text-[13px] font-medium text-white top-[calc(env(safe-area-inset-top,0px)+1rem)]"
+          className="absolute left-4 flex items-center gap-2 h-11 px-4 rounded-full bg-black/65 hover:bg-black/85 backdrop-blur-xl border border-white/15 shadow-[0_4px_20px_rgba(0,0,0,0.55)] transition-all active:scale-95 text-[13px] font-medium text-white top-[calc(var(--sat)+1rem)]"
         >
           {isHidden ? (
             <>
@@ -838,7 +838,7 @@ function ImageViewer({
       )}
 
       {isHidden && (
-        <div className="absolute left-4 bottom-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] flex items-center gap-1.5 h-8 px-3 rounded-full bg-black/65 backdrop-blur-xl border border-white/15 shadow-[0_4px_20px_rgba(0,0,0,0.55)] text-[12px] font-medium text-white">
+        <div className="absolute left-4 bottom-[calc(var(--sab)+1.5rem)] flex items-center gap-1.5 h-8 px-3 rounded-full bg-black/65 backdrop-blur-xl border border-white/15 shadow-[0_4px_20px_rgba(0,0,0,0.55)] text-[12px] font-medium text-white">
           <Lock className="size-3" /> Privada
         </div>
       )}
@@ -847,7 +847,7 @@ function ImageViewer({
       <button
         onClick={handleDownload}
         disabled={saving}
-        className="absolute left-1/2 -translate-x-1/2 bottom-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] flex items-center gap-2 h-11 px-5 rounded-full bg-black/65 hover:bg-black/85 backdrop-blur-xl border border-white/15 shadow-[0_4px_20px_rgba(0,0,0,0.55)] transition-all active:scale-95 text-[13px] font-medium text-white disabled:opacity-60"
+        className="absolute left-1/2 -translate-x-1/2 bottom-[calc(var(--sab)+1.5rem)] flex items-center gap-2 h-11 px-5 rounded-full bg-black/65 hover:bg-black/85 backdrop-blur-xl border border-white/15 shadow-[0_4px_20px_rgba(0,0,0,0.55)] transition-all active:scale-95 text-[13px] font-medium text-white disabled:opacity-60"
       >
         <Download className="size-4" />
         <span>{saving ? "Guardando…" : "Descargar"}</span>
@@ -855,7 +855,7 @@ function ImageViewer({
 
       {/* S161: eliminar imagen — icono abajo a la derecha, confirmación inline */}
       <div
-        className="absolute right-4 bottom-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]"
+        className="absolute right-4 bottom-[calc(var(--sab)+1.5rem)]"
         onClick={(e) => e.stopPropagation()}
       >
         {confirmingDelete ? (

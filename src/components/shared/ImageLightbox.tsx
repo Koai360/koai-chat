@@ -75,7 +75,7 @@ export function ImageLightbox({
           e.stopPropagation();
           close();
         }}
-        className="absolute right-4 size-11 rounded-full bg-black/65 hover:bg-black/85 backdrop-blur-xl border border-white/15 shadow-[0_4px_20px_rgba(0,0,0,0.55)] flex items-center justify-center transition-all active:scale-95 top-[calc(env(safe-area-inset-top,0px)+1rem)]"
+        className="absolute right-4 size-11 rounded-full bg-black/65 hover:bg-black/85 backdrop-blur-xl border border-white/15 shadow-[0_4px_20px_rgba(0,0,0,0.55)] flex items-center justify-center transition-all active:scale-95 top-[calc(var(--sat)+1rem)]"
         aria-label="Cerrar"
       >
         <X className="size-5 text-white" strokeWidth={2.5} />
@@ -92,7 +92,7 @@ export function ImageLightbox({
       <button
         onClick={handleDownload}
         disabled={saving}
-        className="absolute left-1/2 -translate-x-1/2 bottom-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] flex items-center gap-2 h-11 px-5 rounded-full bg-black/65 hover:bg-black/85 backdrop-blur-xl border border-white/15 shadow-[0_4px_20px_rgba(0,0,0,0.55)] transition-all active:scale-95 text-[13px] font-medium text-white disabled:opacity-60"
+        className="absolute left-1/2 -translate-x-1/2 bottom-[calc(var(--sab)+1.5rem)] flex items-center gap-2 h-11 px-5 rounded-full bg-black/65 hover:bg-black/85 backdrop-blur-xl border border-white/15 shadow-[0_4px_20px_rgba(0,0,0,0.55)] transition-all active:scale-95 text-[13px] font-medium text-white disabled:opacity-60"
       >
         <Download className="size-4" />
         <span>{saving ? "Guardando…" : "Descargar"}</span>

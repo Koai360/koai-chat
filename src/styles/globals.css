@@ -341,30 +341,42 @@ html[data-keyboard="open"] .app-bg {
 }
 
 /* ============================================================
-   SAFE AREAS · iOS notch
-   ============================================================ */
+   SAFE AREAS · iOS notch — TOKENS (fuente única de verdad)
+   ============================================================
+   Con apple-mobile-web-app-status-bar-style=black-translucent la webview
+   ocupa TODA la pantalla (bajo status bar y home indicator). Cualquier
+   elemento fixed/absolute en top/bottom DEBE librar el inset. En vez de
+   repetir env() con números mágicos por componente, TODO overlay/aviso
+   consume estos tokens: bottom-[calc(var(--sab)+1rem)], calc(var(--sat)+76px)…
+   Regla: prohibido escribir env(safe-area-*) crudo en componentes — usar var(--s?). */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
 
 .safe-top {
-  padding-top: env(safe-area-inset-top);
+  padding-top: var(--sat);
 }
 
 .safe-bottom {
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: var(--sab);
 }
 
 /* S161: variante "pegada" para el ChatInput — recorta el colchón del
    safe-area para que la barra quede más abajo (estilo X). El pill sigue
    librando el home indicator. Con teclado abierto env()=0 → min 8px. */
 .safe-bottom-tight {
-  padding-bottom: max(calc(env(safe-area-inset-bottom) - 14px), 8px);
+  padding-bottom: max(calc(var(--sab) - 14px), 8px);
 }
 
 .safe-left {
-  padding-left: env(safe-area-inset-left);
+  padding-left: var(--sal);
 }
 
 .safe-right {
-  padding-right: env(safe-area-inset-right);
+  padding-right: var(--sar);
 }
 
 /* ============================================================

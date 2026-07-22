@@ -9,8 +9,9 @@ import { Toaster } from "sonner";
 export default function App() {
   const { user, loading, error, mountGoogleButton, logout } = useAuth();
 
+  let content;
   if (loading && !user) {
-    return (
+    content = (
       <>
         <AppBackground />
         <main className="relative z-10 h-full flex items-center justify-center">
@@ -18,34 +19,41 @@ export default function App() {
         </main>
       </>
     );
-  }
-
-  if (!user) {
-    return (
+  } else if (!user) {
+    content = (
+      <LoginScreen
+        mountGoogleButton={mountGoogleButton}
+        error={error}
+        loading={loading}
+      />
+    );
+  } else {
+    content = (
       <>
-        <LoginScreen
-          mountGoogleButton={mountGoogleButton}
-          error={error}
-          loading={loading}
-        />
-        <Toaster theme="dark" position="top-right" />
+        <AppShell user={user} onLogout={logout} />
+        <UpdateBanner />
       </>
     );
   }
 
   return (
     <>
-      <AppShell user={user} onLogout={logout} />
-      <UpdateBanner />
-      {/* Brief Noa 07-05: en mobile el toast top-right caía SOBRE los íconos del
-          TopBar (safe-area + 64px) — tapaba los botones y se veía "pisado" por el
-          blur del header. mobileOffset lo baja por debajo del header; el toast
-          flota libre sin pisar ni ser pisado. */}
+      {content}
+      {/* Toaster ÚNICO global — safe-area por diseño en TODOS los estados
+          (login incluido). Antes había dos <Toaster>: el del login sin offset
+          (caía detrás del notch) y el de la app parchado a mano. Con status-bar
+          black-translucent el toast debe librar el notch (desktop: inset=0) y el
+          TopBar mobile (safe-area + header ~64px). Offsets vía tokens --sat. */}
       <Toaster
         theme="dark"
         position="top-right"
+        offset={{
+          top: "calc(var(--sat) + 16px)",
+          right: 16,
+          left: 16,
+        }}
         mobileOffset={{
-          top: "calc(env(safe-area-inset-top, 0px) + 76px)",
+          top: "calc(var(--sat) + 76px)",
           right: 12,
           left: 12,
         }}

@@ -22,7 +22,7 @@ export function TopBar({ onMenu, onNewChat, modelMode, onModelModeChange }: TopB
   return (
     <header
       className="md:hidden flex items-center justify-between min-h-[64px] px-2 pb-2 relative z-20"
-      style={{ paddingTop: "calc(env(safe-area-inset-top) + 0.5rem)" }}
+      style={{ paddingTop: "calc(var(--sat) + 0.5rem)" }}
     >
       <IconButton
         icon={<PanelLeft className="size-[22px]" strokeWidth={2} />}

@@ -27,7 +27,7 @@ export function UpdateBanner() {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 20, scale: 0.96 }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          className="fixed bottom-4 right-4 z-50 max-w-xs"
+          className="fixed z-50 max-w-xs bottom-[calc(var(--sab)+1rem)] right-[calc(var(--sar)+1rem)]"
         >
           <div className="card-glass p-4 flex items-start gap-3">
             <RefreshCw className="size-5 text-[var(--color-noa)] mt-0.5" />

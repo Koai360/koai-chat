@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
-import { Download, X } from "lucide-react";
+import { Download, Wand2, X } from "lucide-react";
 import { downloadOrShareImage } from "@/lib/downloadImage";
 import { useModalBack } from "@/hooks/useModalBack";
 import { toast } from "sonner";
@@ -61,6 +61,23 @@ export function ImageLightbox({
     }
   };
 
+  /**
+   * S209 — "Editar esta".
+   *
+   * Antes no había forma de decirle a Noa CUÁL imagen editar: si el turno
+   * había dejado varias, la edición caía siempre sobre la última de la sesión
+   * y volvía con el diseño equivocado. Acá se manda la URL exacta, que es lo
+   * que `edit_image_smart` acepta como referencia.
+   */
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    window.dispatchEvent(
+      new CustomEvent("noa-edit-image", { detail: { url } }),
+    );
+    close();
+    toast.info("Escribí qué querés cambiar de esta imagen");
+  };
+
   return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
@@ -89,14 +106,24 @@ export function ImageLightbox({
         onClick={(e) => e.stopPropagation()}
       />
 
-      <button
-        onClick={handleDownload}
-        disabled={saving}
-        className="absolute left-1/2 -translate-x-1/2 bottom-[calc(var(--sab)+1.5rem)] flex items-center gap-2 h-11 px-5 rounded-full bg-black/65 hover:bg-black/85 backdrop-blur-xl border border-white/15 shadow-[0_4px_20px_rgba(0,0,0,0.55)] transition-all active:scale-95 text-[13px] font-medium text-white disabled:opacity-60"
-      >
-        <Download className="size-4" />
-        <span>{saving ? "Guardando…" : "Descargar"}</span>
-      </button>
+      <div className="absolute left-1/2 -translate-x-1/2 bottom-[calc(var(--sab)+1.5rem)] flex items-center gap-2">
+        <button
+          onClick={handleDownload}
+          disabled={saving}
+          className="flex items-center gap-2 h-11 px-5 rounded-full bg-black/65 hover:bg-black/85 backdrop-blur-xl border border-white/15 shadow-[0_4px_20px_rgba(0,0,0,0.55)] transition-all active:scale-95 text-[13px] font-medium text-white disabled:opacity-60"
+        >
+          <Download className="size-4" />
+          <span>{saving ? "Guardando…" : "Descargar"}</span>
+        </button>
+
+        <button
+          onClick={handleEdit}
+          className="flex items-center gap-2 h-11 px-5 rounded-full bg-white/95 hover:bg-white backdrop-blur-xl border border-white/20 shadow-[0_4px_20px_rgba(0,0,0,0.55)] transition-all active:scale-95 text-[13px] font-semibold text-black"
+        >
+          <Wand2 className="size-4" />
+          <span>Editar esta</span>
+        </button>
+      </div>
     </motion.div>,
     document.body,
   );

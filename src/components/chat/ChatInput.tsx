@@ -1,4 +1,4 @@
-import { forwardRef, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
+import { forwardRef, useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowUp, Mic, Plus, Shield, Square, X, FileText, Image as ImageIcon } from "lucide-react";
 import { IconButton } from "@/components/ui/IconButton";
@@ -85,6 +85,33 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
     const textareaRef = (ref as React.RefObject<HTMLTextAreaElement>) ?? internalRef;
 
     const hasContent = value.trim().length > 0 || attachments.length > 0;
+
+    // S209 — "Editar esta" del visor de imágenes: prellena el input con la
+    // referencia EXACTA de la imagen elegida. Sin esto no había manera de
+    // señalar cuál de varias imágenes editar y la edición caía sobre la
+    // última de la sesión.
+    useEffect(() => {
+      const onEditImage = (e: Event) => {
+        const url = (e as CustomEvent<{ url?: string }>).detail?.url;
+        if (!url) return;
+        setValue((prev) => {
+          const prefix = `Editá esta imagen (${url}): `;
+          return prev.trim() ? `${prefix}${prev.trim()}` : prefix;
+        });
+        requestAnimationFrame(() => {
+          const el = textareaRef.current;
+          if (!el) return;
+          el.focus();
+          adjustHeight();
+          const end = el.value.length;
+          el.setSelectionRange(end, end);
+          el.scrollTop = el.scrollHeight;
+        });
+      };
+      window.addEventListener("noa-edit-image", onEditImage);
+      return () => window.removeEventListener("noa-edit-image", onEditImage);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleVoiceStart = () => setVoiceActive(true);
     const handleVoiceCancel = () => setVoiceActive(false);

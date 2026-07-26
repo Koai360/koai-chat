@@ -433,6 +433,41 @@ export function useChat(options: UseChatOptions): UseChatReturn {
         if (streamClosed || !isCurrent()) return;
         setStreamingText(accumulated);
       };
+      // S209 — reconciliación tras corte de conexión.
+      // El backend NO aborta cuando el cliente se desconecta ("runner continúa
+      // hasta persistir"): el turno termina y se guarda igual. Antes se
+      // reintentaba UNA vez a los 2.5s, plazo que un turno con generación de
+      // imagen (60-120s) nunca alcanza → la burbuja "Error al generar
+      // respuesta" quedaba para siempre sobre un turno que en realidad salió
+      // bien. Ahora se sondea hasta ~3 min y la burbuja se reemplaza sola.
+      const reconcileAfterDisconnect = (refetchId: string) => {
+        const seqAtError = sendSeqRef.current;
+        const delays = [2500, 5000, 10000, 15000, 20000, 30000, 30000, 30000, 40000];
+        let attempt = 0;
+        const poll = () => {
+          if (attempt >= delays.length) return;
+          const wait = delays[attempt++];
+          setTimeout(() => {
+            if (activeIdRef.current !== refetchId || abortRef.current) return;
+            if (sendSeqRef.current !== seqAtError) return; // send nuevo arrancó
+            getMessages(refetchId)
+              .then((msgs) => {
+                if (activeIdRef.current !== refetchId) return;
+                if (abortRef.current || sendSeqRef.current !== seqAtError) return;
+                const done =
+                  msgs.length > 0 && msgs[msgs.length - 1]?.role === "assistant";
+                if (done) {
+                  // Reemplaza la burbuja de error por el turno real del server.
+                  setMessages((prev) => (msgs.length >= prev.length ? msgs : prev));
+                  return;
+                }
+                poll(); // el backend sigue trabajando — volver a mirar
+              })
+              .catch(() => poll());
+          }, wait);
+        };
+        poll();
+      };
       try {
         for await (const ev of streamMessage(payload, abort.signal)) {
           handleStreamEvent(ev, {
@@ -495,6 +530,9 @@ export function useChat(options: UseChatOptions): UseChatReturn {
                   created_at: new Date().toISOString(),
                 };
                 setMessages((prev) => [...prev, errMsg]);
+                // El turno puede seguir vivo backend-side (típico: el SSE
+                // muere durante una generación de imagen larga).
+                if (convId) reconcileAfterDisconnect(convId);
               }
               if (isCurrent()) setLoadingHint(null);
             },
@@ -516,24 +554,10 @@ export function useChat(options: UseChatOptions): UseChatReturn {
             };
             setMessages((prev) => [...prev, errMsg]);
           }
-          // S158 — el backend puede haber completado y persistido el turno
-          // aunque la conexión murió (iOS/red). Reconciliar en ~2.5s: si el
+          // S158/S209 — el backend puede haber completado y persistido el turno
+          // aunque la conexión murió (iOS/red). Sondeo hasta ~3 min: si el
           // server ya tiene la respuesta real, reemplaza la burbuja de error.
-          const refetchId = convId;
-          const seqAtError = sendSeqRef.current;
-          setTimeout(() => {
-            if (activeIdRef.current !== refetchId || abortRef.current) return;
-            if (sendSeqRef.current !== seqAtError) return; // send nuevo arrancó
-            getMessages(refetchId)
-              .then((msgs) => {
-                if (activeIdRef.current !== refetchId) return;
-                if (abortRef.current || sendSeqRef.current !== seqAtError) return;
-                if (msgs.length > 0) {
-                  setMessages((prev) => (msgs.length >= prev.length ? msgs : prev));
-                }
-              })
-              .catch(() => {});
-          }, 2500);
+          if (convId) reconcileAfterDisconnect(convId);
         }
       } finally {
         streamClosed = true; // S158-b: invalida flushes diferidos del throttle

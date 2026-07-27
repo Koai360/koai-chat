@@ -95,7 +95,13 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
         const url = (e as CustomEvent<{ url?: string }>).detail?.url;
         if (!url) return;
         setValue((prev) => {
-          const prefix = `Editá esta imagen (${url}): `;
+          // S209 — el prefill dice "sobre esta imagen", NO "editá".
+          // Antes decía "Editá esta imagen" y eso forzaba el marco de edición:
+          // ante "dámelo plano para impresión" Noa pasaba la pieza por el
+          // modelo de edición, que la redibuja y corre los colores de marca
+          // (medido: morado #562C77 → #3d0f53). Con una referencia neutra,
+          // Noa decide si corresponde editar o regenerar.
+          const prefix = `Sobre esta imagen (${url}): `;
           return prev.trim() ? `${prefix}${prev.trim()}` : prefix;
         });
         requestAnimationFrame(() => {

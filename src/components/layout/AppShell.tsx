@@ -68,6 +68,8 @@ export function AppShell({ user, onLogout }: AppShellProps) {
     streamingText,
     modelMode,
     setModelMode,
+    imageEngine,
+    setImageEngine,
     sendMessage,
     queuedCount,
     stopGeneration,
@@ -233,6 +235,8 @@ export function AppShell({ user, onLogout }: AppShellProps) {
               onStop={stopGeneration}
               loading={loading}
               queuedCount={queuedCount}
+              imageEngine={imageEngine}
+              onImageEngineChange={setImageEngine}
             />
           )}
         </div>

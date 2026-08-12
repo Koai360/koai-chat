@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowUp, Mic, Plus, Shield, Square, X, FileText, Image as ImageIcon } from "lucide-react";
 import { IconButton } from "@/components/ui/IconButton";
 import { VoiceBar } from "./VoiceBar";
+import { ImageEnginePicker } from "./ImageEnginePicker";
+import type { ImageEngine } from "@/lib/imageEngine";
 import { cn } from "@/lib/cn";
 
 export interface AttachedFile {
@@ -27,6 +29,9 @@ interface ChatInputProps {
   placeholder?: string;
   /** Si true, al confirmar el audio se envía directo. Si false, popula el textbox. */
   autoSendVoice?: boolean;
+  /** S228 — motor de generación de imágenes. Si no se pasa, el pill no se muestra. */
+  imageEngine?: ImageEngine;
+  onImageEngineChange?: (engine: ImageEngine) => void;
 }
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB safety cap
@@ -74,6 +79,8 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
       onTogglePrivate,
       placeholder = "Pregúntale a Noa",
       autoSendVoice = false,
+      imageEngine,
+      onImageEngineChange,
     },
     ref,
   ) => {
@@ -322,6 +329,15 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
                 size="md"
                 onClick={onTogglePrivate}
                 active={privateMode}
+                className="shrink-0"
+              />
+            )}
+
+            {/* S228 — motor de generación de imágenes */}
+            {imageEngine && onImageEngineChange && (
+              <ImageEnginePicker
+                engine={imageEngine}
+                onChange={onImageEngineChange}
                 className="shrink-0"
               />
             )}

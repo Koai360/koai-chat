@@ -10,6 +10,12 @@ import {
 } from "@/lib/api";
 import type { ChatMessage, Conversation, SendMessagePayload, ThinkingLevel } from "@/types/api";
 import { resolveThinkingLevel, type ModelMode } from "@/lib/autoThinking";
+import {
+  loadImageEngine,
+  resolveImageEngine,
+  saveImageEngine,
+  type ImageEngine,
+} from "@/lib/imageEngine";
 
 /**
  * useChat — state machine principal del chat con Noa.
@@ -35,6 +41,9 @@ export interface UseChatReturn {
   streamingText: string;
   modelMode: ModelMode;
   setModelMode: (mode: ModelMode) => void;
+  /** S228 — motor de generación de imágenes elegido desde el ChatInput */
+  imageEngine: ImageEngine;
+  setImageEngine: (engine: ImageEngine) => void;
   /** Retorna false si el envío NO fue aceptado (ej. falló crear la conversación) */
   sendMessage: (text: string, opts?: Partial<SendMessagePayload>) => Promise<boolean>;
   /** S163: mensajes encolados mientras Noa responde — se auto-envían al terminar */
@@ -79,6 +88,12 @@ export function useChat(options: UseChatOptions): UseChatReturn {
   const [loadingHint, setLoadingHint] = useState<string | null>(null);
   const [streamingText, setStreamingText] = useState("");
   const [modelMode, setModelModeState] = useState<ModelMode>(loadInitialMode);
+  const [imageEngine, setImageEngineState] = useState<ImageEngine>(loadImageEngine);
+
+  const setImageEngine = useCallback((engine: ImageEngine) => {
+    setImageEngineState(engine);
+    saveImageEngine(engine);
+  }, []);
 
   const setModelMode = useCallback((mode: ModelMode) => {
     setModelModeState(mode);
@@ -406,11 +421,15 @@ export function useChat(options: UseChatOptions): UseChatReturn {
       //   - pro      → high   (Gemini 3.5 Pro thinking=high)
       const resolvedLevel: ThinkingLevel = resolveThinkingLevel(modelMode);
 
+      // S228: Auto → undefined (el backend decide la cadena). Va antes del
+      // spread de `opts` para que un caller que pase su propio image_engine
+      // (ej. un flujo de galería) siga mandando.
       const payload: SendMessagePayload = {
         message: text,
         conversation_id: convId,
         agent: "noa",
         thinking_level: resolvedLevel,
+        image_engine: resolveImageEngine(imageEngine),
         ...opts,
       };
 
@@ -631,7 +650,9 @@ export function useChat(options: UseChatOptions): UseChatReturn {
     },
     // P3-7 audit: messages y newConversation no se usan en el body — sacarlos
     // evita re-create de sendMessage en cada streaming delta.
-    [loading, modelMode, conversations, onConversationCreated, setActive],
+    // S228: imageEngine va en las deps — sin él el closure queda con el motor
+    // que estaba elegido al montar y el selector "no hace nada" hasta recargar.
+    [loading, modelMode, imageEngine, conversations, onConversationCreated, setActive],
   );
 
   // S163: ref siempre apuntando al sendMessage fresco — el dispatcher de la
@@ -661,6 +682,8 @@ export function useChat(options: UseChatOptions): UseChatReturn {
     streamingText,
     modelMode,
     setModelMode,
+    imageEngine,
+    setImageEngine,
     sendMessage,
     queuedCount,
     stopGeneration,

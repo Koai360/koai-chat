@@ -443,3 +443,31 @@ export async function deleteMemory(id: string): Promise<void> {
 
 // P2-5 audit: transcribeAudio era usada solo por VoiceModal (dead code, removed).
 // El flow de voz live usa Deepgram streaming via WS (useDeepgramStream), no POST blob.
+
+// ============================================================
+// PUSH NOTIFICATIONS (S232)
+// ============================================================
+
+export async function getVapidKey(): Promise<string> {
+  const res = await apiFetch("/api/push/vapid-key");
+  const data = (await res.json()) as { publicKey?: string };
+  if (!data.publicKey) {
+    throw new ApiError(500, "El backend no tiene las claves VAPID configuradas");
+  }
+  return data.publicKey;
+}
+
+/** Registra el endpoint del navegador para que el backend pueda empujarle. */
+export async function savePushSubscription(sub: PushSubscriptionJSON): Promise<void> {
+  await apiFetch("/api/push/subscribe", {
+    method: "POST",
+    json: { endpoint: sub.endpoint, keys: sub.keys ?? {} },
+  });
+}
+
+export async function deletePushSubscription(sub: PushSubscriptionJSON): Promise<void> {
+  await apiFetch("/api/push/subscribe", {
+    method: "DELETE",
+    json: { endpoint: sub.endpoint, keys: sub.keys ?? {} },
+  });
+}

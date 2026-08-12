@@ -20,6 +20,13 @@ import {
 } from "lucide-react";
 import type { AuthUser, UserMemory } from "@/types/api";
 import { listMemories, deleteMemory } from "@/lib/api";
+import {
+  checkPushSupport,
+  disablePush,
+  enablePush,
+  getPushState,
+  type PushState,
+} from "@/lib/push";
 import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -274,31 +281,67 @@ function VoiceTab() {
 }
 
 function NotificationsTab() {
-  const [permission, setPermission] = useState<NotificationPermission | "default">(
-    typeof Notification !== "undefined" ? Notification.permission : "default",
-  );
+  // S232: antes esto sólo llamaba a Notification.requestPermission() y quedaba
+  // "Activadas" sin haber registrado ninguna suscripción — el backend no tenía
+  // a dónde empujar y no llegaba nada. Ahora el estado refleja la suscripción
+  // REAL contra el service worker, no el permiso del sistema.
+  const [state, setState] = useState<PushState>({ permission: "default", subscribed: false });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const support = checkPushSupport();
 
-  const request = async () => {
-    if (typeof Notification === "undefined") return;
-    const perm = await Notification.requestPermission();
-    setPermission(perm);
+  useEffect(() => {
+    getPushState().then(setState).catch(() => {});
+  }, []);
+
+  const toggle = async (enable: boolean) => {
+    setBusy(true);
+    setError(null);
+    try {
+      setState(enable ? await enablePush() : await disablePush());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo cambiar la suscripción.");
+    } finally {
+      setBusy(false);
+    }
   };
+
+  const label = state.subscribed
+    ? "Activadas en este dispositivo"
+    : state.permission === "denied"
+      ? "Bloqueadas por el navegador"
+      : "Sin configurar";
 
   return (
     <Section title="Notificaciones push" description="Recibí alertas críticas en tu dispositivo (CFO + Cal.com + Meta).">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-white text-[14px]">Estado:</p>
-          <p className="text-[12px] text-white/55">
-            {permission === "granted" ? "Activadas" : permission === "denied" ? "Bloqueadas" : "Sin configurar"}
-          </p>
+          <p className="text-[12px] text-white/55">{label}</p>
         </div>
-        {permission !== "granted" && (
-          <Button variant="primary" size="sm" onClick={request}>
-            Activar
-          </Button>
-        )}
+        {support.ok &&
+          (state.subscribed ? (
+            <Button variant="ghost" size="sm" disabled={busy} onClick={() => toggle(false)}>
+              {busy ? "..." : "Desactivar"}
+            </Button>
+          ) : (
+            <Button variant="primary" size="sm" disabled={busy} onClick={() => toggle(true)}>
+              {busy ? "Activando..." : "Activar"}
+            </Button>
+          ))}
       </div>
+
+      {/* iOS sólo expone Web Push si la PWA está en pantalla de inicio: sin
+          esto el botón desaparecía sin explicación y parecía un bug. */}
+      {!support.ok && (
+        <p className="text-[12px] text-white/45 mt-2">
+          {support.reason === "install-first"
+            ? "Para recibir notificaciones en iPhone, añadí Noa a la pantalla de inicio (Compartir → Añadir a inicio) y abrila desde ahí."
+            : "Este navegador no soporta notificaciones push."}
+        </p>
+      )}
+
+      {error && <p className="text-[12px] text-red-400/90 mt-2">{error}</p>}
     </Section>
   );
 }

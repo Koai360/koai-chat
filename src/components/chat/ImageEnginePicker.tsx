@@ -1,4 +1,4 @@
-import { Image as ImageIcon, ChevronDown, Check, Sparkles, Banana, Asterisk, Palette } from "lucide-react";
+import { Check, Sparkles, Banana, Asterisk, Palette } from "lucide-react";
 import { Dropdown, DropdownItem, DropdownSeparator } from "@/components/ui/Dropdown";
 import { cn } from "@/lib/cn";
 import type { ImageEngine } from "@/lib/imageEngine";
@@ -12,12 +12,18 @@ import type { ImageEngine } from "@/lib/imageEngine";
  *
  * Solo afecta a la GENERACIÓN. La edición sigue siempre en Flux.2 pro, que es
  * el único que preserva el arte aprobado pixel-perfect.
+ *
+ * 🔴 SOLO ICONO, 40x40 — igual que los IconButton size="md" vecinos.
+ * La v1 era un pill con texto ("🖼 NBP ⌄") y 44px de alto: en 390px se comía
+ * ~25% del ancho del campo y sobresalía 4px sobre + y el escudo. Doble
+ * desalineación — "quedaba atravesado". El motor activo se comunica por su
+ * icono propio + tinte lima; el NOMBRE vive en el aria-label y en el menú,
+ * nunca en hover (no existe en touch).
  */
 
 interface EngineOption {
   engine: ImageEngine;
   label: string;
-  shortLabel: string | null; // null = sin sufijo en el pill (caso Auto)
   description: string;
   icon: React.ReactNode;
 }
@@ -26,32 +32,36 @@ const OPTIONS: EngineOption[] = [
   {
     engine: "auto",
     label: "Auto",
-    shortLabel: null,
     description: "Cadena automática con respaldo",
     icon: <Sparkles className="size-4 text-white/70" />,
   },
   {
     engine: "gpt",
     label: "GPT Image 2",
-    shortLabel: "GPT",
     description: "Mejor dirección de arte",
     icon: <Palette className="size-4 text-[var(--color-noa)]" />,
   },
   {
     engine: "nbp",
     label: "Nano Banana Pro",
-    shortLabel: "NBP",
     description: "4K, fotorrealismo",
     icon: <Banana className="size-4 text-[var(--color-noa)]" />,
   },
   {
     engine: "grok",
     label: "Grok 2.0",
-    shortLabel: "GROK",
     description: "Tipografía fuerte · más lento",
     icon: <Asterisk className="size-4 text-[var(--color-noa)]" />,
   },
 ];
+
+/** Icono del trigger: el del motor activo, al tamaño de los IconButton vecinos. */
+const TRIGGER_ICON: Record<ImageEngine, React.ReactNode> = {
+  auto: <Sparkles className="size-[18px]" />,
+  gpt: <Palette className="size-[18px]" />,
+  nbp: <Banana className="size-[18px]" />,
+  grok: <Asterisk className="size-[18px]" strokeWidth={2.4} />,
+};
 
 interface ImageEnginePickerProps {
   engine: ImageEngine;
@@ -61,6 +71,8 @@ interface ImageEnginePickerProps {
 
 export function ImageEnginePicker({ engine, onChange, className }: ImageEnginePickerProps) {
   const current = OPTIONS.find((o) => o.engine === engine) ?? OPTIONS[0];
+  // Auto no es "una elección" visualmente: es el estado de reposo del chat.
+  const activo = engine !== "auto";
 
   return (
     <Dropdown
@@ -70,32 +82,24 @@ export function ImageEnginePicker({ engine, onChange, className }: ImageEnginePi
         <button
           type="button"
           aria-label={`Motor de imagen: ${current.label}. Cambiar.`}
+          title={`Motor de imagen: ${current.label}`}
           data-no-focus-ring
           className={cn(
-            "inline-flex items-center gap-1.5 px-2.5 rounded-full",
-            "text-white/60 hover:text-white/90 hover:bg-white/[0.06] active:bg-white/[0.10]",
-            "transition-colors duration-150",
-            // 44px de alto real para el touch target (HIG) sin engordar el pill:
-            // el borde visual lo da el rounded-full sobre el contenido.
-            "min-h-[44px] outline-none border-0",
+            // size-10 = 40x40, EXACTAMENTE lo que mide IconButton size="md".
+            // El chat tiene excepción documentada al mínimo de 44px: mantener
+            // los 40 de la fila vale más que ganar 4px sueltos en un botón.
+            "inline-flex items-center justify-center rounded-full size-10 shrink-0",
+            "transition-all duration-200 ease-out outline-none border-0",
+            // Auto = apagado como sus vecinos. Motor elegido = lima + fondo
+            // tenue, el mismo tratamiento que `active` en IconButton.
+            activo
+              ? "bg-white/[0.08] text-[var(--color-noa)]"
+              : "bg-transparent text-white/70 hover:bg-white/[0.06] hover:text-white",
+            "active:bg-white/[0.12]",
             className,
           )}
         >
-          <ImageIcon className="size-4 shrink-0" />
-          {current.shortLabel ? (
-            <span
-              className="mono text-[11px] tracking-tight uppercase leading-none font-semibold"
-              style={{
-                color: "var(--color-noa)",
-                textShadow: "0 0 8px color-mix(in oklch, var(--color-noa) 55%, transparent)",
-              }}
-            >
-              {current.shortLabel}
-            </span>
-          ) : (
-            <span className="text-[12px] leading-none">Auto</span>
-          )}
-          <ChevronDown className="size-3.5 opacity-50" />
+          {TRIGGER_ICON[engine]}
         </button>
       }
     >

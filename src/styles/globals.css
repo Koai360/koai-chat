@@ -865,8 +865,30 @@ html {
   50% { opacity: 0.9; transform: scale(0.97); }
 }
 @keyframes nmThink {
-  0%, 100% { transform: scale(0.95); filter: drop-shadow(0 0 3px rgba(253, 219, 21, 0.3)); }
-  50% { transform: scale(1.08); filter: drop-shadow(0 0 12px rgba(253, 219, 21, 0.75)); }
+  /* sólo transform: el filter lo maneja nmGlow, dos animaciones sobre la misma
+     propiedad se pisan (gana la última declarada) */
+  0%, 100% { transform: scale(0.95); }
+  50% { transform: scale(1.08); }
+}
+
+/* Pensando: la luz cicla lima → violeta igual que el borde del input, y al mismo
+   ritmo (3.2s, el de noaSpin). Cambia la LUZ, no el logo: la marca sigue siendo
+   amarilla, como la caja del input sigue siendo la caja.
+   `inherits: true` es lo que permite que el color llegue al shadow tree del
+   <use>; registrarlo con @property es lo que permite interpolarlo (una custom
+   property sin registrar salta de un color a otro sin transición). */
+@property --nm-pulse-color {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #ffffff;
+}
+@keyframes nmHue {
+  0%, 100% { --nm-pulse-color: #c8dd4a; }
+  50% { --nm-pulse-color: #8b5cf6; }
+}
+@keyframes nmGlow {
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(200, 221, 74, 0.7)); }
+  50% { filter: drop-shadow(0 0 12px rgba(139, 92, 246, 0.85)); }
 }
 
 /* Sin modo (avatar de cada burbuja, sidebar): quieto y sin pulso — con 40
@@ -883,8 +905,11 @@ html {
   --nm-pulse-opacity: 1;
   --nm-flow-speed: 2.2s;
   --nm-dash: 9 91;
-  animation: nmThink 1.5s ease-in-out infinite;
-  will-change: transform;
+  animation:
+    nmThink 1.5s ease-in-out infinite,
+    nmHue 3.2s linear infinite,
+    nmGlow 3.2s linear infinite;
+  will-change: transform, filter;
 }
 .nm-stream {
   /* varios destellos cortos a la vez = corriente por el circuito */

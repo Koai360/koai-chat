@@ -1,15 +1,20 @@
 import { cn } from "@/lib/cn";
 
 /**
- * Sparkle — anchor visual KOAI (no copy de Google rainbow).
+ * Sparkle — anchor visual de Noa.
  *
- * Diamond ◆ 4-pointed en lime neón sólido KOAI (#C8DD4A).
- * Tamaño base 32px, escalable via prop `size`.
+ * S232: era un diamante ◆ de 4 puntas dibujado en SVG (lime #C8DD4A). Ahora es
+ * la marca real de Noa (cerebro hexagonal), servida como PNG con transparencia
+ * desde /icons/noa-mark.png — el original trae degradado y brillo 3D, así que
+ * vectorizarlo habría perdido justo lo que lo hace verse bien.
  *
- * S161 "Noa Alive" — estados vivos (keyframes en globals.css §motion pack):
+ * El nombre del componente y su API (`size`, `className`, `animate`, `mode`) se
+ * mantienen para no tocar los 6 lugares que lo usan.
+ *
+ * Estados vivos (keyframes en globals.css §motion pack):
  *   mode="idle"      → pulse sutil 2.4s (equivale al viejo `animate`)
  *   mode="thinking"  → respira + bascula + glow lime (Noa procesando)
- *   mode="streaming" → giro continuo + glow (Noa escribiendo)
+ *   mode="streaming" → latido con glow (Noa escribiendo)
  */
 
 type SparkleMode = "idle" | "thinking" | "streaming";
@@ -31,20 +36,17 @@ const MODE_CLASS: Record<SparkleMode, string> = {
 export function Sparkle({ size = 32, className, animate = false, mode }: SparkleProps) {
   const resolved: SparkleMode | null = mode ?? (animate ? "idle" : null);
   return (
-    <svg
+    <img
+      src="/icons/noa-mark.png"
       width={size}
       height={size}
-      viewBox="0 0 32 32"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={cn(resolved && MODE_CLASS[resolved], className)}
+      alt=""
       aria-hidden
-    >
-      {/* Diamond ◆ con curvas concavas (4-pointed star Gemini-style) */}
-      <path
-        d="M16 1 C 17 9, 23 15, 31 16 C 23 17, 17 23, 16 31 C 15 23, 9 17, 1 16 C 9 15, 15 9, 16 1 Z"
-        fill="#C8DD4A"
-      />
-    </svg>
+      // El PNG es 192px: a los tamaños de uso (20-40px) queda nítido incluso en
+      // pantallas 3x. `block` evita el hueco de línea base que mete <img> inline.
+      className={cn("block select-none", resolved && MODE_CLASS[resolved], className)}
+      style={{ width: size, height: size }}
+      draggable={false}
+    />
   );
 }

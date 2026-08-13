@@ -864,17 +864,21 @@ html {
   0%, 100% { transform: scale(0.9) rotate(-10deg); filter: drop-shadow(0 0 3px rgba(200, 221, 74, 0.3)); }
   50% { transform: scale(1.12) rotate(10deg); filter: drop-shadow(0 0 12px rgba(200, 221, 74, 0.8)); }
 }
+/* S232: era rotate(0→90deg). Con el diamante ◆ de 4 puntas ese giro era
+   invisible (simetría de 90°), pero la marca nueva es un hexágono: cada ciclo
+   la dejaba visiblemente torcida. Latido + glow comunica lo mismo sin maltratar
+   el logo. */
 @keyframes sparkleStream {
-  from { transform: rotate(0deg) scale(1); }
-  50% { transform: rotate(45deg) scale(1.1); }
-  to { transform: rotate(90deg) scale(1); }
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 6px rgba(200, 221, 74, 0.45)); }
+  50% { transform: scale(1.1); filter: drop-shadow(0 0 14px rgba(200, 221, 74, 0.9)); }
 }
 .sparkle-idle { animation: sparklePulse 2.4s ease-in-out infinite; }
 .sparkle-think { animation: sparkleThink 1.5s ease-in-out infinite; will-change: transform; }
 .sparkle-stream {
-  animation: sparkleStream 1s linear infinite;
-  filter: drop-shadow(0 0 8px rgba(200, 221, 74, 0.55));
-  will-change: transform;
+  /* El drop-shadow ahora vive en el keyframe (antes estaba acá fijo y el
+     keyframe lo pisaba durante la animación). ease-in-out para el latido. */
+  animation: sparkleStream 1.2s ease-in-out infinite;
+  will-change: transform, filter;
 }
 
 /* ── Caret del stream: el texto "nace" con un cursor lime ──── */

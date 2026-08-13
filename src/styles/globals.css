@@ -855,30 +855,43 @@ html {
    prefers-reduced-motion respetado al final del bloque.
    ============================================================ */
 
-/* ── Sparkle viva ─────────────────────────────────────────── */
-@keyframes sparklePulse {
+/* ── Marca de Noa viva ────────────────────────────────────────
+   S232: el pulso que recorre los circuitos vive DENTRO del sprite (ver
+   NoaMarkSprite.tsx: los selectores de acá no entran al shadow tree de <use>).
+   Lo de abajo son las custom properties que lo parametrizan por estado, más el
+   "respira" del icono entero, que sí es del elemento externo. */
+@keyframes nmBreathe {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.85; transform: scale(0.96); }
+  50% { opacity: 0.9; transform: scale(0.97); }
 }
-@keyframes sparkleThink {
-  0%, 100% { transform: scale(0.9) rotate(-10deg); filter: drop-shadow(0 0 3px rgba(200, 221, 74, 0.3)); }
-  50% { transform: scale(1.12) rotate(10deg); filter: drop-shadow(0 0 12px rgba(200, 221, 74, 0.8)); }
+@keyframes nmThink {
+  0%, 100% { transform: scale(0.95); filter: drop-shadow(0 0 3px rgba(253, 219, 21, 0.3)); }
+  50% { transform: scale(1.08); filter: drop-shadow(0 0 12px rgba(253, 219, 21, 0.75)); }
 }
-/* S232: era rotate(0→90deg). Con el diamante ◆ de 4 puntas ese giro era
-   invisible (simetría de 90°), pero la marca nueva es un hexágono: cada ciclo
-   la dejaba visiblemente torcida. Latido + glow comunica lo mismo sin maltratar
-   el logo. */
-@keyframes sparkleStream {
-  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 6px rgba(200, 221, 74, 0.45)); }
-  50% { transform: scale(1.1); filter: drop-shadow(0 0 14px rgba(200, 221, 74, 0.9)); }
+
+/* Sin modo (avatar de cada burbuja, sidebar): quieto y sin pulso — con 40
+   mensajes en pantalla eran 40 animaciones corriendo para nada. */
+.noa-mark { --nm-pulse-opacity: 0; --nm-flow-speed: 0s; }
+
+.nm-idle {
+  --nm-pulse-opacity: 0.9;
+  --nm-flow-speed: 4.5s;
+  --nm-dash: 8 92;
+  animation: nmBreathe 2.4s ease-in-out infinite;
 }
-.sparkle-idle { animation: sparklePulse 2.4s ease-in-out infinite; }
-.sparkle-think { animation: sparkleThink 1.5s ease-in-out infinite; will-change: transform; }
-.sparkle-stream {
-  /* El drop-shadow ahora vive en el keyframe (antes estaba acá fijo y el
-     keyframe lo pisaba durante la animación). ease-in-out para el latido. */
-  animation: sparkleStream 1.2s ease-in-out infinite;
-  will-change: transform, filter;
+.nm-think {
+  --nm-pulse-opacity: 1;
+  --nm-flow-speed: 2.2s;
+  --nm-dash: 9 91;
+  animation: nmThink 1.5s ease-in-out infinite;
+  will-change: transform;
+}
+.nm-stream {
+  /* varios destellos cortos a la vez = corriente por el circuito */
+  --nm-pulse-opacity: 1;
+  --nm-flow-speed: 1.6s;
+  --nm-dash: 3 22;
+  filter: drop-shadow(0 0 8px rgba(253, 219, 21, 0.5));
 }
 
 /* ── Caret del stream: el texto "nace" con un cursor lime ──── */
@@ -962,9 +975,9 @@ html[data-noa="live"] .app-bg::after {
 
 /* ── Reduced motion: todo el pack se apaga ─────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  .sparkle-idle,
-  .sparkle-think,
-  .sparkle-stream,
+  .nm-idle,
+  .nm-think,
+  .nm-stream,
   .msg-cv,
   .magic-border:focus-within::before,
   html[data-noa="live"] .app-bg::after,

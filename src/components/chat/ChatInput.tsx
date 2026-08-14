@@ -255,17 +255,6 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
       // (mobile: ~22px bajo el pill vs 46px antes; desktop igual que antes)
       <div className="px-3 md:px-6 pb-0.5 md:pb-3 safe-bottom-tight">
         <div className="mx-auto max-w-3xl">
-          {/* Hidden file input — multiple, image + doc */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept="image/*,application/pdf,text/plain,text/csv,.md,.json,.txt,.pdf,.csv"
-            onChange={handleFilesPicked}
-            className="hidden"
-            aria-hidden
-          />
-
           {/* S163: badge de cola — mensajes tipeados mientras Noa respondía */}
           {queuedCount > 0 && (
             <div className="flex items-center gap-1.5 mb-1.5 px-2">
@@ -310,15 +299,34 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
               "magic-border focus-within:border-transparent",
             )}
           >
-            {/* Attach + (multiple files) */}
-            <IconButton
-              icon={<Plus className="size-[20px]" strokeWidth={2.2} />}
-              label="Adjuntar archivos"
-              variant="ghost"
-              size="md"
-              onClick={handleAttachClick}
-              className="shrink-0"
-            />
+            {/* Attach + (multiple files).
+                S239: el <input type=file> vive ACÁ ADENTRO, superpuesto al
+                botón, y NO puede ser `hidden`. El menú "Fototeca / Tomar foto /
+                Seleccionar archivos" es el action sheet NATIVO de iOS y se
+                ancla al rect del input: con `display:none` el rect es 0×0 en el
+                origen del contenedor → el popover salía flotando arriba, en
+                medio del chat, desconectado del +. Con geometría real sobre el
+                botón, el sheet apunta al + (o sube desde abajo en iPhone).
+                opacity-0 (no `hidden`/`visibility`) para conservar el rect. */}
+            <div className="relative shrink-0">
+              <IconButton
+                icon={<Plus className="size-[20px]" strokeWidth={2.2} />}
+                label="Adjuntar archivos"
+                variant="ghost"
+                size="md"
+                onClick={handleAttachClick}
+              />
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*,application/pdf,text/plain,text/csv,.md,.json,.txt,.pdf,.csv"
+                onChange={handleFilesPicked}
+                tabIndex={-1}
+                aria-hidden
+                className="absolute inset-0 size-full opacity-0 pointer-events-none"
+              />
+            </div>
 
             {/* Private mode toggle */}
             {onTogglePrivate && (

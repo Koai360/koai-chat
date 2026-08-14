@@ -24,7 +24,9 @@ const PATHS = [
 ];
 
 const SPRITE_CSS = `
-  .nm-base { fill: var(--nm-fill, #fddb15); }
+  /* S239: era #fddb15 — el amarillo del export de Illustrator. La marca va en
+     el lima canónico KOAI, el mismo del icono de la app (scripts/build-icons.py). */
+  .nm-base { fill: var(--nm-fill, #d1ff03); }
   .nm-pulse {
     fill: none;
     stroke: var(--nm-pulse-color, #fff);

@@ -26,3 +26,7 @@ dist-ssr
 # Playwright MCP scratch (screenshots/temp browser data)
 .playwright-mcp/
 .claude/worktrees/
+
+# Python (scripts/build-icons.py)
+__pycache__/
+*.pyc

@@ -4,7 +4,11 @@
     <meta charset="UTF-8" />
     <link rel="icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- S239: interactive-widget=resizes-content → donde está soportado (Chrome/Android,
+         WebKit reciente) el teclado ACHICA el layout viewport en vez de empujar la ventana,
+         que es la causa raíz del salto del input bar. Donde no lo está, el atributo se
+         ignora y el fallback sigue siendo useKeyboardViewport (--vvh + --vv-shift). -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
     <meta name="theme-color" content="#000000" />
     <meta name="color-scheme" content="dark" />
     <!-- NOVA SEO audit: chat.koai360.com es app autenticada YMYL (Plaid + banca).

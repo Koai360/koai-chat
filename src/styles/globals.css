@@ -169,6 +169,19 @@ html[data-keyboard="open"] #root {
   height: var(--vvh, 100vh);
 }
 
+/* S239: encoger no alcanza — WebKit además EMPUJA la ventana hacia arriba, y
+   con el documento ya del alto exacto del área visible no queda scroll con el
+   que deshacerlo (el scrollTo(0,0) del hook es no-op). Resultado: la app corta
+   pegada al tope del layout viewport, la barra de input encima del reloj y
+   negro entre el teclado y la barra. translateY(--vv-shift) la baja hasta
+   apoyarla sobre el teclado. Va en transform y no en top/margin a propósito:
+   no altera el layout, así que el documento sigue sin scroll y no se reabre el
+   push. .app-bg (fixed, hijo de #root) pasa a tomar #root como bloque
+   contenedor por el transform — que es justo el área visible. */
+html[data-keyboard="open"] #root {
+  transform: translateY(var(--vv-shift, 0px));
+}
+
 /* PIXEL CFO Trust System: tabular-nums automático en mono y en cifras financieras.
    Evita jitter de columnas en cards de balance/transacciones cuando los números
    cambian dinámicamente (PIXEL spec). */

@@ -1,5 +1,6 @@
 import { memo, useState } from "react";
 import { AnimatePresence } from "framer-motion";
+import { AlertTriangle } from "lucide-react";
 import { Sparkle } from "./Sparkle";
 import { CardRenderer } from "./CardRenderer";
 import { LazyNoaMarkdown as NoaMarkdown } from "./LazyNoaMarkdown";
@@ -47,6 +48,26 @@ export const MessageBubble = memo(function MessageBubble({
             <ImageLightbox url={lightboxUrl} onClose={() => setLightboxUrl(null)} />
           )}
         </AnimatePresence>
+      </div>
+    );
+  }
+
+  // S242: aviso de estado (error / sin respuesta) — componente propio, NUNCA
+  // markdown dentro de `message.content`. Así el aviso no puede quedar pegado
+  // arriba de una respuesta que sí llegó: es su propia burbuja o no está.
+  if (message.notice === "error" || message.notice === "silent") {
+    return (
+      <div className={cn("flex gap-3 px-4 md:px-6 py-2", !showAvatar && "pl-12 md:pl-14")}>
+        {showAvatar && <div className="shrink-0 mt-1 w-[22px]" aria-hidden />}
+        <div className="flex-1 min-w-0">
+          <div
+            role="status"
+            className="inline-flex items-start gap-2 rounded-xl border border-amber-300/20 bg-amber-400/[0.07] px-3 py-2 text-[14px] leading-[1.5] text-amber-100/85"
+          >
+            <AlertTriangle size={15} className="shrink-0 mt-[3px] text-amber-300/80" />
+            <span>{message.content}</span>
+          </div>
+        </div>
       </div>
     );
   }
@@ -101,6 +122,15 @@ export const MessageBubble = memo(function MessageBubble({
             }
             className="block w-full max-w-[480px] h-auto rounded-xl border border-white/[0.06] object-cover cursor-zoom-in"
           />
+        )}
+        {/* S242: el turno escribió pero la conexión murió antes del `done`.
+            La advertencia va AL PIE de su propia respuesta — el sondeo de
+            reconciliación la reemplaza sola si el backend sí la persistió. */}
+        {message.notice === "interrupted" && (
+          <div className="flex items-center gap-1.5 text-[13px] leading-[1.4] text-amber-200/70">
+            <AlertTriangle size={13} className="shrink-0" />
+            <span>La conexión se cortó — puede faltar el final.</span>
+          </div>
         )}
       </div>
       <AnimatePresence>

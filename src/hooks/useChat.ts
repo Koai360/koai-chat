@@ -439,6 +439,16 @@ export function useChat(options: UseChatOptions): UseChatReturn {
       let sawError = false;
       let streamClosed = false;
       let flushPending = false;
+      // S242 — id de la burbuja de aviso ("Error al generar respuesta") que este
+      // turno haya renderizado. Si el stream se recupera después (llegan tokens,
+      // imagen o done), la burbuja se retira: antes quedaba clavada ARRIBA y la
+      // respuesta completa se promovía DEBAJO, en el mismo bloque visual.
+      let noticeMsgId: string | null = null;
+      let reconcileStopped = false;
+      // S242 — el turno murió DESPUÉS de haber producido texto (SSE cortado,
+      // red iOS). El texto parcial se promueve con nota al pie, no con una
+      // burbuja de error aparte.
+      let streamInterrupted = false;
       // S158 — guard de conversación: si el usuario cambia de conversación
       // mid-stream, los setState de este turno NO deben sangrar a la conv
       // nueva (bug: respuesta aparecía en la conversación equivocada). El
@@ -452,6 +462,15 @@ export function useChat(options: UseChatOptions): UseChatReturn {
         if (streamClosed || !isCurrent()) return;
         setStreamingText(accumulated);
       };
+      // S242 — el stream se recuperó: retirar el aviso y frenar el sondeo de
+      // reconciliación (el turno terminó vivo, ya no hay nada que reconciliar).
+      const clearNotice = () => {
+        reconcileStopped = true;
+        if (!noticeMsgId) return;
+        const staleId = noticeMsgId;
+        noticeMsgId = null;
+        if (isCurrent()) setMessages((prev) => prev.filter((m) => m.id !== staleId));
+      };
       // S209 — reconciliación tras corte de conexión.
       // El backend NO aborta cuando el cliente se desconecta ("runner continúa
       // hasta persistir"): el turno termina y se guarda igual. Antes se
@@ -460,24 +479,35 @@ export function useChat(options: UseChatOptions): UseChatReturn {
       // respuesta" quedaba para siempre sobre un turno que en realidad salió
       // bien. Ahora se sondea hasta ~3 min y la burbuja se reemplaza sola.
       const reconcileAfterDisconnect = (refetchId: string) => {
+        // S242 — re-arma el sondeo: `clearNotice()` lo frena cuando el stream
+        // revive, pero un corte POSTERIOR (texto parcial + SSE muerto) tiene
+        // que poder volver a sondear. Sin esto la reconciliación S209 quedaba
+        // desactivada justo en el caso que más la necesita.
+        reconcileStopped = false;
         const seqAtError = sendSeqRef.current;
         const delays = [2500, 5000, 10000, 15000, 20000, 30000, 30000, 30000, 40000];
         let attempt = 0;
         const poll = () => {
-          if (attempt >= delays.length) return;
+          if (attempt >= delays.length || reconcileStopped) return;
           const wait = delays[attempt++];
           setTimeout(() => {
+            if (reconcileStopped) return; // S242: el stream se recuperó solo
             if (activeIdRef.current !== refetchId || abortRef.current) return;
             if (sendSeqRef.current !== seqAtError) return; // send nuevo arrancó
             getMessages(refetchId)
               .then((msgs) => {
-                if (activeIdRef.current !== refetchId) return;
+                if (activeIdRef.current !== refetchId || reconcileStopped) return;
                 if (abortRef.current || sendSeqRef.current !== seqAtError) return;
                 const done =
                   msgs.length > 0 && msgs[msgs.length - 1]?.role === "assistant";
                 if (done) {
                   // Reemplaza la burbuja de error por el turno real del server.
-                  setMessages((prev) => (msgs.length >= prev.length ? msgs : prev));
+                  // S242: los avisos locales NO cuentan para el largo — con la
+                  // burbuja de error sumando, `prev` siempre ganaba y el turno
+                  // real del server nunca entraba.
+                  setMessages((prev) =>
+                    msgs.length >= prev.filter((m) => !m.notice).length ? msgs : prev,
+                  );
                   return;
                 }
                 poll(); // el backend sigue trabajando — volver a mirar
@@ -492,6 +522,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
           handleStreamEvent(ev, {
             onDelta: (delta) => {
               accumulated += delta;
+              clearNotice(); // S242: llegó texto → el turno está vivo
               if (!isCurrent()) return;
               if (!flushPending) {
                 flushPending = true;
@@ -504,6 +535,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
             },
             onImage: (url) => {
               imageUrl = url;
+              clearNotice(); // S242: llegó la imagen → el turno está vivo
               if (isCurrent()) setLoadingHint(null);
               // Notificar a la galería que hay imagen nueva → recarga primera página
               // (S136: sin esto, la imagen recién generada no aparece hasta que el user
@@ -521,6 +553,8 @@ export function useChat(options: UseChatOptions): UseChatReturn {
               // y re-pintar streamingText completo debajo del mensaje ya
               // promovido → "efecto de carga doble" que reportó Jesús.
               streamClosed = true;
+              // S242: el turno cerró bien — cualquier aviso previo era transitorio
+              clearNotice();
               // Promovemos streamingText → message
               if ((accumulated || imageUrl) && convId && isCurrent()) {
                 const assistantMsg: ChatMessage = {
@@ -545,13 +579,18 @@ export function useChat(options: UseChatOptions): UseChatReturn {
                   id: `err-${Date.now()}`,
                   conversation_id: convId,
                   role: "assistant",
-                  content: `_Error al generar respuesta. Intentá de nuevo._`,
+                  content: `Error al generar respuesta. Intentá de nuevo.`,
+                  notice: "error",
                   created_at: new Date().toISOString(),
                 };
+                noticeMsgId = errMsg.id; // S242: retirable si el stream revive
                 setMessages((prev) => [...prev, errMsg]);
                 // El turno puede seguir vivo backend-side (típico: el SSE
                 // muere durante una generación de imagen larga).
                 if (convId) reconcileAfterDisconnect(convId);
+              } else {
+                // Ya había contenido: el aviso viaja pegado al propio turno.
+                streamInterrupted = true;
               }
               if (isCurrent()) setLoadingHint(null);
             },
@@ -563,15 +602,27 @@ export function useChat(options: UseChatOptions): UseChatReturn {
         } else {
           console.error("[useChat] stream error", err);
           sawError = true;
-          if (isCurrent()) {
-            const errMsg: ChatMessage = {
-              id: `err-${Date.now()}`,
-              conversation_id: convId,
-              role: "assistant",
-              content: `_Error al generar respuesta. Intentá de nuevo._`,
-              created_at: new Date().toISOString(),
-            };
-            setMessages((prev) => [...prev, errMsg]);
+          // 🔴 S242 — ACÁ nacía el bug del brief: la burbuja de error se
+          // pusheaba SIEMPRE, aunque el turno ya hubiera escrito toda su
+          // respuesta. El `finally` promovía después el texto acumulado → el
+          // aviso en itálica quedaba arriba y la respuesta completa debajo,
+          // leyéndose como un solo bloque roto. Ahora la burbuja sólo aparece
+          // cuando no hubo NADA que mostrar (mismo criterio que `onError`).
+          if (!accumulated && !imageUrl) {
+            if (isCurrent()) {
+              const errMsg: ChatMessage = {
+                id: `err-${Date.now()}`,
+                conversation_id: convId,
+                role: "assistant",
+                content: `Error al generar respuesta. Intentá de nuevo.`,
+                notice: "error",
+                created_at: new Date().toISOString(),
+              };
+              noticeMsgId = errMsg.id;
+              setMessages((prev) => [...prev, errMsg]);
+            }
+          } else {
+            streamInterrupted = true;
           }
           // S158/S209 — el backend puede haber completado y persistido el turno
           // aunque la conexión murió (iOS/red). Sondeo hasta ~3 min: si el
@@ -595,6 +646,9 @@ export function useChat(options: UseChatOptions): UseChatReturn {
                 role: "assistant",
                 content: accumulated,
                 image: imageUrl,
+                // S242: la respuesta puede estar cortada — se avisa AL PIE del
+                // propio turno, no con una burbuja de error encima.
+                ...(streamInterrupted ? { notice: "interrupted" as const } : {}),
                 created_at: new Date().toISOString(),
               },
             ];
@@ -607,7 +661,8 @@ export function useChat(options: UseChatOptions): UseChatReturn {
             id: `err-${Date.now()}`,
             conversation_id: convId,
             role: "assistant",
-            content: `_No llegó respuesta. Reintentá en un momento._`,
+            content: `No llegó respuesta. Reintentá en un momento.`,
+            notice: "silent",
             created_at: new Date().toISOString(),
           };
           setMessages((prev) => [...prev, silent]);

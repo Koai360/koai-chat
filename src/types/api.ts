@@ -34,6 +34,15 @@ export interface ChatMessage {
   image_width?: number | null;
   image_height?: number | null;
   created_at: string;
+  /**
+   * S242 — marca LOCAL de aviso (nunca viene del backend). Separa el estado de
+   * error del contenido del turno: antes el aviso se inyectaba como markdown
+   * dentro de `content` y convivía con la respuesta real en el mismo bloque.
+   *   - "error"       → la burbuja ES el aviso, no hay contenido del turno
+   *   - "silent"      → el stream cerró sin texto, sin done y sin error
+   *   - "interrupted" → HAY contenido, pero la conexión murió antes del done
+   */
+  notice?: "error" | "silent" | "interrupted";
 }
 
 export interface ChatImage {

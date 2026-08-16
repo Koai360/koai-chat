@@ -36,12 +36,22 @@ HUE_LIMA = colorsys.rgb_to_hsv(0xD1 / 255, 0xFF / 255, 0x03 / 255)[0] * 360  # 7
 #   192/512 → 66%: el manifest los declara también `maskable` y Android recorta
 #             hasta el 80% central; a sangre se comía las puntas del hexágono.
 #   180 (apple-touch) → 76%: iOS sólo redondea esquinas y NO respeta alpha.
+#   1024 (App Icon nativo) → 76%: mismo encuadre que apple-touch, para que la app
+#             y el PWA no se vean como dos productos distintos en la misma pantalla.
+#             iOS aplica el squircle por su cuenta (radio ~22% del lado): el arte NO
+#             lleva esquinas redondeadas ni alpha propios, o quedan bordes negros.
 #   favicon → 86%: a 16px el margen sobra.
 TARGETS = [
     (PUBLIC / "icons" / "noa-192.png", 192, 0.66),
     (PUBLIC / "icons" / "noa-512.png", 512, 0.66),
     (PUBLIC / "apple-touch-icon.png", 180, 0.76),
+    (PUBLIC / "icons" / "noa-appicon-1024.png", 1024, 0.76),
 ]
+
+# 🔴 El 1024 es el App Icon de la app nativa (repo noa-ios), que vive en otro
+# repositorio: se genera acá porque acá está el master de la marca, y se COPIA a
+# App/Resources/Assets.xcassets/AppIcon.appiconset/. Si cambia la marca, se corre
+# este script y se vuelve a copiar — no se edita el PNG del otro lado.
 FAVICON_SIZES = [16, 32, 48, 64]
 FAVICON_SCALE = 0.86
 

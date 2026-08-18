@@ -41,11 +41,16 @@ HUE_LIMA = colorsys.rgb_to_hsv(0xD1 / 255, 0xFF / 255, 0x03 / 255)[0] * 360  # 7
 #             iOS aplica el squircle por su cuenta (radio ~22% del lado): el arte NO
 #             lleva esquinas redondeadas ni alpha propios, o quedan bordes negros.
 #   favicon → 86%: a 16px el margen sobra.
+# El 4º campo dice si el destino se aplana a RGB.
+# 🔴 App Store Connect RECHAZA el App Icon de 1024 si trae canal alpha — aunque no haya
+# un solo píxel transparente, como era el caso. El rechazo llega DEL OTRO LADO del upload,
+# así que se pierde el archive entero. El fondo (BG) es opaco, de modo que aplanar no
+# mueve un píxel. Los destinos web se quedan en RGBA: el manifest los usa `maskable`.
 TARGETS = [
-    (PUBLIC / "icons" / "noa-192.png", 192, 0.66),
-    (PUBLIC / "icons" / "noa-512.png", 512, 0.66),
-    (PUBLIC / "apple-touch-icon.png", 180, 0.76),
-    (PUBLIC / "icons" / "noa-appicon-1024.png", 1024, 0.76),
+    (PUBLIC / "icons" / "noa-192.png", 192, 0.66, False),
+    (PUBLIC / "icons" / "noa-512.png", 512, 0.66, False),
+    (PUBLIC / "apple-touch-icon.png", 180, 0.76, False),
+    (PUBLIC / "icons" / "noa-appicon-1024.png", 1024, 0.76, True),
 ]
 
 # 🔴 El 1024 es el App Icon de la app nativa (repo noa-ios), que vive en otro
@@ -129,10 +134,13 @@ def main() -> None:
     master = Image.open(MASTER).convert("RGBA")
     mark = to_lime(master)
 
-    for path, size, scale in TARGETS:
+    for path, size, scale, flatten in TARGETS:
         path.parent.mkdir(parents=True, exist_ok=True)
-        compose(mark, size, scale).save(path, "PNG", optimize=True)
-        print(f"  {path.relative_to(ROOT)}  {size}x{size}  marca {scale:.0%}")
+        img = compose(mark, size, scale)
+        if flatten:
+            img = img.convert("RGB")
+        img.save(path, "PNG", optimize=True)
+        print(f"  {path.relative_to(ROOT)}  {size}x{size}  marca {scale:.0%}  {img.mode}")
 
     ico = compose(mark, 256, FAVICON_SCALE).convert("RGB")
     ico.save(PUBLIC / "favicon.ico", sizes=[(s, s) for s in FAVICON_SIZES])

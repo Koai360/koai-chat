@@ -16,12 +16,9 @@ export function cfImageVariant(url: string, width: number, quality = 85): string
     const rest = url.replace("https://cdn.koai360.com/", "");
     return `https://cdn.koai360.com/cdn-cgi/image/width=${width},quality=${quality},format=auto/${rest}`;
   }
-  if (url.includes("/storage/v1/object/public/")) {
-    // Supabase Storage legacy → render endpoint
-    return url.replace(
-      "/storage/v1/object/public/",
-      `/storage/v1/render/image/public/?width=${width}&quality=${quality}&resize=contain&path=`,
-    );
-  }
+  // Supabase Storage legacy: NO se transforma. El add-on de Image Transformations no está
+  // habilitado en el proyecto (`/storage/v1/render/image/public/` → 404 de ruta) y esta rama
+  // rompía las imágenes en vez de optimizarlas (S256, 2026-08-22 — lo destapó la app iOS).
+  // Son pocas (adjuntos viejos del usuario); las nuevas ya van al CDN. Original intacto.
   return url;
 }

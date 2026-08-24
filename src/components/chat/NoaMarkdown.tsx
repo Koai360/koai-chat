@@ -109,7 +109,13 @@ export const NoaMarkdown = memo(function NoaMarkdown({
               loading="lazy"
               decoding="async"
               onError={(e) => {
-                e.currentTarget.style.display = "none";
+                // S263: si falló la variante CF, probar el original antes de
+                // ocultar; si el original tampoco existe (URL inventada), ocultar
+                if (display !== url && e.currentTarget.src !== url) {
+                  e.currentTarget.src = url;
+                } else {
+                  e.currentTarget.style.display = "none";
+                }
               }}
               className="block w-full max-w-[480px] h-auto rounded-xl border border-white/[0.06] my-2"
             />

@@ -38,6 +38,13 @@ export const MessageBubble = memo(function MessageBubble({
                 loading="lazy"
                 decoding="async"
                 onClick={() => setLightboxUrl(message.image!)}
+                onError={(e) => {
+                  // S263: /cdn-cgi/image/ falla a veces con el original intacto
+                  // en R2 → fallback al original (lo mismo que pide el lightbox)
+                  if (message.image && e.currentTarget.src !== message.image) {
+                    e.currentTarget.src = message.image;
+                  }
+                }}
                 className="block w-full max-w-[280px] h-auto rounded-xl border border-white/[0.06] cursor-zoom-in"
               />
             </div>
@@ -115,6 +122,13 @@ export const MessageBubble = memo(function MessageBubble({
             loading="lazy"
             decoding="async"
             onClick={() => setLightboxUrl(message.image!)}
+            onError={(e) => {
+              // S263: /cdn-cgi/image/ falla a veces con el original intacto
+              // en R2 → fallback al original (lo mismo que pide el lightbox)
+              if (message.image && e.currentTarget.src !== message.image) {
+                e.currentTarget.src = message.image;
+              }
+            }}
             style={
               message.image_width && message.image_height
                 ? { aspectRatio: `${message.image_width} / ${message.image_height}` }

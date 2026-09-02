@@ -247,6 +247,35 @@ export async function declineEscalation(id: string): Promise<void> {
 }
 
 // ============================================================
+// LECCIONES DE KIRA — lo que aprendió y espera tu OK (S288)
+// Las lecciones nacen `pending` (gobernanza S109: nada se inyecta al prompt sin
+// revisión humana). Hasta hoy sólo se aprobaban por API.
+// ============================================================
+
+export interface KiraLearning {
+  id: number;
+  category: string;
+  lesson: string;
+  context?: string | null;
+  status: "pending" | "approved" | "rejected";
+  created_at?: string;
+}
+
+export async function listKiraLearnings(status = "pending"): Promise<{ learnings: KiraLearning[]; counts: Record<string, number> }> {
+  const res = await apiFetch(`/api/kira/learnings?status=${encodeURIComponent(status)}&limit=50`);
+  const data = await res.json();
+  return { learnings: Array.isArray(data.learnings) ? data.learnings : [], counts: data.counts || {} };
+}
+
+export async function approveKiraLearning(id: number): Promise<void> {
+  await apiFetch(`/api/kira/learnings/${id}/approve`, { method: "POST" });
+}
+
+export async function rejectKiraLearning(id: number, note = ""): Promise<void> {
+  await apiFetch(`/api/kira/learnings/${id}/reject`, { method: "POST", json: { note } });
+}
+
+// ============================================================
 // CHAT STREAMING
 // ============================================================
 

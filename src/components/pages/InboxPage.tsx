@@ -216,6 +216,12 @@ function InboxItem({
       title={q.contact_name}
       subtitle={q.waiting ? `preguntó ${q.waiting}` : "duda pendiente"}
     >
+      {q.missing_order && (
+        <p className="text-[12px] leading-snug px-2.5 py-1.5 rounded-xl bg-[var(--color-warning)]/12 text-[var(--color-warning)] border border-[var(--color-warning)]/25">
+          Este cliente no tiene ningún pedido cargado en KoaiHub. Kira no puede responder por el
+          estado de algo que no existe: cargá el pedido primero y después respondé.
+        </p>
+      )}
       <p className="text-[15px] text-white/90 leading-snug whitespace-pre-wrap">{q.question}</p>
       {q.context && (
         <p className="mt-2 text-[13px] text-white/45 leading-snug border-l-2 border-white/10 pl-3">

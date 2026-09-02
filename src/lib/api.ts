@@ -186,6 +186,8 @@ export interface InboxQuestion {
   channel_id?: number | null;
   created_at?: string;
   waiting?: string;
+  /** S288: la duda es de estado de pedido y el cliente NO tiene pedido en KoaiHub. */
+  missing_order?: boolean | null;
 }
 
 export interface ComposeResult {

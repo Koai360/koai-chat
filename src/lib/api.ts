@@ -188,6 +188,16 @@ export interface InboxQuestion {
   waiting?: string;
   /** S288: la duda es de estado de pedido y el cliente NO tiene pedido en KoaiHub. */
   missing_order?: boolean | null;
+  /** S264: "duda" (kira_escalations) o "precio" (kira_pricing_knowledge). */
+  kind?: "duda" | "precio";
+  /** S304: etapa comercial del contacto, resuelta en el server contra KoaiHub.
+   *  quote = tiene cotización abierta (comprador) · pedido = tiene pedido (activo o entregado)
+   *  · nuevo / sin_ficha = sin quote ni pedido · null = KoaiHub no respondió (no se afirma). */
+  stage?: "quote" | "pedido" | "nuevo" | "sin_ficha" | null;
+  /** Texto corto del chip: "Quote QT1162 · $2,033 · enviada", "Pedido SO-1085 · en produccion". */
+  stage_label?: string | null;
+  stage_ref?: string | null;
+  stage_group?: string | null;
 }
 
 export interface ComposeResult {

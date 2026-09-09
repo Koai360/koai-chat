@@ -29,6 +29,39 @@ import { cn } from "@/lib/cn";
  */
 type SortDir = "oldest" | "newest";
 
+// S304 (pedido de Jesús): la bandeja se lee por ETAPA del contacto — quién ya tiene una
+// cotización abierta (comprador), quién ya tiene pedido y quién es nuevo — para responder
+// primero a quien está más cerca del dinero. La etapa la decide el backend contra KoaiHub;
+// acá sólo se agrupa y se pinta. `sin_ficha` (no existe en el hub) va con los nuevos.
+type StageKey = "quote" | "pedido" | "nuevo" | "sin_dato";
+const STAGE_ORDER: StageKey[] = ["quote", "pedido", "nuevo", "sin_dato"];
+const STAGE_TITLE: Record<StageKey, string> = {
+  quote: "Compradores con quote",
+  pedido: "Clientes con pedido",
+  nuevo: "Sin quote ni pedido",
+  sin_dato: "Sin clasificar",
+};
+const STAGE_HINT: Record<StageKey, string> = {
+  quote: "ya tienen cotización abierta — cerrar",
+  pedido: "ya compraron — cuidar la entrega",
+  nuevo: "todavía sin cotizar",
+  sin_dato: "KoaiHub no respondió; se muestran igual",
+};
+const STAGE_DOT: Record<StageKey, string> = {
+  quote: "bg-[var(--color-noa)]",
+  pedido: "bg-[var(--color-success)]",
+  nuevo: "bg-white/35",
+  sin_dato: "bg-white/20",
+};
+const STAGE_CHIP: Record<StageKey, string> = {
+  quote: "bg-[var(--color-noa-soft)] text-[var(--color-noa)] border-[var(--color-noa)]/30",
+  pedido: "bg-[var(--color-success-soft)] text-[var(--color-success)] border-[var(--color-success)]/30",
+  nuevo: "bg-white/[0.05] text-white/55 border-white/10",
+  sin_dato: "bg-white/[0.05] text-white/40 border-white/10",
+};
+const stageKey = (q: InboxQuestion): StageKey =>
+  q.stage === "quote" || q.stage === "pedido" ? q.stage : q.stage ? "nuevo" : "sin_dato";
+
 export function InboxPage() {
   const [items, setItems] = useState<InboxQuestion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,6 +73,23 @@ export function InboxPage() {
     const arr = [...items].sort((a, b) => ts(a) - ts(b)); // asc = más viejas primero
     return sortDir === "newest" ? arr.reverse() : arr;
   }, [items, sortDir]);
+
+  // Secciones por etapa (quote → pedido → nuevo); dentro de cada una manda el orden elegido.
+  const groups = useMemo(
+    () =>
+      STAGE_ORDER.map((key) => ({ key, rows: sortedItems.filter((q) => stageKey(q) === key) })).filter(
+        (g) => g.rows.length > 0,
+      ),
+    [sortedItems],
+  );
+  const stageSummary = useMemo(() => {
+    const parts: string[] = [];
+    const n = (k: StageKey) => groups.find((g) => g.key === k)?.rows.length ?? 0;
+    if (n("quote")) parts.push(`${n("quote")} con quote`);
+    if (n("pedido")) parts.push(`${n("pedido")} con pedido`);
+    if (n("nuevo")) parts.push(`${n("nuevo")} sin cotizar`);
+    return parts.join(" · ");
+  }, [groups]);
 
   const load = () => {
     setLoading(true);
@@ -66,7 +116,7 @@ export function InboxPage() {
           </h1>
           <p className="text-sm text-white/45">
             {items.length > 0
-              ? `${items.length} ${items.length === 1 ? "duda" : "dudas"} que Kira te escaló`
+              ? `${items.length} ${items.length === 1 ? "duda" : "dudas"} que Kira te escaló${stageSummary ? ` · ${stageSummary}` : ""}`
               : "Dudas que Kira escala cuando no sabe la respuesta"}
           </p>
         </div>
@@ -107,8 +157,18 @@ export function InboxPage() {
           ) : items.length === 0 ? (
             <EmptyState />
           ) : (
-            sortedItems.map((q) => (
-              <InboxItem key={q.id} q={q} onResolved={() => removeItem(q.id)} />
+            groups.map((g) => (
+              <section key={g.key} className="space-y-3" aria-label={STAGE_TITLE[g.key]}>
+                <h2 className="pt-2 flex items-baseline gap-2 mono text-[10px] uppercase tracking-[0.12em] text-white/45">
+                  <span className={cn("inline-block size-1.5 rounded-full translate-y-[-1px]", STAGE_DOT[g.key])} />
+                  <span className="text-white/70">{STAGE_TITLE[g.key]}</span>
+                  <span>· {g.rows.length}</span>
+                  <span className="normal-case tracking-normal text-white/35 hidden sm:inline">— {STAGE_HINT[g.key]}</span>
+                </h2>
+                {g.rows.map((q) => (
+                  <InboxItem key={q.id} q={q} onResolved={() => removeItem(q.id)} />
+                ))}
+              </section>
             ))
           )}
           {/* S288: lo que Kira aprendió y espera tu OK — misma bandeja, misma persona */}
@@ -216,6 +276,17 @@ function InboxItem({
       title={q.contact_name}
       subtitle={q.waiting ? `preguntó ${q.waiting}` : "duda pendiente"}
     >
+      {q.stage_label && (
+        <span
+          className={cn(
+            "inline-flex items-center mb-2 text-[11px] leading-none px-2.5 py-1.5 rounded-full border",
+            STAGE_CHIP[stageKey(q)],
+          )}
+          title={q.stage_group || undefined}
+        >
+          {q.stage_label}
+        </span>
+      )}
       {q.missing_order && (
         <p className="text-[12px] leading-snug px-2.5 py-1.5 rounded-xl bg-[var(--color-warning)]/12 text-[var(--color-warning)] border border-[var(--color-warning)]/25">
           Este cliente no tiene ningún pedido cargado en KoaiHub. Kira no puede responder por el

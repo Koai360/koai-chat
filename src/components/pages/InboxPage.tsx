@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { Inbox, Mic, Send, MessageSquare, CheckCircle2, HandMetal, ArrowLeft, ArrowDownUp } from "lucide-react";
+import { Inbox, Mic, Send, MessageSquare, CheckCircle2, HandMetal, ArrowLeft, ArrowDownUp, GraduationCap, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   listInbox,
   composeReply,
   sendReply,
   declineEscalation,
+  approveKiraLearning,
+  rejectKiraLearning,
   ApiError,
   type InboxQuestion,
+  type LearningProposal,
 } from "@/lib/api";
 
 /** Avisa al badge del nav que la bandeja cambió (para refrescar sin esperar el poll). */
@@ -67,6 +70,10 @@ export function InboxPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [sortDir, setSortDir] = useState<SortDir>("oldest");
+  // S304: lo que Kira propone aprender de la última respuesta enviada. Vive en la página (no
+  // en la tarjeta) porque la tarjeta desaparece al enviar y la propuesta tiene que quedar a la
+  // vista hasta que alguien decida.
+  const [proposals, setProposals] = useState<LearningProposal[]>([]);
 
   const sortedItems = useMemo(() => {
     const ts = (q: InboxQuestion) => new Date(q.created_at || 0).getTime();
@@ -154,7 +161,15 @@ export function InboxPage() {
                 Reintentar
               </button>
             </div>
-          ) : items.length === 0 ? (
+          ) : null}
+          {proposals.map((p) => (
+            <LearningProposalCard
+              key={p.id}
+              proposal={p}
+              onDone={() => setProposals((prev) => prev.filter((x) => x.id !== p.id))}
+            />
+          ))}
+          {loading || loadError ? null : items.length === 0 ? (
             <EmptyState />
           ) : (
             groups.map((g) => (
@@ -166,7 +181,12 @@ export function InboxPage() {
                   <span className="normal-case tracking-normal text-white/35 hidden sm:inline">— {STAGE_HINT[g.key]}</span>
                 </h2>
                 {g.rows.map((q) => (
-                  <InboxItem key={q.id} q={q} onResolved={() => removeItem(q.id)} />
+                  <InboxItem
+                    key={q.id}
+                    q={q}
+                    onResolved={() => removeItem(q.id)}
+                    onProposal={(p) => setProposals((prev) => (prev.some((x) => x.id === p.id) ? prev : [p, ...prev]))}
+                  />
                 ))}
               </section>
             ))
@@ -181,12 +201,51 @@ export function InboxPage() {
 
 type Mode = "idle" | "responding" | "draft";
 
+/** S304: "Kira quiere aprender esto" — la lección destilada de la respuesta que acaba de salir.
+ *  Aprobar la mete al prompt de Kira (sección "Respuestas del equipo"); rechazar la archiva. */
+function LearningProposalCard({ proposal, onDone }: { proposal: LearningProposal; onDone: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const decide = async (approve: boolean) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      if (approve) {
+        await approveKiraLearning(proposal.id);
+        toast.success("Kira lo aprendió. La próxima vez responde sola.");
+      } else {
+        await rejectKiraLearning(proposal.id, "rechazada desde la Bandeja");
+        toast("Descartado. Kira no lo usa.");
+      }
+      onDone();
+    } catch {
+      toast.error("No pude guardar la decisión. Queda pendiente en Lecciones.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Card icon={<GraduationCap className="size-[18px] text-[var(--color-noa)]" />} title="Kira quiere aprender de tu respuesta" subtitle={`${proposal.kind} · queda guardado para la próxima duda igual`}>
+      <p className="text-[15px] text-white/90 leading-snug">«{proposal.lesson}»</p>
+      <div className="mt-4 flex items-center gap-2 flex-wrap">
+        <Button leadingIcon={<Check className="size-4" />} onClick={() => decide(true)} disabled={busy}>
+          {busy ? "…" : "Que lo aprenda"}
+        </Button>
+        <Button variant="ghost" leadingIcon={<X className="size-4" />} onClick={() => decide(false)} disabled={busy}>
+          No
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
 function InboxItem({
   q,
   onResolved,
+  onProposal,
 }: {
   q: InboxQuestion;
   onResolved: () => void;
+  onProposal?: (p: LearningProposal) => void;
 }) {
   const [mode, setMode] = useState<Mode>("idle");
   const [rawInput, setRawInput] = useState("");
@@ -235,6 +294,7 @@ function InboxItem({
       const res = await sendReply(q.id, finalMsg, rawInput.trim());
       if (res.status === "sent") {
         toast.success(`Enviado a ${res.contact_name || q.contact_name} ✅`);
+        if (res.learning_proposal && res.learning_proposal.id) onProposal?.(res.learning_proposal);
         onResolved();
       } else if (res.status === "taken") {
         toast(res.message || "Otra persona ya respondió esta duda.");

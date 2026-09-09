@@ -209,10 +209,20 @@ export interface ComposeResult {
   reason?: string;
 }
 
+/** S304: lección que Kira destiló de la respuesta enviada. Nace `pending`; el equipo la
+ *  aprueba o rechaza con un toque (misma API que la sección Lecciones). */
+export interface LearningProposal {
+  id: number;
+  lesson: string;
+  kind: string;
+  confidence?: number;
+}
+
 export interface SendResult {
   status: "sent" | "taken" | "standby" | "error";
   message?: string;
   contact_name?: string;
+  learning_proposal?: LearningProposal | null;
 }
 
 /** Lista las dudas pendientes (más viejas primero). */

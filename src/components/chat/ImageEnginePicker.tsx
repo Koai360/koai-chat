@@ -6,7 +6,7 @@ import type { ImageEngine } from "@/lib/imageEngine";
 /**
  * ImageEnginePicker — elige con qué motor genera Noa las imágenes (S228).
  *
- * Auto (default) mantiene la cadena del backend: GPT Image 2 → Nano Banana Pro
+ * Auto (default) mantiene la cadena del backend: GPT Image 2.5 → Nano Banana Pro
  * → NB2 Flash → Imagen 4. Los otros tres son motor ÚNICO: si fallan devuelven
  * error en vez de caer a otro, que es justamente el punto de elegirlo.
  *
@@ -37,7 +37,7 @@ const OPTIONS: EngineOption[] = [
   },
   {
     engine: "gpt",
-    label: "GPT Image 2",
+    label: "GPT Image 2.5",
     description: "Mejor dirección de arte",
     icon: <Palette className="size-4 text-[var(--color-noa)]" />,
   },

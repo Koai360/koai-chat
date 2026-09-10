@@ -298,6 +298,42 @@ export async function rejectKiraLearning(id: number, note = ""): Promise<void> {
 }
 
 // ============================================================
+// SKILLS PROPUESTAS POR NOA — procedimientos que esperan tu OK (S308)
+// Nacen `pending`; aprobar manda el body_sha que se mostró (el servidor rechaza
+// si el cuerpo cambió) y rechazar exige una nota para que Noa no lo repita.
+// ============================================================
+
+export interface SkillProposal {
+  id: string;
+  name: string;
+  agent: "noa" | "kira" | "all";
+  description: string;
+  body: string;
+  body_sha: string;
+  version: number;
+  status: "pending" | "approved" | "rejected" | "archived";
+  origin?: string;
+  replaces_id?: string | null;
+  reason?: string | null;
+  proposed_by?: string | null;
+  created_at?: string;
+}
+
+export async function listSkillProposals(status = "pending"): Promise<{ skills: SkillProposal[]; counts: Record<string, number> }> {
+  const res = await apiFetch(`/api/skills?status=${encodeURIComponent(status)}&limit=50`);
+  const data = await res.json();
+  return { skills: Array.isArray(data.skills) ? data.skills : [], counts: data.counts || {} };
+}
+
+export async function approveSkillProposal(id: string, bodySha: string): Promise<void> {
+  await apiFetch(`/api/skills/${id}/approve`, { method: "POST", json: { body_sha: bodySha } });
+}
+
+export async function rejectSkillProposal(id: string, note: string): Promise<void> {
+  await apiFetch(`/api/skills/${id}/reject`, { method: "POST", json: { note } });
+}
+
+// ============================================================
 // CHAT STREAMING
 // ============================================================
 

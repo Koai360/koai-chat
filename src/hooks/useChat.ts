@@ -430,6 +430,8 @@ export function useChat(options: UseChatOptions): UseChatReturn {
         agent: "noa",
         thinking_level: resolvedLevel,
         image_engine: resolveImageEngine(imageEngine),
+        // S322 — identidad del turno (el backend genera una si falta)
+        turn_id: typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : undefined,
         ...opts,
       };
 

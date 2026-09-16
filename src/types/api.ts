@@ -88,4 +88,7 @@ export interface SendMessagePayload {
   // Backend procesa todo como Content user con parts=[text, m1, m2, ...].
   images?: string[]; // base64 strings
   files?: Array<{ base64: string; name: string; mime: string }>;
+  /** S322 — identidad del turno: las filas de este turno en el backend derivan de este uuid
+   *  (reintentar no duplica; dos turnos con la misma respuesta no se confunden). */
+  turn_id?: string;
 }

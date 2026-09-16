@@ -132,6 +132,16 @@ export function handleUnauthorized(): void {
 }
 
 // ============================================================
+// FEATURE FLAGS (server-side, por usuario — S322)
+// ============================================================
+
+/** `GET /api/noa/flags` → { key: bool } evaluado para el usuario del JWT. */
+export async function getNoaFlags(): Promise<{ flags: Record<string, boolean>; ttl: number }> {
+  const res = await apiFetch("/api/noa/flags");
+  return res.json();
+}
+
+// ============================================================
 // CONVERSATIONS
 // ============================================================
 

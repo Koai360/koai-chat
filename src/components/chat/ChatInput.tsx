@@ -1,8 +1,9 @@
 import { forwardRef, useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowUp, Mic, Plus, Shield, Square, X, FileText, Image as ImageIcon } from "lucide-react";
+import { ArrowUp, Mic, Phone, Plus, Shield, Square, X, FileText, Image as ImageIcon } from "lucide-react";
 import { IconButton } from "@/components/ui/IconButton";
 import { VoiceBar } from "./VoiceBar";
+import { VoiceLiveBar } from "./VoiceLiveBar";
 import { ImageEnginePicker } from "./ImageEnginePicker";
 import type { ImageEngine } from "@/lib/imageEngine";
 import { cn } from "@/lib/cn";
@@ -32,6 +33,12 @@ interface ChatInputProps {
   /** S228 — motor de generación de imágenes. Si no se pasa, el pill no se muestra. */
   imageEngine?: ImageEngine;
   onImageEngineChange?: (engine: ImageEngine) => void;
+  /** S322 — voz en tiempo real (flag server-side `voice_live`). Sin esto el botón no existe. */
+  voiceLive?: boolean;
+  /** S322 — conversación activa para la llamada; sin ella el backend crea una nueva. */
+  conversationId?: string | null;
+  /** S322 — al colgar: recargar el chat y navegar si la conversación es nueva. */
+  onVoiceLiveEnd?: (conversationId: string | null) => void;
 }
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB safety cap
@@ -81,6 +88,9 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
       autoSendVoice = false,
       imageEngine,
       onImageEngineChange,
+    voiceLive = false,
+    conversationId = null,
+    onVoiceLiveEnd,
     },
     ref,
   ) => {
@@ -128,6 +138,13 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 
     const handleVoiceStart = () => setVoiceActive(true);
     const handleVoiceCancel = () => setVoiceActive(false);
+    // S322 — llamada en tiempo real (reemplaza el pill mientras dura)
+    const [liveActive, setLiveActive] = useState(false);
+    const handleLiveStart = () => setLiveActive(true);
+    const handleLiveEnd = (convId: string | null) => {
+      setLiveActive(false);
+      onVoiceLiveEnd?.(convId);
+    };
     const handleVoiceTranscript = (text: string) => {
       setVoiceActive(false);
       if (autoSendVoice) {
@@ -286,9 +303,16 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
                 onCancel={handleVoiceCancel}
               />
             )}
+            {liveActive && (
+              <VoiceLiveBar
+                key="voice-live-bar"
+                conversationId={conversationId}
+                onEnd={handleLiveEnd}
+              />
+            )}
           </AnimatePresence>
 
-          {!voiceActive && (
+          {!voiceActive && !liveActive && (
           <div
             className={cn(
               "flex items-end gap-1.5 px-2.5 py-2",
@@ -379,6 +403,17 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
                 size="md"
                 onClick={handleVoiceStart}
                 className="shrink-0"
+              />
+            )}
+            {/* S322 — llamada en tiempo real: sólo con el flag `voice_live` del usuario */}
+            {!loading && voiceLive && (
+              <IconButton
+                icon={<Phone className="size-[18px]" />}
+                label="Llamar a Noa"
+                variant="ghost"
+                size="md"
+                onClick={handleLiveStart}
+                className="shrink-0 text-[var(--color-noa)]"
               />
             )}
             <AnimatePresence mode="wait" initial={false}>

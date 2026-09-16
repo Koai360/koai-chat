@@ -7,6 +7,7 @@ import { ChatSurface } from "@/components/chat/ChatSurface";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { Sparkle } from "@/components/chat/Sparkle";
 import { useRoute } from "@/hooks/useRoute";
+import { useNoaFlags } from "@/hooks/useNoaFlags";
 import { useChat } from "@/hooks/useChat";
 import { useKeyboardViewport } from "@/hooks/useKeyboardViewport";
 import { navigate } from "@/lib/routing";
@@ -53,6 +54,7 @@ interface AppShellProps {
 export function AppShell({ user, onLogout }: AppShellProps) {
   const route = useRoute();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const { flags } = useNoaFlags();
   // S161: teclado iOS — encoger la app al área visible (header siempre en pantalla)
   useKeyboardViewport();
 
@@ -109,6 +111,19 @@ export function AppShell({ user, onLogout }: AppShellProps) {
   useEffect(() => {
     setDrawerOpen(false);
   }, [route]);
+
+  // S322 — voz en tiempo real: el backend persiste los turnos en la conversación (y la
+  // crea si no había). Al colgar: si es nueva, navegar a ella (useChat la carga); si es
+  // la activa, reusar el reconciliador de useChat (escucha `pageshow`) para traer las
+  // transcripciones sin tocar el hook. También refresca la lista (título "Voz · …").
+  const handleVoiceLiveEnd = (convId: string | null) => {
+    if (convId && convId !== activeId) {
+      navigate({ kind: "chat", conversationId: convId });
+    } else {
+      window.dispatchEvent(new Event("pageshow"));
+    }
+    void refresh();
+  };
 
   const handleNewChat = () => {
     setActiveId(null);
@@ -237,6 +252,9 @@ export function AppShell({ user, onLogout }: AppShellProps) {
               queuedCount={queuedCount}
               imageEngine={imageEngine}
               onImageEngineChange={setImageEngine}
+              voiceLive={flags.voice_live === true}
+              conversationId={activeId}
+              onVoiceLiveEnd={handleVoiceLiveEnd}
             />
           )}
         </div>

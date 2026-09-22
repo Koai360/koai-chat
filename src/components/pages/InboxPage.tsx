@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import {
   Inbox, Mic, Send, MessageSquare, MessagesSquare, CheckCircle2, HandMetal, ArrowDownUp,
-  GraduationCap, Check, X, Pencil, Zap, ChevronLeft,
+  GraduationCap, Check, X, Pencil, Zap, ChevronLeft, CircleDollarSign, Clock, BadgeCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -85,6 +85,35 @@ const STAGE_CHIP: Record<StageKey, string> = {
 const stageKey = (q: InboxQuestion): StageKey =>
   q.stage === "quote" || q.stage === "pedido" ? q.stage : q.stage ? "nuevo" : "sin_dato";
 
+// S336 (pedido de Jesús: «mejorá la presentación»): la bandeja mezcla DUDAS y PRECIOS y los
+// pintaba igual, con un 💰 pegado al texto (contrato para builds viejos de iOS que no leen
+// `kind`). Acá el tipo es un chip, la antigüedad tiene tono de urgencia (TTL 4 h hábiles;
+// el reminder marca 🔴 a las 48 h) y una consulta que el equipo YA respondió lo dice.
+type KindFilter = "todas" | "duda" | "precio";
+const KIND_FILTER_ORDER: KindFilter[] = ["todas", "duda", "precio"];
+const isPrecio = (q: InboxQuestion) => q.kind === "precio" || q.question.startsWith("💰");
+const questionText = (q: InboxQuestion) => q.question.replace(/^💰\s*/, "");
+const hoursSince = (iso?: string | null): number | null => {
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  return Number.isFinite(t) ? Math.max(0, (Date.now() - t) / 36e5) : null;
+};
+type AgeTone = "fresh" | "due" | "late";
+const ageTone = (q: InboxQuestion): AgeTone => {
+  const h = typeof q.age_hours === "number" ? q.age_hours : hoursSince(q.created_at);
+  if (h === null) return "fresh";
+  return h >= 48 ? "late" : h >= 4 ? "due" : "fresh";
+};
+const AGE_CHIP: Record<AgeTone, string> = {
+  fresh: "bg-white/[0.05] text-white/55 border-white/10",
+  due: "bg-[var(--color-warning)]/12 text-[var(--color-warning)] border-[var(--color-warning)]/25",
+  late: "bg-[var(--color-danger)]/12 text-[var(--color-danger)] border-[var(--color-danger)]/25",
+};
+const ageText = (q: InboxQuestion) => (q.waiting || "").replace(/^hace\s/, "");
+const money = (n: number) =>
+  n >= 1000 ? `$${Math.round(n).toLocaleString("en-US")}` : `$${n.toFixed(2).replace(/\.00$/, "")}`;
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
 function readMode(): Mode {
   try {
     return localStorage.getItem(MODE_KEY) === "rapido" ? "rapido" : "hilo";
@@ -98,6 +127,7 @@ export function InboxPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [sortDir, setSortDir] = useState<SortDir>("oldest");
+  const [kindFilter, setKindFilter] = useState<KindFilter>("todas");
   // S304: lo que Kira propone aprender de la última respuesta enviada. Vive en la página (no
   // en la tarjeta) porque la tarjeta desaparece al enviar y la propuesta tiene que quedar a la
   // vista hasta que alguien decida.
@@ -111,11 +141,20 @@ export function InboxPage() {
     try { localStorage.setItem(MODE_KEY, m); } catch { /* preferencia no persistida */ }
   };
 
+  const nPrecios = useMemo(() => items.filter(isPrecio).length, [items]);
+  const nDudas = items.length - nPrecios;
+  const bothKinds = nDudas > 0 && nPrecios > 0;
+  const kindCount: Record<KindFilter, number> = { todas: items.length, duda: nDudas, precio: nPrecios };
+  const KIND_FILTER_LABEL: Record<KindFilter, string> = { todas: "Todas", duda: "Dudas", precio: "Precios" };
+
   const sortedItems = useMemo(() => {
     const ts = (q: InboxQuestion) => new Date(q.created_at || 0).getTime();
-    const arr = [...items].sort((a, b) => ts(a) - ts(b)); // asc = más viejas primero
+    const wanted = bothKinds ? kindFilter : "todas";
+    const arr = items
+      .filter((q) => wanted === "todas" || (wanted === "precio") === isPrecio(q))
+      .sort((a, b) => ts(a) - ts(b)); // asc = más viejas primero
     return sortDir === "newest" ? arr.reverse() : arr;
-  }, [items, sortDir]);
+  }, [items, sortDir, kindFilter, bothKinds]);
 
   // Secciones por etapa (quote → pedido → nuevo); dentro de cada una manda el orden elegido.
   const groups = useMemo(
@@ -167,30 +206,64 @@ export function InboxPage() {
 
   const selected = selectedId ? items.find((q) => q.id === selectedId) ?? null : null;
 
+  const subtitle =
+    items.length === 0
+      ? "Consultas que Kira escala cuando no sabe qué responder"
+      : bothKinds
+        ? `${plural(items.length, "consulta", "consultas")} · ${plural(nDudas, "duda", "dudas")} · ${plural(nPrecios, "precio", "precios")}`
+        : nPrecios > 0
+          ? `${plural(nPrecios, "consulta de precio", "consultas de precio")} que Kira te escaló`
+          : `${plural(nDudas, "duda", "dudas")} que Kira te escaló${stageSummary && !isXL ? ` · ${stageSummary}` : ""}`;
+
   const header = (
-    <header className={cn("px-6 pt-6 pb-3 flex items-start justify-between gap-3", isXL && "px-5")}>
-      <div className="min-w-0">
-        <h1 className="display text-[24px] md:text-[28px] xl:text-[32px] font-semibold text-white mb-1">
-          Bandeja
-        </h1>
-        <p className="text-sm text-white/45">
-          {items.length > 0
-            ? `${items.length} ${items.length === 1 ? "duda" : "dudas"} que Kira te escaló${stageSummary && !isXL ? ` · ${stageSummary}` : ""}`
-            : "Dudas que Kira escala cuando no sabe la respuesta"}
-        </p>
+    <header className={cn("px-6 pt-6 pb-3", isXL && "px-5")}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="display text-[24px] md:text-[28px] xl:text-[32px] font-semibold text-white mb-1">
+            Bandeja
+          </h1>
+          <p className="text-sm text-white/45">{subtitle}</p>
+        </div>
+        {items.length > 1 && (
+          <button
+            onClick={() => setSortDir((d) => (d === "oldest" ? "newest" : "oldest"))}
+            className="shrink-0 flex items-center gap-1.5 h-9 px-3 rounded-full bg-[var(--color-bg-elevated)] border border-white/[0.08] text-[13px] text-white/80 hover:text-white hover:border-white/20 transition"
+            aria-label="Cambiar orden"
+            title="Cambiar orden"
+          >
+            <ArrowDownUp className="size-3.5" />
+            <span className="hidden sm:inline">
+              {sortDir === "oldest" ? "Más antiguas" : "Más recientes"}
+            </span>
+          </button>
+        )}
       </div>
-      {items.length > 1 && (
-        <button
-          onClick={() => setSortDir((d) => (d === "oldest" ? "newest" : "oldest"))}
-          className="shrink-0 flex items-center gap-1.5 h-9 px-3 rounded-full bg-[var(--color-bg-elevated)] border border-white/[0.08] text-[13px] text-white/80 hover:text-white hover:border-white/20 transition"
-          aria-label="Cambiar orden"
-          title="Cambiar orden"
+      {bothKinds && (
+        <div
+          role="tablist"
+          aria-label="Tipo de consulta"
+          className="mt-3 inline-flex items-center gap-0.5 p-0.5 rounded-full bg-[var(--color-bg-elevated)] border border-white/[0.08]"
         >
-          <ArrowDownUp className="size-3.5" />
-          <span className="hidden sm:inline">
-            {sortDir === "oldest" ? "Más antiguas" : "Más recientes"}
-          </span>
-        </button>
+          {KIND_FILTER_ORDER.map((f) => (
+            <button
+              key={f}
+              role="tab"
+              aria-selected={kindFilter === f}
+              onClick={() => setKindFilter(f)}
+              className={cn(
+                "h-8 px-3 rounded-full text-[12px] font-medium flex items-center gap-1.5 transition-colors",
+                kindFilter === f ? "bg-white/[0.10] text-white" : "text-white/55 hover:text-white/85",
+              )}
+            >
+              {f === "duda" && <MessageSquare className="size-3.5" />}
+              {f === "precio" && <CircleDollarSign className="size-3.5" />}
+              {KIND_FILTER_LABEL[f]}
+              <span className={cn("mono text-[10px] tabular-nums", kindFilter === f ? "text-white/70" : "text-white/40")}>
+                {kindCount[f]}
+              </span>
+            </button>
+          ))}
+        </div>
       )}
     </header>
   );
@@ -340,7 +413,7 @@ export function InboxPage() {
 // ===================================================================
 
 function InboxRow({ q, selected, onSelect }: { q: InboxQuestion; selected: boolean; onSelect: () => void }) {
-  const question = q.question.replace(/^💰\s*/, "");
+  const precio = isPrecio(q);
   return (
     <button
       onClick={onSelect}
@@ -351,16 +424,24 @@ function InboxRow({ q, selected, onSelect }: { q: InboxQuestion; selected: boole
       )}
     >
       <div className="flex items-center gap-2 min-w-0">
+        {precio ? (
+          <CircleDollarSign className="size-3.5 shrink-0 text-[var(--color-gold)]" aria-label="precio" />
+        ) : (
+          <MessageSquare className="size-3.5 shrink-0 text-white/45" aria-label="duda" />
+        )}
         <span className={cn("flex-1 min-w-0 truncate text-[14px] font-medium", selected ? "text-white" : "text-white/90")}>
-          {q.kind === "precio" && <span className="mr-1" aria-label="precio">💰</span>}
           {q.contact_name}
         </span>
-        {q.waiting && (
-          <span className="mono text-[10px] text-white/40 shrink-0 tabular-nums">{q.waiting.replace(/^hace\s/, "")}</span>
-        )}
+        <AgeChip q={q} compact />
       </div>
-      <p className="mt-0.5 text-[13px] text-white/55 leading-snug line-clamp-2">{question}</p>
+      <p className="mt-0.5 text-[13px] text-white/55 leading-snug line-clamp-2">{questionText(q)}</p>
       <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+        {q.team_answer && (
+          <span className="inline-flex items-center gap-1 text-[10px] leading-none px-2 py-1 rounded-full border bg-[var(--color-success-soft)] text-[var(--color-success)] border-[var(--color-success)]/30">
+            <BadgeCheck className="size-3" />
+            ya respondida · {money(q.team_answer.amount)}
+          </span>
+        )}
         {q.stage_label && (
           <span className={cn("inline-flex items-center text-[10px] leading-none px-2 py-1 rounded-full border truncate max-w-full", STAGE_CHIP[stageKey(q)])}>
             {q.stage_label}
@@ -407,7 +488,9 @@ function useThread(q: InboxQuestion, onResolved: () => void, onProposal?: (p: Le
 
   const priceOpening = (): ThreadMessage => ({
     id: "opening", sender: "kira", message_type: "internal_query",
-    content: `${q.contact_name} me pide precio: «${q.question.replace(/^💰\s*/, "")}»${q.context ? `\n\nSpecs: ${q.context}` : ""}\n\nDecime el monto y a qué aplica (ej: «$85 por 100 unidades») y yo le armo el mensaje.`,
+    content: q.team_answer
+      ? `${q.contact_name} pidió precio: «${questionText(q)}»${q.context ? `\n\nSpecs: ${q.context}` : ""}\n\nEl equipo ya le contestó ${money(q.team_answer.amount)} por WhatsApp ${q.team_answer.waiting || ""}. Yo todavía no lo aprendí. Si me decís el precio final y a qué aplica, se lo mando de nuevo (por ejemplo corregido) y lo guardo; si ya está resuelto, cerrala con «Lo manejo yo».`
+      : `${q.contact_name} me pide precio: «${questionText(q)}»${q.context ? `\n\nSpecs: ${q.context}` : ""}\n\nDecime el monto y a qué aplica (ej: «$85 por 100 unidades») y yo le armo el mensaje.`,
   });
 
   const openThread = useCallback(async () => {
@@ -796,7 +879,8 @@ function InboxDetailPane({
           <div className="min-w-0">
             <h2 className="display text-[20px] font-semibold text-white truncate">{q.contact_name}</h2>
             <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-              {q.waiting && <span className="text-[12px] text-white/45">preguntó {q.waiting}</span>}
+              <KindChip q={q} />
+              <AgeChip q={q} />
               {q.stage_label && (
                 <span className={cn("inline-flex items-center text-[11px] leading-none px-2.5 py-1.5 rounded-full border", STAGE_CHIP[stageKey(q)])} title={q.stage_group || undefined}>
                   {q.stage_label}
@@ -835,6 +919,7 @@ function InboxDetailPane({
             estado de algo que no existe: cargá el pedido primero y después respondé.
           </p>
         )}
+        {q.team_answer && <TeamAnswerNote q={q} className="mt-3 max-w-2xl" />}
       </div>
 
       {/* Cuerpo */}
@@ -845,7 +930,7 @@ function InboxDetailPane({
               <div className="flex-1 min-h-0 overflow-y-auto space-y-3">
                 <ThreadBubble m={t.thread[0] ?? {
                   id: "opening", sender: "kira", message_type: "internal_query",
-                  content: `${q.contact_name} me está preguntando esto y no quiero inventar: «${q.question.replace(/^💰\s*/, "")}». ¿Qué le digo?${q.context ? `\n\nContexto que tengo: ${q.context}` : ""}`,
+                  content: `${q.contact_name} me está preguntando esto y no quiero inventar: «${questionText(q)}». ¿Qué le digo?${q.context ? `\n\nContexto que tengo: ${q.context}` : ""}`,
                 }} />
                 {t.thread.slice(1).map((m) => <ThreadBubble key={m.id} m={m} />)}
                 <div className="rounded-2xl border border-[var(--color-noa)]/25 bg-[var(--color-noa-soft)]/30 px-4 py-3 text-[13px] text-white/75 leading-snug">
@@ -904,14 +989,16 @@ function InboxDetailPane({
 function InboxItem({ q, onResolved, onProposal }: { q: InboxQuestion; onResolved: () => void; onProposal?: (p: LearningProposal) => void }) {
   const [t, { inputRef, endRef }] = useThread(q, onResolved, onProposal);
 
+  const precio = isPrecio(q);
   return (
     <Card
       pending
-      icon={<MessageSquare className="size-[18px]" />}
+      icon={precio ? <CircleDollarSign className="size-[18px] text-[var(--color-gold)]" /> : <MessageSquare className="size-[18px]" />}
       title={q.contact_name}
-      subtitle={q.waiting ? `preguntó ${q.waiting}` : "duda pendiente"}
+      subtitle={`${precio ? "Precio" : "Duda"}${q.waiting ? ` · preguntó ${q.waiting}` : " · pendiente"}`}
     >
       <div className="flex items-center gap-2 flex-wrap mb-2">
+        <AgeChip q={q} />
         {q.stage_label && (
           <span className={cn("inline-flex items-center text-[11px] leading-none px-2.5 py-1.5 rounded-full border", STAGE_CHIP[stageKey(q)])} title={q.stage_group || undefined}>
             {q.stage_label}
@@ -930,9 +1017,10 @@ function InboxItem({ q, onResolved, onProposal }: { q: InboxQuestion; onResolved
           estado de algo que no existe: cargá el pedido primero y después respondé.
         </p>
       )}
+      {q.team_answer && <TeamAnswerNote q={q} className="mb-2" />}
       {!t.open && (
         <>
-          <p className="text-[15px] text-white/90 leading-snug whitespace-pre-wrap">{q.question}</p>
+          <p className="text-[15px] text-white/90 leading-snug whitespace-pre-wrap">{questionText(q)}</p>
           {q.context && (
             <p className="mt-2 text-[13px] text-white/45 leading-snug border-l-2 border-white/10 pl-3">{q.context}</p>
           )}
@@ -969,6 +1057,60 @@ function InboxItem({ q, onResolved, onProposal }: { q: InboxQuestion; onResolved
 // ===================================================================
 // Piezas
 // ===================================================================
+
+/** S336: tipo de consulta como chip (antes era un 💰 pegado al texto). */
+function KindChip({ q }: { q: InboxQuestion }) {
+  const precio = isPrecio(q);
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 text-[11px] leading-none px-2.5 py-1.5 rounded-full border",
+        precio
+          ? "bg-[var(--color-gold-soft)] text-[var(--color-gold)] border-[var(--color-gold)]/30"
+          : "bg-white/[0.05] text-white/70 border-white/10",
+      )}
+    >
+      {precio ? <CircleDollarSign className="size-3" /> : <MessageSquare className="size-3" />}
+      {precio ? "Precio" : "Duda"}
+    </span>
+  );
+}
+
+/** S336: cuánto lleva esperando, con tono: neutro < 4 h ≤ ámbar < 48 h ≤ rojo. */
+function AgeChip({ q, compact = false }: { q: InboxQuestion; compact?: boolean }) {
+  const text = ageText(q);
+  if (!text) return null;
+  const tone = ageTone(q);
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 leading-none rounded-full border tabular-nums shrink-0",
+        compact ? "mono text-[10px] px-1.5 py-0.5" : "text-[11px] px-2.5 py-1.5",
+        AGE_CHIP[tone],
+      )}
+      title={q.waiting ? `preguntó ${q.waiting}` : undefined}
+      aria-label={q.waiting ? `esperando ${text}` : undefined}
+    >
+      {!compact && <Clock className="size-3" />}
+      {text}
+    </span>
+  );
+}
+
+/** S336: el equipo YA le respondió a este cliente por WhatsApp (el harvest sacó el monto).
+ *  Antes la bandeja la mostraba como sin responder y «Enviar» mandaba el precio dos veces. */
+function TeamAnswerNote({ q, className }: { q: InboxQuestion; className?: string }) {
+  const ta = q.team_answer;
+  if (!ta) return null;
+  return (
+    <p className={cn("text-[12px] leading-snug px-2.5 py-1.5 rounded-xl bg-[var(--color-success-soft)] text-white/80 border border-[var(--color-success)]/30", className)}>
+      <BadgeCheck className="size-3.5 inline-block -translate-y-px mr-1 text-[var(--color-success)]" />
+      <span className="text-[var(--color-success)] font-medium">Ya respondida por el equipo:</span>{" "}
+      {money(ta.amount)}{ta.notes ? ` (${ta.notes})` : ""}{ta.waiting ? `, ${ta.waiting}` : ""}{ta.by ? ` · ${ta.by}` : ""}.
+      Kira todavía no lo aprendió. Si se lo mandás desde acá, al cliente le llega otra vez; «Lo manejo yo» la cierra.
+    </p>
+  );
+}
 
 /** S304: "Kira quiere aprender esto" — la lección destilada de la respuesta que acaba de salir.
  *  Aprobar la mete al prompt de Kira (sección "Respuestas del equipo"); rechazar la archiva. */
@@ -1049,8 +1191,8 @@ function EmptyState({ compact = false }: { compact?: boolean }) {
       </div>
       <h2 className={cn("text-white/85 mb-1", compact ? "text-[15px]" : "text-lg")}>Bandeja al día</h2>
       <p className="text-sm text-white/45 max-w-sm">
-        No hay dudas pendientes. Cuando Kira no sepa algo, te va a aparecer acá para que
-        le digas qué responder.
+        No hay consultas pendientes. Cuando Kira no sepa algo o le pidan un precio, te va a
+        aparecer acá para que le digas qué responder.
       </p>
     </div>
   );

@@ -223,6 +223,22 @@ export interface InboxQuestion {
   /** Lo último que Kira le dijo al equipo en el hilo (corto), para la lista. */
   last_kira?: string | null;
   last_type?: ThreadMessageType | null;
+  /** S336: horas desde que se creó (las calcula el server) — la app pinta la urgencia. */
+  age_hours?: number | null;
+  /** S336 (precio): "pending" = nadie respondió · "needs_review" = el harvest sacó algo
+   *  de una respuesta humana y espera revisión. */
+  pricing_status?: "pending" | "needs_review" | null;
+  /** S336 (precio): el equipo YA le contestó al cliente por WhatsApp (monto extraído por
+   *  el harvest); Kira todavía no lo aprendió. null = nadie respondió. */
+  team_answer?: {
+    amount: number;
+    unit?: string | null;
+    notes?: string | null;
+    by?: string | null;
+    at?: string | null;
+    waiting?: string;
+    confidence?: number | null;
+  } | null;
 }
 
 /** S332: un turno del hilo interno equipo ↔ Kira (tabla escalation_messages). */

@@ -103,6 +103,16 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 
     const hasContent = value.trim().length > 0 || attachments.length > 0;
 
+    // S332 F1 — en escritorio, al abrir/cambiar de conversación el cursor ya está en el
+    // input: nadie debería hacer click para empezar a escribir. En touch NO: enfocar
+    // levanta el teclado y tapa media pantalla sin que la persona lo haya pedido.
+    useEffect(() => {
+      if (isCoarsePointer) return;
+      const id = requestAnimationFrame(() => textareaRef.current?.focus({ preventScroll: true }));
+      return () => cancelAnimationFrame(id);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [conversationId]);
+
     // S209 — "Editar esta" del visor de imágenes: prellena el input con la
     // referencia EXACTA de la imagen elegida. Sin esto no había manera de
     // señalar cuál de varias imágenes editar y la edición caía sobre la

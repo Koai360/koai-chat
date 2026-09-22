@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { AppBackground } from "./AppBackground";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
@@ -10,6 +10,8 @@ import { useRoute } from "@/hooks/useRoute";
 import { useNoaFlags } from "@/hooks/useNoaFlags";
 import { useChat } from "@/hooks/useChat";
 import { useKeyboardViewport } from "@/hooks/useKeyboardViewport";
+import { useHotkeys } from "@/hooks/useHotkeys";
+import { CommandPalette } from "./CommandPalette";
 import { navigate } from "@/lib/routing";
 import type { AuthUser } from "@/types/api";
 
@@ -125,14 +127,25 @@ export function AppShell({ user, onLogout }: AppShellProps) {
     void refresh();
   };
 
-  const handleNewChat = () => {
+  const handleNewChat = useCallback(() => {
     setActiveId(null);
     navigate({ kind: "chat" });
-  };
+  }, [setActiveId]);
 
-  const handleSelectConversation = (id: string) => {
+  const handleSelectConversation = useCallback((id: string) => {
     navigate({ kind: "chat", conversationId: id });
-  };
+  }, []);
+
+  // S332 F1 — teclado de escritorio: ⌘K buscador · ⌘⇧O nuevo chat · `/` foco al input.
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const chatInputRef = useRef<HTMLTextAreaElement>(null);
+  const openPalette = useCallback(() => setPaletteOpen(true), []);
+  const closePalette = useCallback(() => setPaletteOpen(false), []);
+  const focusInput = useCallback(() => {
+    if (route.kind !== "chat") navigate({ kind: "chat" });
+    requestAnimationFrame(() => chatInputRef.current?.focus());
+  }, [route.kind]);
+  useHotkeys({ onPalette: openPalette, onNewChat: handleNewChat, onFocusInput: focusInput });
 
   const handleSend = async (text: string, attachments?: import("@/components/chat/ChatInput").AttachedFile[]) => {
     // S139: multi-attachment REAL — todo en 1 sola request. Backend recibe
@@ -167,6 +180,13 @@ export function AppShell({ user, onLogout }: AppShellProps) {
   return (
     <>
       <AppBackground />
+      <CommandPalette
+        open={paletteOpen}
+        onClose={closePalette}
+        conversations={conversations}
+        onNewChat={handleNewChat}
+        onSelectConversation={handleSelectConversation}
+      />
 
       <div className="relative z-10 flex h-full">
         {/* Desktop sidebar */}
@@ -246,6 +266,7 @@ export function AppShell({ user, onLogout }: AppShellProps) {
 
           {route.kind === "chat" && (
             <ChatInput
+              ref={chatInputRef}
               onSend={handleSend}
               onStop={stopGeneration}
               loading={loading}

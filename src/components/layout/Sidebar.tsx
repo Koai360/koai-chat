@@ -23,6 +23,8 @@ import { cn } from "@/lib/cn";
 import type { AuthUser, Conversation } from "@/types/api";
 import { navigate, type Route } from "@/lib/routing";
 import { renameConversation as apiRenameConversation, deleteConversation as apiDeleteConversation, listInbox } from "@/lib/api";
+import { openPalette, MOD_LABEL } from "@/hooks/useHotkeys";
+import { Search } from "lucide-react";
 
 /** Cuenta de dudas pendientes en la Bandeja para el badge del nav (poll 60s +
  *  refresco al navegar, ej. al salir de la Bandeja tras resolver). */
@@ -240,6 +242,13 @@ export function Sidebar({
             variant="ghost"
             size="lg"
             onClick={onNewChat}
+          />
+          <IconButton
+            icon={<Search className="size-[20px]" strokeWidth={2} />}
+            label={`Buscar (${MOD_LABEL}K)`}
+            variant="ghost"
+            size="lg"
+            onClick={openPalette}
           />
         </div>
 
@@ -510,7 +519,21 @@ function SidebarContent({
           )}
         >
           <SquarePen className="size-4" />
-          Nuevo chat
+          <span className="flex-1 text-left">Nuevo chat</span>
+          <kbd className="hidden xl:inline mono text-[10px] text-white/40 tracking-tight">{MOD_LABEL}⇧O</kbd>
+        </button>
+        {/* S332 F1: buscador ⌘K a la vista — el atajo se descubre leyéndolo acá */}
+        <button
+          onClick={openPalette}
+          className={cn(
+            "mt-2 w-full flex items-center gap-2 px-3.5 h-9 rounded-full",
+            "text-white/55 text-[13px]",
+            "hover:bg-white/[0.04] hover:text-white/85 transition-colors",
+          )}
+        >
+          <Search className="size-4" />
+          <span className="flex-1 text-left">Buscar…</span>
+          <kbd className="mono text-[10px] text-white/40 tracking-tight">{MOD_LABEL}K</kbd>
         </button>
       </div>
 

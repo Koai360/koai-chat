@@ -28,29 +28,43 @@ import { cn } from "@/lib/cn";
  */
 export function AtlasProposalsSection() {
   const [data, setData] = useState<AtlasProposalsResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ status: number; message: string } | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const inflight = useRef<string | null>(null);
 
   const load = useCallback((after = "") => {
+    // Una sola carga por cursor: dos clics en "Ver más" con el mismo cursor no duplican filas
+    if (inflight.current === after) return Promise.resolve();
+    inflight.current = after;
+    if (after) setLoadingMore(true);
     return listAtlasProposals(3, after)
       .then((r) => {
         setError(null);
-        setData((prev) => (after && prev ? { ...r, proposals: [...prev.proposals, ...r.proposals] } : r));
+        setData((prev) => {
+          if (!after || !prev) return r;
+          const seen = new Set(prev.proposals.map((p) => p.id));
+          return { ...r, proposals: [...prev.proposals, ...r.proposals.filter((p) => !seen.has(p.id))] };
+        });
       })
-      .catch((e) => setError(e instanceof Error ? e.message : "No pude cargar las propuestas de ATLAS"))
-      .finally(() => setLoaded(true));
+      .catch((e) => setError({ status: e instanceof ApiError ? e.status : 0, message: e instanceof Error ? e.message : "No pude cargar las propuestas de ATLAS" }))
+      .finally(() => { setLoaded(true); setLoadingMore(false); if (inflight.current === after) inflight.current = null; });
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    // fuera del tick del efecto: el linter no quiere setState síncrono dentro de un effect
+    const t = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(t);
+  }, [load]);
 
   if (!loaded) return null;
   if (error) {
-    // 403 = no sos aprobador: la sección no existe para vos. Otro error sí se muestra.
-    if (/403|aprobador/i.test(error)) return null;
+    // 403 = no sos aprobador: la sección no existe para vos. Cualquier otro error sí se muestra.
+    if (error.status === 403) return null;
     return (
       <section className="pt-6" aria-label="Propuestas de ATLAS">
         <Card className="p-4 text-[13px] text-amber-200/90">
-          No pude cargar las propuestas de ATLAS ({error}).{" "}
+          No pude cargar las propuestas de ATLAS ({error.message}).{" "}
           <button className="underline" onClick={() => void load()}>Reintentar</button>
         </Card>
       </section>
@@ -60,13 +74,18 @@ export function AtlasProposalsSection() {
 
   const remove = (id: number) =>
     setData((prev) => prev ? { ...prev, proposals: prev.proposals.filter((p) => p.id !== id), attention: prev.attention.filter((p) => p.id !== id) } : prev);
+  /** Aplica el estado DURABLE leído del servidor: pending se actualiza en su lugar; uncertain/approved
+   *  pasan a atención; sólo los estados terminales (executed/failed/rejected/expired) retiran la tarjeta. */
   const replace = (p: AtlasProposal) =>
     setData((prev) => {
       if (!prev) return prev;
       const inAttention = p.status === "uncertain" || p.status === "approved";
+      const stillPending = p.status === "pending";
       return {
         ...prev,
-        proposals: prev.proposals.filter((x) => x.id !== p.id),
+        proposals: stillPending
+          ? prev.proposals.map((x) => (x.id === p.id ? p : x))
+          : prev.proposals.filter((x) => x.id !== p.id),
         attention: inAttention ? [p, ...prev.attention.filter((x) => x.id !== p.id)] : prev.attention.filter((x) => x.id !== p.id),
       };
     });
@@ -95,7 +114,7 @@ export function AtlasProposalsSection() {
         <ProposalCard key={p.id} p={p} onResolved={(np) => (np ? replace(np) : remove(p.id))} />
       ))}
       {data.more > 0 && data.next_cursor && (
-        <Button variant="ghost" size="sm" onClick={() => void load(data.next_cursor || "")}>Ver {Math.min(data.more, 3)} más</Button>
+        <Button variant="ghost" size="sm" disabled={loadingMore} onClick={() => void load(data.next_cursor || "")}>{loadingMore ? "Cargando…" : `Ver ${Math.min(data.more, 3)} más`}</Button>
       )}
     </section>
   );
@@ -143,37 +162,54 @@ function describe(p: AtlasProposal): string {
 }
 
 function ProposalCard({ p, onResolved }: { p: AtlasProposal; onResolved: (np: AtlasProposal | null) => void }) {
-  const [busy, setBusy] = useState<"approve" | "reject" | null>(null);
+  const [busy, setBusy] = useState<"approve" | "reject" | "refresh" | null>(null);
+  // Tras una decisión SIEMPRE se relee el estado durable. Si la relectura falla, la tarjeta queda
+  // bloqueada (sólo "Releer"): un POST ambiguo + GET fallido no puede volver a habilitar Aprobar.
+  const [stale, setStale] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState("");
   const ref = useSeenWhenShown(p.id, !!p.seen_at);
 
-  const refresh = async (fallback: string) => {
-    try { onResolved(await getAtlasProposal(p.id)); } catch { toast.message(fallback); }
+  /** Relee y aplica el estado durable. Devuelve true si pudo releer. */
+  const refresh = async (): Promise<boolean> => {
+    try {
+      const np = await getAtlasProposal(p.id);
+      setStale(null);
+      onResolved(np);
+      return true;
+    } catch {
+      setStale("No pude releer el estado de esta propuesta. Hasta releerla no se puede decidir.");
+      return false;
+    }
   };
 
   const approve = async () => {
+    if (busy || stale) return;
     setBusy("approve");
     try {
       const r = await approveAtlasProposal(p.id, p.expected_hash);
-      if (r.status === "executed") { toast.success(`Aplicado y verificado: ${ACTION_ES[p.action_type] || p.action_type}`); onResolved(null); }
-      else if (r.status === "failed") { toast.error(`La plataforma rechazó el cambio: ${r.error || ""}`); onResolved(null); }
-      else { toast.warning(`Quedó en ${r.status}: ${r.error || "el efecto no se pudo verificar"}. Hay que reconciliar.`); await refresh("Releé la bandeja"); }
+      if (r.status === "executed") toast.success(`Aplicado y verificado: ${ACTION_ES[p.action_type] || p.action_type}`);
+      else if (r.status === "failed") toast.error(`La plataforma rechazó el cambio: ${r.error || ""}`);
+      else toast.warning(`Quedó en ${r.status}: ${r.error || "el efecto no se pudo verificar"}. Hay que reconciliar.`);
     } catch (e) {
-      const msg = e instanceof ApiError ? e.message : (e instanceof Error ? e.message : "No se pudo aprobar");
-      toast.error(msg);
-      // 503 / red: el claim pudo quedar tomado → releer SIEMPRE antes de permitir otra acción
-      await refresh("No pude releer el estado; recargá la bandeja");
-    } finally { setBusy(null); }
+      toast.error(e instanceof ApiError ? e.message : (e instanceof Error ? e.message : "No se pudo aprobar"));
+    } finally {
+      // 503 / red / éxito: el estado que manda es el de la fila, no la respuesta del POST
+      await refresh();
+      setBusy(null);
+    }
   };
 
   const reject = async () => {
+    if (busy || stale) return;
     if (note.trim().length < 3) { toast.error("Contame en una línea por qué: ATLAS aprende del rechazo"); return; }
     setBusy("reject");
-    try { await rejectAtlasProposal(p.id, note.trim()); toast.success("Propuesta rechazada"); onResolved(null); }
-    catch (e) { toast.error(e instanceof Error ? e.message : "No se pudo rechazar"); await refresh("Recargá la bandeja"); }
-    finally { setBusy(null); }
+    try { await rejectAtlasProposal(p.id, note.trim()); toast.success("Propuesta rechazada"); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "No se pudo rechazar"); }
+    finally { await refresh(); setBusy(null); }
   };
+
+  const reread = async () => { setBusy("refresh"); await refresh(); setBusy(null); };
 
   return (
     <div ref={ref}>
@@ -192,18 +228,27 @@ function ProposalCard({ p, onResolved }: { p: AtlasProposal; onResolved: (np: At
           {open ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />} {open ? "Ocultar detalle" : "Ver métricas"}
         </button>
         {open && <pre className="mono text-[11px] text-white/50 whitespace-pre-wrap break-words">{JSON.stringify(p.snapshot_metrics, null, 1)}</pre>}
-        <div className="flex items-center gap-2 pt-1">
-          <Button size="sm" disabled={busy !== null} onClick={() => void approve()}>
-            <Check className="size-4" /> {busy === "approve" ? "Aplicando…" : "Aprobar"}
-          </Button>
-          <input
-            value={note} onChange={(e) => setNote(e.target.value)} placeholder="Por qué no (para rechazar)"
-            className="flex-1 min-w-0 bg-white/5 rounded px-2 py-1 text-[13px] text-white/80 outline-none"
-          />
-          <Button size="sm" variant="ghost" disabled={busy !== null} onClick={() => void reject()}>
-            <X className="size-4" /> {busy === "reject" ? "…" : "Rechazar"}
-          </Button>
-        </div>
+        {stale ? (
+          <div className="flex items-center gap-2 pt-1 text-[13px] text-amber-200/90">
+            <span className="flex-1">{stale}</span>
+            <Button size="sm" variant="ghost" disabled={busy !== null} onClick={() => void reread()}>
+              <RefreshCw className={cn("size-3.5", busy === "refresh" && "animate-spin")} /> Releer
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 pt-1">
+            <Button size="sm" disabled={busy !== null} onClick={() => void approve()}>
+              <Check className="size-4" /> {busy === "approve" ? "Aplicando…" : "Aprobar"}
+            </Button>
+            <input
+              value={note} onChange={(e) => setNote(e.target.value)} placeholder="Por qué no (para rechazar)"
+              className="flex-1 min-w-0 bg-white/5 rounded px-2 py-1 text-[13px] text-white/80 outline-none"
+            />
+            <Button size="sm" variant="ghost" disabled={busy !== null} onClick={() => void reject()}>
+              <X className="size-4" /> {busy === "reject" ? "…" : "Rechazar"}
+            </Button>
+          </div>
+        )}
       </Card>
     </div>
   );

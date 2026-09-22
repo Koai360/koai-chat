@@ -264,6 +264,49 @@ export interface SendResult {
   learning_proposal?: LearningProposal | null;
 }
 
+// ============================================================
+// PANEL DE CONTEXTO (escritorio ≥1536, S332 F3) — lo que hay que mirar HOY, por rol
+// ============================================================
+
+export interface PanelOrderRef { nro: string; entrega?: string | null; estado?: string | null }
+export interface PanelOperations {
+  ventana_dias: number;
+  vencidos: PanelOrderRef[];
+  proximos: PanelOrderRef[];
+  bloqueados: PanelOrderRef[];
+  en_hold: PanelOrderRef[];
+  activos: number;
+}
+export interface PanelFinance {
+  mora_dias: number;
+  mora_count: number;
+  mora_total: number;
+  merchants_sin_categorizar: number | null;
+}
+export interface PanelBandeja {
+  count: number | null;
+  quote: number;
+  pedido: number;
+  nuevo: number;
+  top: Array<{ id: string; contact_name: string; question: string; waiting: string }>;
+}
+export interface PanelData {
+  user: string;
+  view: { operations: boolean; finance: boolean };
+  updated_at: string;
+  business_date: string;
+  operations: PanelOperations | null;
+  finance: PanelFinance | null;
+  bandeja: PanelBandeja;
+  partial_errors: string[];
+}
+
+/** `GET /api/noa/panel` — sólo equipo; los bloques operations/finance vienen null si el rol no los ve. */
+export async function getPanel(force = false): Promise<PanelData> {
+  const res = await apiFetch(`/api/noa/panel${force ? "?force=1" : ""}`);
+  return res.json();
+}
+
 /** Lista las dudas pendientes (más viejas primero). */
 export async function listInbox(): Promise<InboxQuestion[]> {
   const res = await apiFetch("/api/escalations/pending");

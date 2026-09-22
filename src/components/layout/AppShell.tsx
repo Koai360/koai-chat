@@ -12,6 +12,7 @@ import { useChat } from "@/hooks/useChat";
 import { useKeyboardViewport } from "@/hooks/useKeyboardViewport";
 import { useHotkeys } from "@/hooks/useHotkeys";
 import { CommandPalette } from "./CommandPalette";
+import { ContextPanel } from "./ContextPanel";
 import { navigate } from "@/lib/routing";
 import type { AuthUser } from "@/types/api";
 
@@ -279,6 +280,9 @@ export function AppShell({ user, onLogout }: AppShellProps) {
             />
           )}
         </div>
+
+        {/* S332 F3 — gutter derecho del chat con propósito (≥1536px, sólo en el chat) */}
+        {route.kind === "chat" && <ContextPanel />}
       </div>
     </>
   );

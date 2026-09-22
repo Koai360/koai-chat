@@ -30,6 +30,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { InlineConfirm } from "@/components/ui/InlineConfirm";
 import { relativeTime } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { usePrivateMode } from "@/hooks/usePrivateMode";
@@ -58,7 +59,7 @@ const TAB_GROUPS: Array<{ title: string; ids: string[] }> = [
   { title: "Vos", ids: ["cuenta", "tema"] },
   { title: "Noa", ids: ["voz", "notificaciones", "memoria"] },
   { title: "Privacidad", ids: ["privacidad"] },
-  { title: "Sistema", ids: ["tools", "kb"] },
+  { title: "Sistema", ids: ["tools"] },   // "kb" (Conocimiento) fuera de la nav hasta que exista (S332 F4); la ruta sigue válida
 ];
 
 /** md breakpoint reactivo — decide entre lista mobile y sidebar desktop */
@@ -107,7 +108,7 @@ export function SettingsPage({ user, tab, onLogout }: SettingsPageProps) {
           </header>
           <nav className="px-3 pb-8">
             <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] divide-y divide-white/[0.05] overflow-hidden">
-              {TABS.map((t) => (
+              {TABS.filter((t) => !t.soon).map((t) => (
                 <button
                   key={t.id}
                   onClick={() => {
@@ -164,7 +165,7 @@ export function SettingsPage({ user, tab, onLogout }: SettingsPageProps) {
   return (
     <div className="h-full flex flex-col">
       <header className="px-6 pt-6 pb-3">
-        <h1 className="display text-[24px] md:text-[28px] font-semibold text-white mb-1">
+        <h1 className="display text-[24px] md:text-[28px] xl:text-[32px] font-semibold text-white mb-1">
           Configuración
         </h1>
         <p className="text-sm text-white/45">Personalizá tu experiencia con Noa</p>
@@ -377,13 +378,19 @@ function MemoryTab() {
       .catch(() => setMemories([]));
   }, []);
 
+  // S332 F4: confirmación EN LA FILA (antes `confirm()` nativo), mismo patrón que Historial.
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const handleDelete = async (id: string) => {
-    if (!confirm("¿Borrar esta memoria?")) return;
+    setBusyId(id);
     try {
       await deleteMemory(id);
       setMemories((prev) => prev?.filter((m) => m.id !== id) ?? null);
     } catch (err) {
       console.warn("[MemoryTab] delete failed", err);
+    } finally {
+      setBusyId(null);
+      setDeletingId(null);
     }
   };
 
@@ -400,6 +407,16 @@ function MemoryTab() {
       ) : (
         <div className="space-y-2">
           {memories.map((m) => (
+            deletingId === m.id ? (
+              <InlineConfirm
+                key={m.id}
+                question="¿Borrar esta memoria? Noa deja de recordarla."
+                busy={busyId === m.id}
+                onConfirm={() => handleDelete(m.id)}
+                onCancel={() => setDeletingId(null)}
+                className="min-h-[52px]"
+              />
+            ) : (
             <div
               key={m.id}
               className="flex items-start gap-3 p-3 rounded-lg bg-white/[0.03] border border-white/[0.04]"
@@ -414,11 +431,12 @@ function MemoryTab() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => handleDelete(m.id)}
+                onClick={() => setDeletingId(m.id)}
               >
                 Borrar
               </Button>
             </div>
+            )
           ))}
         </div>
       )}

@@ -240,7 +240,7 @@ export function GalleryPage() {
       <header className="px-6 pt-6 pb-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
-            <h1 className="display text-[24px] md:text-[28px] font-semibold text-white mb-1">
+            <h1 className="display text-[24px] md:text-[28px] xl:text-[32px] font-semibold text-white mb-1">
               Galería
             </h1>
             <p className="text-sm text-white/45">

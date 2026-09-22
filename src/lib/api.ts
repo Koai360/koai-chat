@@ -151,6 +151,15 @@ export async function listConversations(): Promise<Conversation[]> {
   return Array.isArray(data) ? data : data.items || data.conversations || [];
 }
 
+/** S332 F4 — búsqueda del Historial por CONTENIDO (≥3 caracteres). Hasta 50 conversaciones
+ *  distintas con el fragmento más reciente que coincide. */
+export interface ConversationSearchHit { conversation_id: string; snippet: string; created_at?: string | null }
+export async function searchConversations(q: string): Promise<ConversationSearchHit[]> {
+  const res = await apiFetch(`/api/chat/conversations/search?q=${encodeURIComponent(q)}`);
+  const data = await res.json();
+  return Array.isArray(data.items) ? data.items : [];
+}
+
 export async function createConversation(agent = "noa", title?: string): Promise<Conversation> {
   const res = await apiFetch("/api/chat/conversations", {
     method: "POST",

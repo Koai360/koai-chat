@@ -1,4 +1,5 @@
 import { forwardRef, useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
+import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowUp, Mic, Phone, Plus, Shield, Square, X, FileText, Image as ImageIcon } from "lucide-react";
 import { IconButton } from "@/components/ui/IconButton";
@@ -195,7 +196,7 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
       const next: AttachedFile[] = [];
       for (const f of files) {
         if (f.size > MAX_FILE_SIZE) {
-          window.alert(`"${f.name}" excede 25 MB y fue ignorado.`);
+          toast.error(`"${f.name}" excede 25 MB y fue ignorado.`);
           continue;
         }
         try {

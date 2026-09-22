@@ -295,6 +295,20 @@ html[data-keyboard="open"] .app-bg {
   will-change: opacity;
 }
 
+/* S332 F4 — en escritorio ancho el lienzo es grande y el glow de teléfono se perdía: mismo
+   dibujo, un poco más presente. El móvil no cambia. */
+@media (min-width: 1280px) {
+  .app-bg {
+    background:
+      radial-gradient(ellipse 110% 55% at 50% 110%, rgba(76, 29, 149, 0.22) 0%, rgba(30, 58, 138, 0.14) 32%, transparent 70%),
+      radial-gradient(ellipse 45% 35% at 8% 0%, rgba(200, 221, 74, 0.05) 0%, transparent 65%),
+      linear-gradient(to top, var(--color-gradient-accent) 0%, var(--color-gradient-glow) 22%, var(--color-gradient-mid) 48%, var(--color-gradient-base) 100%);
+  }
+  .app-bg::before {
+    background: radial-gradient(ellipse 70% 40% at 50% 100%, rgba(107, 63, 142, 0.18) 0%, transparent 70%);
+  }
+}
+
 @keyframes breathe {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.85; }

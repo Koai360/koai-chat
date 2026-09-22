@@ -40,9 +40,13 @@ export function relativeTime(iso?: string | null): string {
   if (diff < 86400) return `hace ${Math.floor(diff / 3600)}h`;
   if (diff < 86400 * 2) return "ayer";
   if (diff < 86400 * 7) return `hace ${Math.floor(diff / 86400)}d`;
-  if (diff < 86400 * 30) return `hace ${Math.floor(diff / (86400 * 7))}sem`;
-  if (diff < 86400 * 365) return `hace ${Math.floor(diff / (86400 * 30))}meses`;
-  return `hace ${Math.floor(diff / (86400 * 365))}años`;
+  if (diff < 86400 * 30) return `hace ${Math.floor(diff / (86400 * 7))} sem`;
+  if (diff < 86400 * 365) {
+    const m = Math.floor(diff / (86400 * 30));
+    return `hace ${m} ${m === 1 ? "mes" : "meses"}`;
+  }
+  const y = Math.floor(diff / (86400 * 365));
+  return `hace ${y} ${y === 1 ? "año" : "años"}`;
 }
 
 /**

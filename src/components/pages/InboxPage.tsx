@@ -170,7 +170,7 @@ export function InboxPage() {
   const header = (
     <header className={cn("px-6 pt-6 pb-3 flex items-start justify-between gap-3", isXL && "px-5")}>
       <div className="min-w-0">
-        <h1 className="display text-[24px] md:text-[28px] font-semibold text-white mb-1">
+        <h1 className="display text-[24px] md:text-[28px] xl:text-[32px] font-semibold text-white mb-1">
           Bandeja
         </h1>
         <p className="text-sm text-white/45">

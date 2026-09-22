@@ -143,7 +143,7 @@ export function ChatEmpty({ userName = "Jesús" }: ChatEmptyProps) {
           style={{ fontSize: "clamp(2.5rem, 7vw, 3.75rem)" }}
         >
           {before}
-          <span style={{ color: "#C8DD4A" }}>{userName}</span>
+          <span style={{ color: "var(--color-noa)" }}>{userName}</span>
           {after}
         </h1>
 

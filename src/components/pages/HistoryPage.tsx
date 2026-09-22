@@ -3,6 +3,7 @@ import { Search, Clock, Trash2, Pencil, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import {
   listConversations,
+  searchConversations,
   deleteConversation as apiDeleteConversation,
   renameConversation as apiRenameConversation,
 } from "@/lib/api";
@@ -52,11 +53,32 @@ export function HistoryPage({ onDeleteConversation }: HistoryPageProps = {}) {
   };
   useEffect(load, []);
 
+  // S332 F4: además del título, el backend busca en el CONTENIDO (≥3 letras, con debounce).
+  const [contentHits, setContentHits] = useState<Map<string, string>>(new Map());
+  const [searching, setSearching] = useState(false);
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 3) {
+      setContentHits(new Map());
+      setSearching(false);
+      return;
+    }
+    let alive = true;
+    setSearching(true);
+    const t = setTimeout(() => {
+      searchConversations(q)
+        .then((hits) => { if (alive) setContentHits(new Map(hits.map((h) => [h.conversation_id, h.snippet]))); })
+        .catch(() => { /* la búsqueda por título sigue funcionando sola */ })
+        .finally(() => { if (alive) setSearching(false); });
+    }, 350);
+    return () => { alive = false; clearTimeout(t); };
+  }, [query]);
+
   const filtered = useMemo(() => {
     if (!query.trim()) return items;
     const q = query.toLowerCase();
-    return items.filter((c) => (c.title || "").toLowerCase().includes(q));
-  }, [items, query]);
+    return items.filter((c) => (c.title || "").toLowerCase().includes(q) || contentHits.has(c.id));
+  }, [items, query, contentHits]);
 
   const grouped = useMemo(() => groupByDay(filtered), [filtered]);
 
@@ -93,12 +115,12 @@ export function HistoryPage({ onDeleteConversation }: HistoryPageProps = {}) {
     <div className="h-full flex flex-col">
       <header className="px-6 pt-6 pb-3 max-w-[1180px] w-full flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="display text-[24px] md:text-[28px] font-semibold text-white mb-1">
+          <h1 className="display text-[24px] md:text-[28px] xl:text-[32px] font-semibold text-white mb-1">
             Historial
           </h1>
           <p className="text-sm text-white/45">
             {items.length > 0
-              ? `${items.length} conversaciones${query.trim() ? ` · ${filtered.length} coinciden` : ""}`
+              ? `${items.length} conversaciones${query.trim() ? ` · ${filtered.length} coinciden${searching ? "…" : ""}` : ""}`
               : "Tus conversaciones con Noa"}
           </p>
         </div>
@@ -109,7 +131,7 @@ export function HistoryPage({ onDeleteConversation }: HistoryPageProps = {}) {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar por título…"
+            placeholder="Buscar por título o contenido…"
             aria-label="Buscar en el historial"
             className="w-full h-10 pl-10 pr-4 rounded-full bg-[var(--color-bg-elevated)] border border-white/[0.08] text-[14px] text-white placeholder:text-white/35 focus:border-[var(--color-noa)]/40 outline-none"
           />
@@ -154,6 +176,7 @@ export function HistoryPage({ onDeleteConversation }: HistoryPageProps = {}) {
                     <HistoryRow
                       key={c.id}
                       conv={c}
+                      snippet={query.trim() && !(c.title || "").toLowerCase().includes(query.toLowerCase()) ? contentHits.get(c.id) : undefined}
                       renaming={renamingId === c.id}
                       deleting={deletingId === c.id}
                       busy={busyId === c.id}
@@ -178,6 +201,7 @@ const ABS_DATE = new Intl.DateTimeFormat("es", { day: "2-digit", month: "short",
 
 function HistoryRow({
   conv,
+  snippet,
   renaming,
   deleting,
   busy,
@@ -188,6 +212,8 @@ function HistoryRow({
   onDelete,
 }: {
   conv: Conversation;
+  /** Fragmento del mensaje que coincidió (sólo cuando el título no coincide). */
+  snippet?: string;
   renaming: boolean;
   deleting: boolean;
   busy: boolean;
@@ -235,7 +261,10 @@ function HistoryRow({
         ) : (
           <MessageSquare className="size-4 text-white/35 shrink-0" />
         )}
-        <span className="flex-1 min-w-0 text-[14px] text-white/90 truncate">{title}</span>
+        <span className="flex-1 min-w-0 flex flex-col">
+          <span className="text-[14px] text-white/90 truncate">{title}</span>
+          {snippet && <span className="text-[12px] text-white/45 truncate">{snippet}</span>}
+        </span>
         <span
           className="mono text-[11px] text-white/45 tracking-tight tabular-nums shrink-0 hidden sm:inline"
           title={ts ? ABS_DATE.format(new Date(ts)) : undefined}

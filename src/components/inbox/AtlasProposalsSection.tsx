@@ -57,7 +57,20 @@ export function AtlasProposalsSection() {
           return { ...r, proposals: [...prev.proposals, ...r.proposals.filter((p) => !seen.has(p.id))] };
         });
       })
-      .catch((e) => setError({ status: e instanceof ApiError ? e.status : 0, message: e instanceof Error ? e.message : "No pude cargar las propuestas de ATLAS" }))
+      .catch((e) => {
+        if (startedAt !== epoch.current) {
+          // el error es de un listado ya obsoleto: se repite, no se muestra
+          inflight.current = null;
+          return loadRef.current ? loadRef.current(after) : Promise.resolve();
+        }
+        const msg = e instanceof Error ? e.message : "No pude cargar las propuestas de ATLAS";
+        if (after) {
+          // fallo al paginar: las tarjetas y la atención ya confirmadas se quedan; sólo se avisa
+          toast.error(`No pude cargar más propuestas (${msg})`);
+          return;
+        }
+        setError({ status: e instanceof ApiError ? e.status : 0, message: msg });
+      })
       .finally(() => { setLoaded(true); setLoadingMore(false); if (inflight.current === after) inflight.current = null; });
   }, []);
 
@@ -69,17 +82,17 @@ export function AtlasProposalsSection() {
   }, [load]);
 
   if (!loaded) return null;
-  if (error) {
-    // 403 = no sos aprobador: la sección no existe para vos. Cualquier otro error sí se muestra.
-    if (error.status === 403) return null;
-    return (
-      <section className="pt-6" aria-label="Propuestas de ATLAS">
-        <Card className="p-4 text-[13px] text-amber-200/90">
-          No pude cargar las propuestas de ATLAS ({error.message}).{" "}
-          <button className="underline" onClick={() => void load()}>Reintentar</button>
-        </Card>
-      </section>
-    );
+  // 403 = no sos aprobador: la sección no existe para vos. Cualquier otro error sí se muestra,
+  // y si ya había datos confirmados en pantalla, el aviso va ARRIBA sin desmontarlos.
+  if (error?.status === 403) return null;
+  const errorBanner = error ? (
+    <Card className="p-4 text-[13px] text-amber-200/90">
+      No pude cargar las propuestas de ATLAS ({error.message}).{" "}
+      <button className="underline" onClick={() => void load()}>Reintentar</button>
+    </Card>
+  ) : null;
+  if (error && !data) {
+    return <section className="pt-6" aria-label="Propuestas de ATLAS">{errorBanner}</section>;
   }
   // La sección sólo desaparece cuando no queda NADA: ni visibles, ni en atención, ni páginas por cargar
   if (!data || (data.proposals.length === 0 && data.attention.length === 0 && !(data.more > 0 && data.next_cursor))) return null;
@@ -118,6 +131,7 @@ export function AtlasProposalsSection() {
       <p className="text-[13px] text-white/45 -mt-1">
         Cambios en Google Ads y Meta Ads que ATLAS propone y NO aplica solo. Aprobar ejecuta y verifica; rechazar exige una nota.
       </p>
+      {errorBanner}
       {data.attention.length > 0 && (
         <Card className="p-3 text-[13px] text-amber-200/90 space-y-2">
           <div className="font-medium">{data.attention.length} ejecución(es) sin resolver reservan su recurso</div>

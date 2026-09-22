@@ -208,6 +208,31 @@ export interface InboxQuestion {
   stage_label?: string | null;
   stage_ref?: string | null;
   stage_group?: string | null;
+  /** S332: ya hay hilo interno con Kira sobre esta duda (repreguntas / borradores). */
+  thread_count?: number;
+  in_discussion?: boolean;
+  /** Lo último que Kira le dijo al equipo en el hilo (corto), para la lista. */
+  last_kira?: string | null;
+  last_type?: ThreadMessageType | null;
+}
+
+/** S332: un turno del hilo interno equipo ↔ Kira (tabla escalation_messages). */
+export type ThreadMessageType = "internal_query" | "internal_reply" | "client_preview" | "system_action";
+export interface ThreadMessage {
+  id: string;
+  sender: "kira" | "user";
+  author?: string | null;
+  content: string;
+  message_type: ThreadMessageType;
+  meta?: Record<string, unknown> | null;
+  created_at?: string | null;
+}
+export interface ThreadResult {
+  escalation_id: string;
+  kind: "duda" | "precio";
+  status?: string | null;
+  contact_name: string;
+  messages: ThreadMessage[];
 }
 
 export interface ComposeResult {
@@ -217,6 +242,10 @@ export interface ComposeResult {
   draft: string;
   confident: boolean;
   reason?: string;
+  /** S332: lo que Kira le dice al EQUIPO tras componer («¿lo envío?» o su repregunta). */
+  kira_says?: string;
+  thread_message?: ThreadMessage | null;
+  thread_len?: number;
 }
 
 /** S304: lección que Kira destiló de la respuesta enviada. Nace `pending`; el equipo la
@@ -240,6 +269,12 @@ export async function listInbox(): Promise<InboxQuestion[]> {
   const res = await apiFetch("/api/escalations/pending");
   const data = await res.json();
   return Array.isArray(data.items) ? data.items : [];
+}
+
+/** S332: hilo interno de una duda (apertura de Kira + turnos). Precio → messages vacío. */
+export async function getEscalationThread(id: string): Promise<ThreadResult> {
+  const res = await apiFetch(`/api/escalations/${id}/thread`);
+  return res.json();
 }
 
 /** Paso 1: el motor compone un borrador desde el volcado del equipo. No envía.

@@ -1,4 +1,4 @@
-import { Sparkle } from "./Sparkle";
+import { NoaMark } from "@/components/brand/NoaWordmark";
 import { parseCards } from "@/lib/cards";
 import { CardRenderer } from "./CardRenderer";
 import { LazyNoaMarkdown as NoaMarkdown } from "./LazyNoaMarkdown";
@@ -31,7 +31,7 @@ export function MessageStream({ streamingText, hint }: MessageStreamProps) {
     <div className="flex gap-3 px-4 md:px-6 py-2">
       <div className="shrink-0 mt-1">
         {/* S161: sparkle viva — respira mientras piensa, gira mientras escribe */}
-        <Sparkle size={22} mode={streamingText ? "streaming" : "thinking"} />
+        <NoaMark size={22} pulse />
       </div>
       <div className="flex-1 min-w-0 space-y-3">
         {!streamingText && hint && (

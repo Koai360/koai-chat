@@ -1,7 +1,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import { LoginScreen } from "@/components/auth/LoginScreen";
 import { AppShell } from "@/components/layout/AppShell";
-import { Sparkle } from "@/components/chat/Sparkle";
+import { NoaMark } from "@/components/brand/NoaWordmark";
 import { AppBackground } from "@/components/layout/AppBackground";
 import { UpdateBanner } from "@/components/shared/UpdateBanner";
 import { Toaster } from "sonner";
@@ -15,7 +15,7 @@ export default function App() {
       <>
         <AppBackground />
         <main className="relative z-10 h-full flex items-center justify-center">
-          <Sparkle size={40} animate />
+          <NoaMark size={40} pulse />
         </main>
       </>
     );

@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { AlertCircle } from "lucide-react";
 import { AppBackground } from "@/components/layout/AppBackground";
-import { Sparkle } from "@/components/chat/Sparkle";
+import { NoaWordmark } from "@/components/brand/NoaWordmark";
 
 interface LoginScreenProps {
   mountGoogleButton: (el: HTMLElement) => void | Promise<void>;
@@ -28,17 +28,11 @@ export function LoginScreen({ mountGoogleButton, error, loading }: LoginScreenPr
           transition={{ duration: 0.5, ease: [0.2, 0.8, 0.2, 1] }}
           className="flex flex-col items-center text-center max-w-md"
         >
-          <Sparkle size={56} animate className="mb-8" />
-
-          <h1
-            className="display font-semibold text-white leading-[1.1] mb-3"
-            style={{ fontSize: "clamp(2rem, 6vw, 3rem)" }}
-          >
-            Noa
-          </h1>
+          {/* S332: el wordmark ES el nombre — sin un "Noa" en texto debajo (dos marcas apiladas). */}
+          <NoaWordmark height={44} className="mb-4" />
 
           <p className="text-white/60 text-base mb-10 leading-relaxed max-w-sm">
-            Asistente interna de KOAI Studios.
+            La IA interna de KOAI.
             <br />
             Inicia sesión con tu cuenta del equipo.
           </p>

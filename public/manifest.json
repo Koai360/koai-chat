@@ -7,11 +7,18 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone"],
+  "display_override": [
+    "window-controls-overlay",
+    "standalone"
+  ],
   "orientation": "portrait",
-  "background_color": "#000000",
-  "theme_color": "#000000",
-  "categories": ["productivity", "business", "finance"],
+  "background_color": "#000c2d",
+  "theme_color": "#010203",
+  "categories": [
+    "productivity",
+    "business",
+    "finance"
+  ],
   "icons": [
     {
       "src": "/icons/noa-192.png",
@@ -43,19 +50,34 @@
       "name": "Nuevo chat",
       "short_name": "Nuevo",
       "url": "/",
-      "icons": [{ "src": "/icons/noa-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icons/noa-192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "Galería",
       "short_name": "Galería",
       "url": "/#/galeria",
-      "icons": [{ "src": "/icons/noa-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icons/noa-192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "Historial",
       "short_name": "Historial",
       "url": "/#/historial",
-      "icons": [{ "src": "/icons/noa-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icons/noa-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ],
   "prefer_related_applications": false

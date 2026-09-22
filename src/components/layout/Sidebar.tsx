@@ -15,7 +15,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Sparkle } from "@/components/chat/Sparkle";
+import { NoaWordmark } from "@/components/brand/NoaWordmark";
 import { IconButton } from "@/components/ui/IconButton";
 import { Dropdown, DropdownItem, DropdownSeparator } from "@/components/ui/Dropdown";
 import { InlineConfirm, InlineRename } from "@/components/ui/InlineConfirm";
@@ -502,8 +502,7 @@ function SidebarContent({
             onClick={onCollapse}
           />
         )}
-        <Sparkle size={20} />
-        <span className="display text-[16px] font-medium text-white">Noa</span>
+        <NoaWordmark height={22} />
       </div>
 
       {/* New chat */}

@@ -1,13 +1,12 @@
 import { memo, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { AlertTriangle } from "lucide-react";
-import { Sparkle } from "./Sparkle";
+import { NoaWordmark } from "@/components/brand/NoaWordmark";
 import { CardRenderer } from "./CardRenderer";
 import { LazyNoaMarkdown as NoaMarkdown } from "./LazyNoaMarkdown";
 import { ImageLightbox } from "@/components/shared/ImageLightbox";
 import { parseCards } from "@/lib/cards";
 import { cfImageVariant } from "@/lib/imageTransform";
-import { cn } from "@/lib/cn";
 import type { ChatMessage } from "@/types/api";
 
 interface MessageBubbleProps {
@@ -64,9 +63,9 @@ export const MessageBubble = memo(function MessageBubble({
   // arriba de una respuesta que sí llegó: es su propia burbuja o no está.
   if (message.notice === "error" || message.notice === "silent") {
     return (
-      <div className={cn("flex gap-3 px-4 md:px-6 py-2", !showAvatar && "pl-12 md:pl-14")}>
-        {showAvatar && <div className="shrink-0 mt-1 w-[22px]" aria-hidden />}
-        <div className="flex-1 min-w-0">
+      <div className="flex flex-col gap-1.5 px-4 md:px-6 py-2">
+        {showAvatar && <NoaWordmark height={14} className="opacity-90" />}
+        <div className="min-w-0 pl-3">
           <div
             role="status"
             className="inline-flex items-start gap-2 rounded-xl border border-amber-300/20 bg-amber-400/[0.07] px-3 py-2 text-[14px] leading-[1.5] text-amber-100/85"
@@ -92,14 +91,14 @@ export const MessageBubble = memo(function MessageBubble({
   // Assistant: parsear card markers
   const segments = parseCards(dedupedContent);
 
+  // S332 (identidad iOS, decisión de Jesús 2026-08-22): el wordmark va ARRIBA del texto, no al
+  // costado —el avatar se comía ~34px de columna en CADA línea— y sólo en la primera respuesta
+  // de una tanda (repetirlo cada dos párrafos lo vuelve ruido). La respuesta usa todo el ancho
+  // del contenedor; la única concesión es una sangría de 12px bajo el logo.
   return (
-    <div className={cn("flex gap-3 px-4 md:px-6 py-2", !showAvatar && "pl-12 md:pl-14")}>
-      {showAvatar && (
-        <div className="shrink-0 mt-1">
-          <Sparkle size={22} />
-        </div>
-      )}
-      <div className="flex-1 min-w-0 space-y-3">
+    <div className="flex flex-col gap-1.5 px-4 md:px-6 py-2">
+      {showAvatar && <NoaWordmark height={14} className="opacity-90" />}
+      <div className="min-w-0 space-y-3 pl-3">
         {segments.map((seg, i) =>
           seg.kind === "text" ? (
             <div

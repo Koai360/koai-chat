@@ -5,7 +5,7 @@ import { TopBar } from "./TopBar";
 import { Sheet } from "@/components/ui/Sheet";
 import { ChatSurface } from "@/components/chat/ChatSurface";
 import { ChatInput } from "@/components/chat/ChatInput";
-import { Sparkle } from "@/components/chat/Sparkle";
+import { NoaMark } from "@/components/brand/NoaWordmark";
 import { useRoute } from "@/hooks/useRoute";
 import { useNoaFlags } from "@/hooks/useNoaFlags";
 import { useChat } from "@/hooks/useChat";
@@ -32,7 +32,7 @@ const SettingsPage = lazy(() =>
 function PageFallback() {
   return (
     <div className="h-full flex items-center justify-center">
-      <Sparkle size={28} animate />
+      <NoaMark size={28} pulse />
     </div>
   );
 }

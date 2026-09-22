@@ -1,5 +1,5 @@
 import { Component, type ReactNode } from "react";
-import { Sparkle } from "@/components/chat/Sparkle";
+import { NoaMark } from "@/components/brand/NoaWordmark";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -53,7 +53,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         <div className="h-full w-full flex items-center justify-center px-6 bg-[var(--color-bg-void)]">
           <div className="max-w-md text-center space-y-5">
             <div className="flex justify-center">
-              <Sparkle size={36} />
+              <NoaMark size={36} />
             </div>
             <h1 className="text-2xl text-white font-medium">Algo falló</h1>
             <p className="text-white/60 text-[15px] leading-relaxed">
@@ -71,7 +71,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               <button
                 type="button"
                 onClick={() => window.location.reload()}
-                className="px-5 py-2.5 rounded-full bg-[var(--color-noa,#C8DD4A)] hover:opacity-90 text-black text-sm font-medium transition-opacity"
+                className="px-5 py-2.5 rounded-full bg-[var(--color-noa,#D1FF03)] hover:opacity-90 text-black text-sm font-medium transition-opacity"
               >
                 Recargar
               </button>

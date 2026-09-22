@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Sparkle } from "./Sparkle";
+import { NoaWordmark } from "@/components/brand/NoaWordmark";
 
 interface ChatEmptyProps {
   userName?: string;
@@ -132,7 +132,7 @@ export function ChatEmpty({ userName = "Jesús" }: ChatEmptyProps) {
   return (
     <div className="flex flex-col items-center justify-center min-h-full px-6 pb-32 pt-12">
       <div className="flex flex-col items-center text-center max-w-xl mx-auto">
-        <Sparkle size={48} animate className="mb-6" />
+        <NoaWordmark height={56} className="mb-6" />
 
         <p className="mono text-[11px] uppercase tracking-[0.16em] text-white/55 mb-4">
           {today}

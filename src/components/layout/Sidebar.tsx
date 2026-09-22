@@ -14,9 +14,11 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Sparkle } from "@/components/chat/Sparkle";
 import { IconButton } from "@/components/ui/IconButton";
 import { Dropdown, DropdownItem, DropdownSeparator } from "@/components/ui/Dropdown";
+import { InlineConfirm, InlineRename } from "@/components/ui/InlineConfirm";
 import { cn } from "@/lib/cn";
 import type { AuthUser, Conversation } from "@/types/api";
 import { navigate, type Route } from "@/lib/routing";
@@ -47,6 +49,45 @@ function useInboxCount(): number {
   return count;
 }
 
+/** S332: ≥1280px es escritorio "de verdad" — el sidebar expandido cabe al lado del chat
+ *  (272 + 720 + aire) sin comprimir nada. Entre 768 y 1279 (tablet, ventana chica) se
+ *  mantiene el rail con overlay. */
+const XL_QUERY = "(min-width: 1280px)";
+const PINNED_KEY = "noa.sidebar.pinned";
+
+function useIsXL(): boolean {
+  const [xl, setXL] = useState(() => typeof window !== "undefined" && window.matchMedia(XL_QUERY).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(XL_QUERY);
+    const update = () => setXL(mq.matches);
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+  return xl;
+}
+
+/** Preferencia por-navegador: anclado por defecto en escritorio; si la persona lo colapsa,
+ *  se respeta hasta que lo vuelva a abrir. localStorage puede fallar (privado/bloqueado):
+ *  el default sigue siendo "anclado". */
+function usePinned(): [boolean, (v: boolean) => void] {
+  const [pinned, setPinnedState] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(PINNED_KEY) !== "0";
+    } catch {
+      return true;
+    }
+  });
+  const setPinned = (v: boolean) => {
+    setPinnedState(v);
+    try {
+      localStorage.setItem(PINNED_KEY, v ? "1" : "0");
+    } catch {
+      /* preferencia no persistida: no es crítico */
+    }
+  };
+  return [pinned, setPinned];
+}
+
 interface SidebarProps {
   user: AuthUser;
   route: Route;
@@ -67,13 +108,14 @@ interface SidebarProps {
 }
 
 /**
- * Sidebar — collapsible 56px → 280px overlay desktop. Drawer en mobile.
+ * Sidebar — tres modos según el ancho (S332, rediseño de escritorio):
  *
- * Reglas:
- * - Default desktop: 56px rail con solo iconos (☰, ✎, 👤)
- * - Click ☰ → expande a 280px en overlay (no squeeze del chat)
- * - Click fuera del expandido → collapsa
- * - Mobile (`isMobile=true`): siempre expandido (vive dentro de un Sheet drawer)
+ * - **≥1280px (xl), anclado** (default): panel de 272px EN FLUJO con labels, recientes,
+ *   navegación y usuario. Empuja el contenido, no lo tapa. Se puede colapsar al rail.
+ * - **≥768px (md) o xl colapsado**: rail de 60px. A diferencia del rail viejo (☰ ✎ 👤), este
+ *   lleva SIEMPRE la navegación primaria (Bandeja con badge, Galería, Historial, Config):
+ *   ir a la Bandeja ya no exige abrir el menú. ☰ abre el overlay de 280px (md) o re-ancla (xl).
+ * - **Mobile** (`isMobile`): siempre expandido, vive dentro del Sheet drawer.
  */
 export function Sidebar({
   user,
@@ -89,7 +131,11 @@ export function Sidebar({
   onCloseMobile,
 }: SidebarProps) {
   const [expanded, setExpanded] = useState(false);
-  const open = isMobile || expanded;
+  const isXL = useIsXL();
+  const [pinned, setPinned] = usePinned();
+  const inboxCount = useInboxCount();
+  const docked = isXL && pinned;
+  const open = isMobile || docked || expanded;
 
   // P2-12 audit: cerrar overlay desktop con Escape (mobile usa Sheet de vaul
   // que ya tiene Escape). Listener global porque el motion.aside puede no
@@ -103,9 +149,6 @@ export function Sidebar({
     return () => document.removeEventListener("keydown", onKey);
   }, [expanded]);
 
-  // En mobile el sidebar siempre se renderiza expandido (lo controla el Sheet)
-  // En desktop puede estar collapsed (56px) o expanded (overlay 280px)
-
   if (isMobile) {
     return (
       <SidebarContent
@@ -113,6 +156,7 @@ export function Sidebar({
         route={route}
         conversations={conversations}
         activeConversationId={activeConversationId}
+        inboxCount={inboxCount}
         onLogout={onLogout}
         onNewChat={() => {
           onNewChat();
@@ -129,9 +173,44 @@ export function Sidebar({
     );
   }
 
+  // ── Escritorio anclado: panel en flujo ──
+  if (docked) {
+    return (
+      <aside
+        className={cn(
+          "hidden md:flex flex-col shrink-0 h-full w-[272px] z-30 relative",
+          "bg-[var(--color-bg-elevated)]/40 border-r border-[var(--color-border)] backdrop-blur-xl",
+        )}
+      >
+        <SidebarContent
+          user={user}
+          route={route}
+          conversations={conversations}
+          activeConversationId={activeConversationId}
+          inboxCount={inboxCount}
+          recentLimit={18}
+          onLogout={onLogout}
+          onNewChat={onNewChat}
+          onSelectConversation={onSelectConversation}
+          onConversationsChanged={onConversationsChanged}
+          onDeleteConversation={onDeleteConversation}
+          onCollapse={() => setPinned(false)}
+        />
+      </aside>
+    );
+  }
+
+  const toggle = () => {
+    if (isXL) {
+      setPinned(true);
+    } else {
+      setExpanded((v) => !v);
+    }
+  };
+
   return (
     <>
-      {/* Rail collapsed siempre presente (60px) */}
+      {/* Rail (60px): toggle + nuevo chat arriba · navegación primaria en el medio · cuenta abajo */}
       <aside
         className={cn(
           "hidden md:flex flex-col items-center justify-between",
@@ -149,10 +228,10 @@ export function Sidebar({
                 <PanelLeft className="size-[22px]" strokeWidth={2} />
               )
             }
-            label={open ? "Cerrar menú" : "Abrir menú"}
+            label={open ? "Cerrar menú" : isXL ? "Anclar menú" : "Abrir menú"}
             variant="ghost"
             size="lg"
-            onClick={() => setExpanded((v) => !v)}
+            onClick={toggle}
             active={open}
           />
           <IconButton
@@ -163,6 +242,34 @@ export function Sidebar({
             onClick={onNewChat}
           />
         </div>
+
+        <nav aria-label="Secciones" className="flex flex-col items-center gap-1">
+          <RailLink
+            icon={<Inbox className="size-[20px]" strokeWidth={2} />}
+            label="Bandeja"
+            active={route.kind === "bandeja"}
+            badge={inboxCount}
+            onClick={() => navigate({ kind: "bandeja" })}
+          />
+          <RailLink
+            icon={<ImageIcon className="size-[20px]" strokeWidth={2} />}
+            label="Galería"
+            active={route.kind === "galeria"}
+            onClick={() => navigate({ kind: "galeria" })}
+          />
+          <RailLink
+            icon={<Clock className="size-[20px]" strokeWidth={2} />}
+            label="Historial"
+            active={route.kind === "historial"}
+            onClick={() => navigate({ kind: "historial" })}
+          />
+          <RailLink
+            icon={<Settings className="size-[20px]" strokeWidth={2} />}
+            label="Configuración"
+            active={route.kind === "config"}
+            onClick={() => navigate({ kind: "config" })}
+          />
+        </nav>
 
         <Dropdown
           trigger={
@@ -204,9 +311,9 @@ export function Sidebar({
         </Dropdown>
       </aside>
 
-      {/* Overlay expanded (280px) */}
+      {/* Overlay expandido (280px) — sólo md..xl; en xl el toggle ancla el panel en flujo */}
       <AnimatePresence>
-        {expanded && (
+        {expanded && !isXL && (
           <>
             <motion.div
               initial={{ opacity: 0 }}
@@ -234,6 +341,7 @@ export function Sidebar({
                 route={route}
                 conversations={conversations}
                 activeConversationId={activeConversationId}
+                inboxCount={inboxCount}
                 onLogout={onLogout}
                 onNewChat={() => {
                   onNewChat();
@@ -255,8 +363,49 @@ export function Sidebar({
   );
 }
 
+/** Ícono de navegación en el rail, con badge de pendientes. El tooltip nativo (title) alcanza
+ *  en escritorio: el label completo vive en el panel anclado. */
+function RailLink({
+  icon,
+  label,
+  active,
+  badge,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  active: boolean;
+  badge?: number;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={badge ? `${label} · ${badge} pendientes` : label}
+      aria-current={active ? "page" : undefined}
+      title={label}
+      className={cn(
+        "relative size-11 rounded-xl flex items-center justify-center transition-colors duration-150",
+        active
+          ? "bg-white/[0.08] text-white"
+          : "text-white/60 hover:bg-white/[0.06] hover:text-white",
+      )}
+    >
+      {icon}
+      {active && (
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full bg-[var(--color-noa)]" />
+      )}
+      {badge ? (
+        <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--color-noa)] text-black text-[10px] font-semibold leading-[18px] text-center tabular-nums">
+          {badge > 99 ? "99+" : badge}
+        </span>
+      ) : null}
+    </button>
+  );
+}
+
 // ===================================================================
-// Sidebar content — el contenido del sidebar expandido (compartido entre mobile drawer y desktop overlay)
+// Sidebar content — el contenido del sidebar expandido (mobile drawer, overlay y panel anclado)
 // ===================================================================
 
 interface SidebarContentProps {
@@ -264,6 +413,9 @@ interface SidebarContentProps {
   route: Route;
   conversations: Conversation[];
   activeConversationId: string | null;
+  inboxCount: number;
+  /** Cuántas recientes mostrar: 5 en overlay/drawer (poco alto útil), más en el panel anclado. */
+  recentLimit?: number;
   onLogout: () => void;
   onNewChat: () => void;
   onSelectConversation: (id: string) => void;
@@ -277,6 +429,8 @@ function SidebarContent({
   route,
   conversations,
   activeConversationId,
+  inboxCount,
+  recentLimit = 5,
   onLogout,
   onNewChat,
   onSelectConversation,
@@ -284,24 +438,26 @@ function SidebarContent({
   onDeleteConversation,
   onCollapse,
 }: SidebarContentProps) {
-  const recent = conversations.slice(0, 5);
-  const inboxCount = useInboxCount();
+  const recent = conversations.slice(0, recentLimit);
+  // S332: renombrar/borrar EN LA FILA (antes window.prompt/confirm/alert).
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
-  const handleRename = async (conv: Conversation) => {
-    const next = window.prompt("Nuevo nombre del chat:", conv.title || "");
-    if (!next || next.trim() === conv.title) return;
+  const handleRename = async (conv: Conversation, next: string) => {
+    setRenamingId(null);
     try {
-      await apiRenameConversation(conv.id, next.trim());
+      await apiRenameConversation(conv.id, next);
       onConversationsChanged?.();
     } catch (err) {
       console.warn("[Sidebar] rename failed", err);
-      window.alert("No se pudo renombrar el chat.");
+      toast.error("No se pudo renombrar el chat.");
     }
   };
 
   const handleDelete = async (conv: Conversation) => {
-    if (!window.confirm(`¿Borrar "${conv.title || "esta conversación"}"?`)) return;
     const wasActive = conv.id === activeConversationId;
+    setBusyId(conv.id);
     try {
       // P1-3 audit fix: si está disponible, usar useChat.deleteConversation
       // que limpia activeId + messages cuando se borra la activa. Sino fallback
@@ -317,7 +473,10 @@ function SidebarContent({
       if (wasActive) navigate({ kind: "chat" });
     } catch (err) {
       console.warn("[Sidebar] delete failed", err);
-      window.alert("No se pudo borrar el chat.");
+      toast.error("No se pudo borrar el chat.");
+    } finally {
+      setBusyId(null);
+      setDeletingId(null);
     }
   };
 
@@ -367,6 +526,28 @@ function SidebarContent({
             recent.map((c) => {
               const isActive = c.id === activeConversationId;
               const title = c.title || "Nueva conversación";
+              if (deletingId === c.id) {
+                return (
+                  <InlineConfirm
+                    key={c.id}
+                    question={`¿Borrar «${title}»?`}
+                    busy={busyId === c.id}
+                    onConfirm={() => handleDelete(c)}
+                    onCancel={() => setDeletingId(null)}
+                  />
+                );
+              }
+              if (renamingId === c.id) {
+                return (
+                  <InlineRename
+                    key={c.id}
+                    value={c.title || ""}
+                    onSubmit={(next) => handleRename(c, next)}
+                    onCancel={() => setRenamingId(null)}
+                    className="px-1 py-1"
+                  />
+                );
+              }
               return (
                 <div
                   key={c.id}
@@ -410,7 +591,7 @@ function SidebarContent({
                   >
                     <DropdownItem
                       icon={<Pencil className="size-4" />}
-                      onClick={() => handleRename(c)}
+                      onClick={() => setRenamingId(c.id)}
                     >
                       Renombrar
                     </DropdownItem>
@@ -418,7 +599,7 @@ function SidebarContent({
                     <DropdownItem
                       icon={<Trash2 className="size-4" />}
                       variant="danger"
-                      onClick={() => handleDelete(c)}
+                      onClick={() => setDeletingId(c.id)}
                     >
                       Borrar
                     </DropdownItem>
@@ -427,7 +608,7 @@ function SidebarContent({
               );
             })
           )}
-          {conversations.length > 5 && (
+          {conversations.length > recentLimit && (
             <button
               onClick={() => navigate({ kind: "historial" })}
               className="text-xs text-white/45 hover:text-white/80 px-2.5 py-1.5 text-left transition"
@@ -479,8 +660,8 @@ function SidebarContent({
                   className="size-8 rounded-full object-cover ring-1 ring-white/10"
                 />
               ) : (
-                <div className="size-8 rounded-full bg-white/[0.08] flex items-center justify-center">
-                  <User className="size-4 text-white/70" />
+                <div className="size-8 rounded-full bg-white/[0.08] flex items-center justify-center ring-1 ring-white/10">
+                  <User className="size-4 text-white/60" />
                 </div>
               )}
               <div className="flex-1 min-w-0 text-left">
@@ -516,32 +697,33 @@ function FooterLink({
   icon,
   label,
   active,
+  badge,
   onClick,
-  badge = 0,
 }: {
   icon: React.ReactNode;
   label: string;
   active: boolean;
-  onClick: () => void;
   badge?: number;
+  onClick: () => void;
 }) {
   return (
     <button
       onClick={onClick}
+      aria-current={active ? "page" : undefined}
       className={cn(
-        "w-full flex items-center gap-3 px-3 h-11 min-h-[44px] rounded-lg text-[14px] font-medium transition",
+        "w-full flex items-center gap-3 px-3 min-h-[44px] rounded-lg text-sm transition-colors duration-150",
         active
           ? "bg-white/[0.08] text-white"
-          : "text-white/75 hover:bg-white/[0.05] hover:text-white",
+          : "text-white/65 hover:bg-white/[0.04] hover:text-white",
       )}
     >
-      {icon}
+      <span className="shrink-0">{icon}</span>
       <span className="flex-1 text-left">{label}</span>
-      {badge > 0 && (
-        <span className="min-w-5 h-5 px-1.5 rounded-full bg-[var(--color-warning)] text-black text-[11px] font-semibold flex items-center justify-center tabular-nums">
+      {badge ? (
+        <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-[var(--color-noa)] text-black text-[11px] font-semibold leading-5 text-center tabular-nums">
           {badge > 99 ? "99+" : badge}
         </span>
-      )}
+      ) : null}
     </button>
   );
 }

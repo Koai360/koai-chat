@@ -41,15 +41,24 @@ interface SettingsPageProps {
   onLogout: () => void;
 }
 
-const TABS: Array<{ id: string; label: string; icon: ReactNode }> = [
+const TABS: Array<{ id: string; label: string; icon: ReactNode; soon?: boolean }> = [
   { id: "cuenta", label: "Cuenta", icon: <UserIcon className="size-4" /> },
   { id: "tema", label: "Apariencia", icon: <Palette className="size-4" /> },
   { id: "voz", label: "Voz", icon: <Mic className="size-4" /> },
   { id: "notificaciones", label: "Notificaciones", icon: <Bell className="size-4" /> },
   { id: "privacidad", label: "Privacidad", icon: <Shield className="size-4" /> },
   { id: "memoria", label: "Memoria", icon: <Brain className="size-4" /> },
-  { id: "kb", label: "Conocimiento", icon: <BookOpen className="size-4" /> },
+  { id: "kb", label: "Conocimiento", icon: <BookOpen className="size-4" />, soon: true },
   { id: "tools", label: "Herramientas", icon: <Wrench className="size-4" /> },
+];
+
+/** S332 (critique: 8 tabs planos superan las 4 opciones sin jerarquía). En escritorio la nav
+ *  se lee en cuatro grupos; los ids y las rutas no cambian. */
+const TAB_GROUPS: Array<{ title: string; ids: string[] }> = [
+  { title: "Vos", ids: ["cuenta", "tema"] },
+  { title: "Noa", ids: ["voz", "notificaciones", "memoria"] },
+  { title: "Privacidad", ids: ["privacidad"] },
+  { title: "Sistema", ids: ["tools", "kb"] },
 ];
 
 /** md breakpoint reactivo — decide entre lista mobile y sidebar desktop */
@@ -150,7 +159,8 @@ export function SettingsPage({ user, tab, onLogout }: SettingsPageProps) {
     );
   }
 
-  // ── Desktop: sidebar + contenido ──
+  // ── Desktop: nav agrupada + contenido (S332: ancho útil hasta 1180px, antes 854) ──
+  const currentLabel = TABS.find((t) => t.id === activeTab)?.label ?? "";
   return (
     <div className="h-full flex flex-col">
       <header className="px-6 pt-6 pb-3">
@@ -160,33 +170,45 @@ export function SettingsPage({ user, tab, onLogout }: SettingsPageProps) {
         <p className="text-sm text-white/45">Personalizá tu experiencia con Noa</p>
       </header>
 
-      <div className="flex-1 flex flex-row overflow-hidden">
-        {/* Tab nav */}
-        <nav className="w-60 shrink-0 px-6 pt-4 pr-2 overflow-y-auto border-r border-white/[0.04]">
-          <div className="flex flex-col gap-1 pb-6">
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => {
-                  navigate({ kind: "config", tab: t.id });
-                }}
-                className={cn(
-                  "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm whitespace-nowrap transition",
-                  activeTab === t.id
-                    ? "bg-white/[0.06] text-white"
-                    : "text-white/65 hover:bg-white/[0.04] hover:text-white",
-                )}
-              >
-                {t.icon}
-                <span>{t.label}</span>
-              </button>
+      <div className="flex-1 flex flex-row overflow-hidden max-w-[1180px] w-full">
+        {/* Tab nav, en cuatro grupos */}
+        <nav aria-label="Secciones de configuración" className="w-60 shrink-0 px-6 pt-2 pr-2 overflow-y-auto border-r border-white/[0.04]">
+          <div className="flex flex-col gap-5 pb-6">
+            {TAB_GROUPS.map((g) => (
+              <div key={g.title}>
+                <p className="mono text-[10px] uppercase tracking-[0.12em] text-white/45 px-3 mb-1.5">{g.title}</p>
+                <div className="flex flex-col gap-0.5">
+                  {g.ids.map((id) => TABS.find((t) => t.id === id)!).map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => {
+                        navigate({ kind: "config", tab: t.id });
+                      }}
+                      aria-current={activeTab === t.id ? "page" : undefined}
+                      className={cn(
+                        "flex items-center gap-2.5 px-3 h-9 rounded-lg text-sm whitespace-nowrap transition-colors",
+                        activeTab === t.id
+                          ? "bg-white/[0.06] text-white"
+                          : "text-white/65 hover:bg-white/[0.04] hover:text-white",
+                      )}
+                    >
+                      {t.icon}
+                      <span className="flex-1 text-left">{t.label}</span>
+                      {t.soon && (
+                        <span className="mono text-[9px] uppercase tracking-[0.1em] text-white/40">pronto</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         </nav>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-6">
-          <div className="max-w-2xl">
+        <div className="flex-1 overflow-y-auto px-8 py-5">
+          <h2 className="sr-only">{currentLabel}</h2>
+          <div className="max-w-3xl">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, Clock, Trash2, Pencil } from "lucide-react";
+import { Search, Clock, Trash2, Pencil, MessageSquare } from "lucide-react";
+import { toast } from "sonner";
 import {
   listConversations,
   deleteConversation as apiDeleteConversation,
@@ -8,7 +9,9 @@ import {
 import { navigate } from "@/lib/routing";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { IconButton } from "@/components/ui/IconButton";
+import { InlineConfirm, InlineRename } from "@/components/ui/InlineConfirm";
 import { relativeTime } from "@/lib/format";
+import { cn } from "@/lib/cn";
 import type { Conversation } from "@/types/api";
 
 interface HistoryPageProps {
@@ -21,12 +24,21 @@ interface HistoryPageProps {
 
 /**
  * HistoryPage — lista completa de conversaciones con buscador y agrupación por día.
+ *
+ * S332 (rediseño de escritorio): con 565 conversaciones la columna fija de 290px dejaba
+ * el 81% de un monitor 1920 en negro. Ahora la lista es DENSA (una línea por conversación,
+ * fecha absoluta en mono a la derecha) y a partir de `xl` se reparte en dos columnas por
+ * grupo, con un ancho máximo de 1180px para no estirarse hasta 4K. Renombrar y borrar
+ * pasan EN LA FILA (antes `window.prompt`/`confirm`).
  */
 export function HistoryPage({ onDeleteConversation }: HistoryPageProps = {}) {
   const [items, setItems] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [query, setQuery] = useState("");
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   // S158-b: antes el catch silencioso mostraba "Sin conversaciones aún" ante
   // un error de red — parecía pérdida de datos. Ahora error real + retry.
@@ -49,7 +61,7 @@ export function HistoryPage({ onDeleteConversation }: HistoryPageProps = {}) {
   const grouped = useMemo(() => groupByDay(filtered), [filtered]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("¿Borrar esta conversación?")) return;
+    setBusyId(id);
     try {
       if (onDeleteConversation) {
         await onDeleteConversation(id);
@@ -59,52 +71,57 @@ export function HistoryPage({ onDeleteConversation }: HistoryPageProps = {}) {
       setItems((prev) => prev.filter((c) => c.id !== id));
     } catch (err) {
       console.warn("[HistoryPage] delete failed", err);
+      toast.error("No se pudo borrar la conversación.");
+    } finally {
+      setBusyId(null);
+      setDeletingId(null);
     }
   };
 
-  const handleRename = async (conv: Conversation) => {
-    const next = window.prompt("Nuevo nombre del chat:", conv.title || "");
-    if (!next || next.trim() === conv.title) return;
+  const handleRename = async (conv: Conversation, next: string) => {
+    setRenamingId(null);
     try {
-      await apiRenameConversation(conv.id, next.trim());
-      setItems((prev) => prev.map((c) => (c.id === conv.id ? { ...c, title: next.trim() } : c)));
+      await apiRenameConversation(conv.id, next);
+      setItems((prev) => prev.map((c) => (c.id === conv.id ? { ...c, title: next } : c)));
     } catch (err) {
       console.warn("[HistoryPage] rename failed", err);
-      window.alert("No se pudo renombrar.");
+      toast.error("No se pudo renombrar.");
     }
   };
 
   return (
     <div className="h-full flex flex-col">
-      <header className="px-6 pt-6 pb-3">
-        <h1 className="display text-[24px] md:text-[28px] font-semibold text-white mb-1">
-          Historial
-        </h1>
-        <p className="text-sm text-white/45">
-          {items.length > 0 ? `${items.length} conversaciones` : "Tus conversaciones con Noa"}
-        </p>
-      </header>
-
-      {/* Search */}
-      <div className="px-6 pb-4">
-        <div className="relative max-w-2xl">
+      <header className="px-6 pt-6 pb-3 max-w-[1180px] w-full flex items-end justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="display text-[24px] md:text-[28px] font-semibold text-white mb-1">
+            Historial
+          </h1>
+          <p className="text-sm text-white/45">
+            {items.length > 0
+              ? `${items.length} conversaciones${query.trim() ? ` · ${filtered.length} coinciden` : ""}`
+              : "Tus conversaciones con Noa"}
+          </p>
+        </div>
+        {/* Search */}
+        <div className="relative w-full sm:w-[360px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-white/40" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar en historial..."
-            className="w-full h-11 pl-10 pr-4 rounded-full bg-[var(--color-bg-elevated)] border border-white/[0.08] text-[14px] text-white placeholder:text-white/35 focus:border-[var(--color-noa)]/40 outline-none"
+            placeholder="Buscar por título…"
+            aria-label="Buscar en el historial"
+            className="w-full h-10 pl-10 pr-4 rounded-full bg-[var(--color-bg-elevated)] border border-white/[0.08] text-[14px] text-white placeholder:text-white/35 focus:border-[var(--color-noa)]/40 outline-none"
           />
         </div>
-      </div>
+      </header>
 
       <div className="flex-1 overflow-y-auto px-6 pb-8">
-        <div className="max-w-2xl space-y-6">
+        <div className="max-w-[1180px] space-y-7 pt-2">
           {loading ? (
-            <div className="space-y-2 pt-2">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} variant="rect" height={56} className="rounded-xl" />
+            <div className="space-y-2 pt-2 max-w-2xl">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <Skeleton key={i} variant="rect" height={44} className="rounded-xl" />
               ))}
             </div>
           ) : items.length === 0 && loadError ? (
@@ -126,13 +143,26 @@ export function HistoryPage({ onDeleteConversation }: HistoryPageProps = {}) {
             </p>
           ) : (
             grouped.map(({ label, items: bucket }) => (
-              <section key={label}>
-                <h2 className="mono text-[10px] uppercase tracking-[0.12em] text-white/45 mb-2 font-medium">
-                  {label}
+              <section key={label} aria-label={label}>
+                <h2 className="flex items-baseline gap-2 mono text-[10px] uppercase tracking-[0.12em] text-white/45 mb-2 font-medium">
+                  <span className="text-white/70">{label}</span>
+                  <span>· {bucket.length}</span>
                 </h2>
-                <div className="space-y-1">
+                {/* xl: dos columnas por grupo; cada fila es una línea (título · fecha · acciones) */}
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-6 gap-y-0.5">
                   {bucket.map((c) => (
-                    <HistoryItem key={c.id} conv={c} onDelete={handleDelete} onRename={handleRename} />
+                    <HistoryRow
+                      key={c.id}
+                      conv={c}
+                      renaming={renamingId === c.id}
+                      deleting={deletingId === c.id}
+                      busy={busyId === c.id}
+                      onStartRename={() => { setDeletingId(null); setRenamingId(c.id); }}
+                      onStartDelete={() => { setRenamingId(null); setDeletingId(c.id); }}
+                      onCancel={() => { setRenamingId(null); setDeletingId(null); }}
+                      onRename={(next) => handleRename(c, next)}
+                      onDelete={() => handleDelete(c.id)}
+                    />
                   ))}
                 </div>
               </section>
@@ -144,46 +174,92 @@ export function HistoryPage({ onDeleteConversation }: HistoryPageProps = {}) {
   );
 }
 
-function HistoryItem({
+const ABS_DATE = new Intl.DateTimeFormat("es", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+
+function HistoryRow({
   conv,
-  onDelete,
+  renaming,
+  deleting,
+  busy,
+  onStartRename,
+  onStartDelete,
+  onCancel,
   onRename,
+  onDelete,
 }: {
   conv: Conversation;
-  onDelete: (id: string) => void;
-  onRename: (conv: Conversation) => void;
+  renaming: boolean;
+  deleting: boolean;
+  busy: boolean;
+  onStartRename: () => void;
+  onStartDelete: () => void;
+  onCancel: () => void;
+  onRename: (next: string) => void;
+  onDelete: () => void;
 }) {
   const title = conv.title || "Sin título";
   const ts = conv.last_message_at || conv.updated_at || conv.created_at;
+  const isVoice = /^Voz\s·/.test(title);
+
+  if (deleting) {
+    return (
+      <InlineConfirm
+        question={`¿Borrar «${title}»?`}
+        busy={busy}
+        onConfirm={onDelete}
+        onCancel={onCancel}
+        className="min-h-[44px]"
+      />
+    );
+  }
+  if (renaming) {
+    return (
+      <InlineRename
+        value={conv.title || ""}
+        onSubmit={onRename}
+        onCancel={onCancel}
+        className="min-h-[44px] px-2"
+      />
+    );
+  }
 
   return (
-    <div className="group flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition">
+    <div className="group flex items-center gap-2 pl-3 pr-1 min-h-[44px] rounded-xl hover:bg-white/[0.04] transition-colors">
       <button
         onClick={() => navigate({ kind: "chat", conversationId: conv.id })}
-        className="flex-1 flex items-start gap-3 text-left min-w-0"
+        className="flex-1 flex items-center gap-3 text-left min-w-0"
+        title={title}
       >
-        <Clock className="size-4 text-white/40 mt-0.5 shrink-0" />
-        <div className="flex-1 min-w-0">
-          <p className="text-[14px] text-white/95 font-medium truncate">{title}</p>
-          <p className="mono text-[11px] text-white/45 mt-0.5 tracking-tight">{relativeTime(ts)}</p>
-        </div>
+        {isVoice ? (
+          <Clock className="size-4 text-white/35 shrink-0" />
+        ) : (
+          <MessageSquare className="size-4 text-white/35 shrink-0" />
+        )}
+        <span className="flex-1 min-w-0 text-[14px] text-white/90 truncate">{title}</span>
+        <span
+          className="mono text-[11px] text-white/45 tracking-tight tabular-nums shrink-0 hidden sm:inline"
+          title={ts ? ABS_DATE.format(new Date(ts)) : undefined}
+        >
+          {relativeTime(ts)}
+        </span>
       </button>
-      <IconButton
-        icon={<Pencil className="size-4" />}
-        label="Renombrar"
-        size="sm"
-        variant="ghost"
-        onClick={() => onRename(conv)}
-        className="md:opacity-0 md:group-hover:opacity-100 opacity-100"
-      />
-      <IconButton
-        icon={<Trash2 className="size-4" />}
-        label="Borrar conversación"
-        size="sm"
-        variant="ghost"
-        onClick={() => onDelete(conv.id)}
-        className="md:opacity-0 md:group-hover:opacity-100 opacity-100 hover:bg-[var(--color-danger-soft)] hover:text-[var(--color-danger)]"
-      />
+      <div className={cn("flex items-center shrink-0", "md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 opacity-100 transition-opacity")}>
+        <IconButton
+          icon={<Pencil className="size-4" />}
+          label="Renombrar"
+          size="sm"
+          variant="ghost"
+          onClick={onStartRename}
+        />
+        <IconButton
+          icon={<Trash2 className="size-4" />}
+          label="Borrar conversación"
+          size="sm"
+          variant="ghost"
+          onClick={onStartDelete}
+          className="hover:bg-[var(--color-danger-soft)] hover:text-[var(--color-danger)]"
+        />
+      </div>
     </div>
   );
 }

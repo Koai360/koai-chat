@@ -32,14 +32,24 @@ export function AtlasProposalsSection() {
   const [loaded, setLoaded] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const inflight = useRef<string | null>(null);
+  // Cada decisión (aprobar/rechazar/reconciliar/releer) sube la época: una respuesta de listado
+  // iniciada ANTES de una decisión ya no describe el estado y se descarta (y se vuelve a pedir).
+  const epoch = useRef(0);
+  const loadRef = useRef<((after?: string) => Promise<void>) | null>(null);
 
-  const load = useCallback((after = "") => {
+  const load = useCallback((after = ""): Promise<void> => {
     // Una sola carga por cursor: dos clics en "Ver más" con el mismo cursor no duplican filas
     if (inflight.current === after) return Promise.resolve();
     inflight.current = after;
     if (after) setLoadingMore(true);
+    const startedAt = epoch.current;
     return listAtlasProposals(3, after)
       .then((r) => {
+        if (startedAt !== epoch.current) {
+          // hubo una decisión mientras cargaba: esta respuesta es vieja → repetir la consulta
+          inflight.current = null;
+          return loadRef.current ? loadRef.current(after) : Promise.resolve();
+        }
         setError(null);
         setData((prev) => {
           if (!after || !prev) return r;
@@ -52,6 +62,7 @@ export function AtlasProposalsSection() {
   }, []);
 
   useEffect(() => {
+    loadRef.current = load;
     // fuera del tick del efecto: el linter no quiere setState síncrono dentro de un effect
     const t = window.setTimeout(() => { void load(); }, 0);
     return () => window.clearTimeout(t);
@@ -70,13 +81,17 @@ export function AtlasProposalsSection() {
       </section>
     );
   }
-  if (!data || (data.proposals.length === 0 && data.attention.length === 0)) return null;
+  // La sección sólo desaparece cuando no queda NADA: ni visibles, ni en atención, ni páginas por cargar
+  if (!data || (data.proposals.length === 0 && data.attention.length === 0 && !(data.more > 0 && data.next_cursor))) return null;
 
-  const remove = (id: number) =>
+  const remove = (id: number) => {
+    epoch.current += 1;
     setData((prev) => prev ? { ...prev, proposals: prev.proposals.filter((p) => p.id !== id), attention: prev.attention.filter((p) => p.id !== id) } : prev);
+  };
   /** Aplica el estado DURABLE leído del servidor: pending se actualiza en su lugar; uncertain/approved
    *  pasan a atención; sólo los estados terminales (executed/failed/rejected/expired) retiran la tarjeta. */
-  const replace = (p: AtlasProposal) =>
+  const replace = (p: AtlasProposal) => {
+    epoch.current += 1;
     setData((prev) => {
       if (!prev) return prev;
       const inAttention = p.status === "uncertain" || p.status === "approved";
@@ -89,6 +104,7 @@ export function AtlasProposalsSection() {
         attention: inAttention ? [p, ...prev.attention.filter((x) => x.id !== p.id)] : prev.attention.filter((x) => x.id !== p.id),
       };
     });
+  };
 
   return (
     <section className="pt-6 space-y-3" aria-label="Propuestas de ATLAS pendientes de aprobación">
@@ -113,6 +129,9 @@ export function AtlasProposalsSection() {
       {data.proposals.map((p) => (
         <ProposalCard key={p.id} p={p} onResolved={(np) => (np ? replace(np) : remove(p.id))} />
       ))}
+      {data.proposals.length === 0 && data.more > 0 && data.next_cursor && (
+        <Card className="p-3 text-[13px] text-white/60">Quedan {data.more} propuesta(s) más.</Card>
+      )}
       {data.more > 0 && data.next_cursor && (
         <Button variant="ghost" size="sm" disabled={loadingMore} onClick={() => void load(data.next_cursor || "")}>{loadingMore ? "Cargando…" : `Ver ${Math.min(data.more, 3)} más`}</Button>
       )}

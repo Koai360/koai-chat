@@ -52,9 +52,16 @@ export function AtlasProposalsSection() {
         }
         setError(null);
         setData((prev) => {
-          if (!after || !prev) return r;
+          if (!prev) return r;
+          // La atención confirmada localmente (p.ej. una aprobación reciente que quedó `approved`/
+          // `uncertain`) NO se pierde por lo que traiga el servidor: unión por id. Sólo una
+          // relectura individual con estado terminal la retira (replace/remove).
+          const known = new Map(prev.attention.map((p) => [p.id, p] as const));
+          for (const p of r.attention) known.set(p.id, p);
+          const attention = Array.from(known.values());
+          if (!after) return { ...r, attention };
           const seen = new Set(prev.proposals.map((p) => p.id));
-          return { ...r, proposals: [...prev.proposals, ...r.proposals.filter((p) => !seen.has(p.id))] };
+          return { ...r, attention, proposals: [...prev.proposals, ...r.proposals.filter((p) => !seen.has(p.id))] };
         });
       })
       .catch((e) => {

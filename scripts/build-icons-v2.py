@@ -30,6 +30,11 @@ for path, side in targets.items():
     img.save(path, "PNG", optimize=True)
     print(f"✓ {path.relative_to(ROOT)} {side}px")
 
+# favicons PNG explícitos (index.html los declara con sizes) — ver también el SVG en public/brand/
+for s_ in (32, 16):
+    master.resize((s_, s_), Image.LANCZOS).save(OUT / "icons" / f"favicon-{s_}.png", "PNG", optimize=True)
+    print(f"✓ public/icons/favicon-{s_}.png")
+
 # favicon.ico multi-tamaño (el navegador elige)
 fav = [master.resize((s, s), Image.LANCZOS) for s in (16, 32, 48)]
 fav[0].save(OUT / "favicon.ico", format="ICO", sizes=[(16, 16), (32, 32), (48, 48)], append_images=fav[1:])

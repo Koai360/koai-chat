@@ -2,8 +2,14 @@
 <html lang="es" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="/favicon.ico" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- S332: favicon = la marca nueva de Noa. SVG primero (nítido a cualquier tamaño), PNG y
+         .ico de respaldo. El `?v=2` rompe la caché del navegador, que guarda el favicon por URL
+         y seguía mostrando el cerebro viejo aunque el servidor ya sirviera el nuevo. -->
+    <link rel="icon" type="image/svg+xml" href="/brand/noa-mark.svg?v=2" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png?v=2" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png?v=2" />
+    <link rel="icon" href="/favicon.ico?v=2" sizes="any" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2" />
     <!-- S239: interactive-widget=resizes-content → donde está soportado (Chrome/Android,
          WebKit reciente) el teclado ACHICA el layout viewport en vez de empujar la ventana,
          que es la causa raíz del salto del input bar. Donde no lo está, el atributo se

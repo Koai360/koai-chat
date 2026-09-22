@@ -344,6 +344,92 @@ export async function rejectSkillProposal(id: string, note: string): Promise<voi
 }
 
 // ============================================================
+// ATLAS v2 (S331): propuestas de ads que esperan la decisión de Jesús.
+// Aprobar manda `expected_hash` (lo que se mostró); el servidor devuelve el estado
+// DURABLE (executed / failed / uncertain) — `uncertain` reserva el recurso hasta reconciliar.
+// ============================================================
+export interface AtlasProposal {
+  id: number;
+  platform: "meta" | "google";
+  account_id: string;
+  target_type: string;
+  target_id: string;
+  target_name: string | null;
+  action_type: string;
+  reasoning: string;
+  expected_impact: string | null;
+  severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | null;
+  status: string;
+  exec_state: string | null;
+  expected_hash: string;
+  resource_key: string | null;
+  proposed_at: string;
+  approved_at: string | null;
+  approved_by: string | null;
+  seen_at: string | null;
+  money_at_stake_usd: number;
+  precondition: {
+    previous_daily_budget_usd?: number | null;
+    new_daily_budget_usd?: number | null;
+    status_before?: string | null;
+    keywords?: string[] | null;
+    match_type?: string | null;
+  };
+  snapshot_metrics: Record<string, unknown>;
+  execution_result?: Record<string, unknown> | null;
+}
+
+export interface AtlasProposalsResponse {
+  proposals: AtlasProposal[];
+  more: number;
+  next_cursor: string | null;
+  attention: AtlasProposal[];
+  counts: { pending_total: number; attention: number };
+}
+
+export interface AtlasDecision {
+  ok: boolean;
+  id: number;
+  status: string;
+  exec_state?: string | null;
+  persisted?: boolean;
+  needs_reconcile?: boolean;
+  error?: string | null;
+  observed?: string;
+}
+
+export async function listAtlasProposals(limit = 3, after = ""): Promise<AtlasProposalsResponse> {
+  const q = new URLSearchParams({ limit: String(limit) });
+  if (after) q.set("after", after);
+  const res = await apiFetch(`/api/atlas/proposals?${q.toString()}`);
+  return (await res.json()) as AtlasProposalsResponse;
+}
+
+export async function getAtlasProposal(id: number): Promise<AtlasProposal> {
+  const res = await apiFetch(`/api/atlas/proposals/${id}`);
+  return (await res.json()) as AtlasProposal;
+}
+
+export async function markAtlasProposalSeen(id: number): Promise<void> {
+  await apiFetch(`/api/atlas/proposals/${id}/seen`, { method: "POST", json: {} });
+}
+
+export async function approveAtlasProposal(id: number, expectedHash: string): Promise<AtlasDecision> {
+  const res = await apiFetch(`/api/atlas/proposals/${id}/approve`, { method: "POST", json: { expected_hash: expectedHash } });
+  return (await res.json()) as AtlasDecision;
+}
+
+export async function rejectAtlasProposal(id: number, note: string): Promise<AtlasDecision> {
+  const res = await apiFetch(`/api/atlas/proposals/${id}/reject`, { method: "POST", json: { note } });
+  return (await res.json()) as AtlasDecision;
+}
+
+export async function reconcileAtlasProposal(id: number): Promise<AtlasDecision> {
+  const res = await apiFetch(`/api/atlas/proposals/${id}/reconcile`, { method: "POST", json: {} });
+  return (await res.json()) as AtlasDecision;
+}
+
+// ============================================================
 // CHAT STREAMING
 // ============================================================
 

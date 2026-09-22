@@ -22,6 +22,7 @@ import { VoiceBar } from "@/components/chat/VoiceBar";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { KiraLearningsSection } from "@/components/inbox/KiraLearningsSection";
 import { SkillProposalsSection } from "@/components/inbox/SkillProposalsSection";
+import { AtlasProposalsSection } from "@/components/inbox/AtlasProposalsSection";
 import { cn } from "@/lib/cn";
 
 /**
@@ -195,6 +196,8 @@ export function InboxPage() {
           {/* S288: lo que Kira aprendió y espera tu OK — misma bandeja, misma persona */}
           {!loading && <KiraLearningsSection />}
           {!loading && <SkillProposalsSection />}
+          {/* S331: cambios de ads que ATLAS propone — misma bandeja, misma persona (ADR 0052) */}
+          {!loading && <AtlasProposalsSection />}
         </div>
       </div>
     </div>

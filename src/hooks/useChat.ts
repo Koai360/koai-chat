@@ -242,8 +242,16 @@ export function useChat(options: UseChatOptions): UseChatReturn {
           // Merge conservador (review Codex): solo reemplazar si el server
           // tiene al menos tantos mensajes como los locales — no pisar
           // optimistas de un turno que el backend aún no terminó de persistir.
+          // S277 — los avisos LOCALES ("Error al generar respuesta") no cuentan para
+          // el largo. Con la burbuja de error sumando, `prev` ganaba la comparacion y el
+          // turno real del server nunca entraba: al volver a la app el aviso quedaba
+          // clavado sobre una respuesta que el backend SI habia terminado y persistido.
+          // Mismo criterio que `reconcileAfterDisconnect` (S242) — eran dos
+          // reconciliadores con la misma responsabilidad y solo uno estaba arreglado.
           if (msgs.length > 0) {
-            setMessages((prev) => (msgs.length >= prev.length ? msgs : prev));
+            setMessages((prev) =>
+              msgs.length >= prev.filter((m) => !m.notice).length ? msgs : prev,
+            );
           }
           const last = msgs[msgs.length - 1];
           const turnIncomplete = !!last && last.role === "user";
@@ -487,7 +495,10 @@ export function useChat(options: UseChatOptions): UseChatReturn {
         // desactivada justo en el caso que más la necesita.
         reconcileStopped = false;
         const seqAtError = sendSeqRef.current;
-        const delays = [2500, 5000, 10000, 15000, 20000, 30000, 30000, 30000, 40000];
+        // S277 — hasta ~4 min: un arranque en frio de Modal midio 173s (29-ago), y la
+        // serie vieja se agotaba a los 182s, al borde. Ahora sobra margen.
+        const delays = [2500, 5000, 10000, 15000, 20000, 30000, 30000, 30000, 40000,
+                        40000, 40000];
         let attempt = 0;
         const poll = () => {
           if (attempt >= delays.length || reconcileStopped) return;

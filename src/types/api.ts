@@ -43,6 +43,17 @@ export interface ChatMessage {
    *   - "interrupted" → HAY contenido, pero la conexión murió antes del done
    */
   notice?: "error" | "silent" | "interrupted";
+  /** S338 (ADR 0063) — archivos que Noa entregó en este mensaje. Sin URL: se pide con la
+   *  sesión a POST /api/chat/files/{file_id}/url (firmada, 10 min) al verlos o bajarlos. */
+  attachments?: ChatAttachment[];
+}
+
+export interface ChatAttachment {
+  file_id: string;
+  name: string;
+  mime: string;
+  size?: number | null;
+  kind: "image" | "file";
 }
 
 export interface ChatImage {
@@ -91,4 +102,7 @@ export interface SendMessagePayload {
   /** S322 — identidad del turno: las filas de este turno en el backend derivan de este uuid
    *  (reintentar no duplica; dos turnos con la misma respuesta no se confunden). */
   turn_id?: string;
+  /** S338 — el cliente sabe mostrar archivos (evento `file` + attachments). Sin esto el
+   *  backend manda el PDF como link, igual que antes. */
+  client_capabilities?: string[];
 }

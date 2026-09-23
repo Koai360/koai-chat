@@ -8,7 +8,7 @@ import {
   streamMessage,
   type StreamEvent,
 } from "@/lib/api";
-import type { ChatMessage, Conversation, SendMessagePayload, ThinkingLevel } from "@/types/api";
+import type { ChatAttachment, ChatMessage, Conversation, SendMessagePayload, ThinkingLevel } from "@/types/api";
 import { resolveThinkingLevel, type ModelMode } from "@/lib/autoThinking";
 import {
   loadImageEngine,
@@ -440,11 +440,16 @@ export function useChat(options: UseChatOptions): UseChatReturn {
         image_engine: resolveImageEngine(imageEngine),
         // S322 — identidad del turno (el backend genera una si falta)
         turn_id: typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : undefined,
+        // S338 — este cliente sabe mostrar archivos: el backend entrega PDFs y archivos de
+        // clientes como adjuntos (evento `file`) en vez de un link en el texto.
+        client_capabilities: ["files"],
         ...opts,
       };
 
       let accumulated = "";
       let imageUrl: string | null = null;
+      // S338 — archivos del turno (evento `file`); ya descargables al llegar
+      let files: ChatAttachment[] = [];
       let sawDone = false;
       let sawError = false;
       let streamClosed = false;
@@ -546,6 +551,12 @@ export function useChat(options: UseChatOptions): UseChatReturn {
             onHint: (hint) => {
               if (isCurrent()) setLoadingHint(hint);
             },
+            onFile: (file) => {
+              if (files.some((f) => f.file_id === file.file_id)) return;
+              files = [...files, file];
+              clearNotice(); // llegó un archivo → el turno está vivo
+              if (isCurrent()) setLoadingHint(null);
+            },
             onImage: (url) => {
               imageUrl = url;
               clearNotice(); // S242: llegó la imagen → el turno está vivo
@@ -569,13 +580,14 @@ export function useChat(options: UseChatOptions): UseChatReturn {
               // S242: el turno cerró bien — cualquier aviso previo era transitorio
               clearNotice();
               // Promovemos streamingText → message
-              if ((accumulated || imageUrl) && convId && isCurrent()) {
+              if ((accumulated || imageUrl || files.length) && convId && isCurrent()) {
                 const assistantMsg: ChatMessage = {
                   id: `assistant-${Date.now()}`,
                   conversation_id: convId,
                   role: "assistant",
                   content: accumulated,
                   image: imageUrl,
+                  ...(files.length ? { attachments: files } : {}),
                   created_at: new Date().toISOString(),
                 };
                 setMessages((prev) => [...prev, assistantMsg]);
@@ -587,7 +599,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
             // mensaje visible si el turno no produjo texto.
             onError: () => {
               sawError = true;
-              if (!accumulated && !imageUrl && isCurrent()) {
+              if (!accumulated && !imageUrl && !files.length && isCurrent()) {
                 const errMsg: ChatMessage = {
                   id: `err-${Date.now()}`,
                   conversation_id: convId,
@@ -621,7 +633,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
           // aviso en itálica quedaba arriba y la respuesta completa debajo,
           // leyéndose como un solo bloque roto. Ahora la burbuja sólo aparece
           // cuando no hubo NADA que mostrar (mismo criterio que `onError`).
-          if (!accumulated && !imageUrl) {
+          if (!accumulated && !imageUrl && !files.length) {
             if (isCurrent()) {
               const errMsg: ChatMessage = {
                 id: `err-${Date.now()}`,
@@ -645,10 +657,11 @@ export function useChat(options: UseChatOptions): UseChatReturn {
       } finally {
         streamClosed = true; // S158-b: invalida flushes diferidos del throttle
         // Si el stream terminó sin enviar `done` (timeout, abort, error), flush manual
-        if ((accumulated || imageUrl) && !sawDone && isCurrent()) {
+        if ((accumulated || imageUrl || files.length) && !sawDone && isCurrent()) {
           setMessages((prev) => {
             // Dedup: si onDone ya promovió, no agregar de nuevo
-            if (prev.some((m) => m.role === "assistant" && m.content === accumulated && m.image === imageUrl)) {
+            if (prev.some((m) => m.role === "assistant" && m.content === accumulated && m.image === imageUrl
+                && (m.attachments?.length ?? 0) === files.length)) {
               return prev;
             }
             return [
@@ -659,6 +672,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
                 role: "assistant",
                 content: accumulated,
                 image: imageUrl,
+                ...(files.length ? { attachments: files } : {}),
                 // S242: la respuesta puede estar cortada — se avisa AL PIE del
                 // propio turno, no con una burbuja de error encima.
                 ...(streamInterrupted ? { notice: "interrupted" as const } : {}),
@@ -669,7 +683,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
         }
         // S158 — stream cerró sin texto, sin done y sin error renderizado →
         // antes quedaba la nada absoluta ("Pensando…" desaparecía y ya).
-        if (!accumulated && !imageUrl && !sawDone && !sawError && isCurrent()) {
+        if (!accumulated && !imageUrl && !files.length && !sawDone && !sawError && isCurrent()) {
           const silent: ChatMessage = {
             id: `err-${Date.now()}`,
             conversation_id: convId,
@@ -768,6 +782,7 @@ function handleStreamEvent(
     onHint: (hint: string) => void;
     onDone: () => void;
     onImage: (url: string) => void;
+    onFile?: (file: ChatAttachment) => void;
     onError?: (message: string) => void;
   },
 ) {
@@ -798,6 +813,20 @@ function handleStreamEvent(
             (data as { image?: string; url?: string })?.url ??
             "";
       if (url) handlers.onImage(url);
+      break;
+    }
+    case "file": {
+      // S338 — archivo entregado por Noa (ya registrado y descargable). Sin URL: se pide al verlo.
+      const f = data as Partial<ChatAttachment> | null;
+      if (f && typeof f === "object" && f.file_id && f.name) {
+        handlers.onFile?.({
+          file_id: String(f.file_id),
+          name: String(f.name),
+          mime: String(f.mime || "application/octet-stream"),
+          size: typeof f.size === "number" ? f.size : null,
+          kind: f.kind === "image" ? "image" : "file",
+        });
+      }
       break;
     }
     case "image_metadata":

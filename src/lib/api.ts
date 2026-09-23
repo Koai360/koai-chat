@@ -178,6 +178,20 @@ export async function getMessages(conversationId: string): Promise<ChatMessage[]
   return Array.isArray(data) ? data : data.items || data.messages || [];
 }
 
+/** S338 (ADR 0063) — URL firmada corta (10 min) de un archivo que Noa entregó en el chat.
+ *  `inline` sólo aplica a imágenes raster, PDF y texto: el resto el servidor lo fuerza a descarga.
+ *  No se cachea: se pide cada vez que se ve o se baja. */
+export async function getChatFileUrl(
+  fileId: string,
+  inline = false,
+): Promise<{ url: string; inline: boolean; name: string; mime: string }> {
+  const res = await apiFetch(
+    `/api/chat/files/${encodeURIComponent(fileId)}/url${inline ? "?inline=true" : ""}`,
+    { method: "POST" },
+  );
+  return res.json();
+}
+
 export async function deleteMessages(conversationId: string, messageIds: string[]): Promise<void> {
   await apiFetch(`/api/chat/conversations/${conversationId}/messages`, {
     method: "DELETE",

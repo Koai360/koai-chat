@@ -3,6 +3,7 @@ import { AnimatePresence } from "framer-motion";
 import { AlertTriangle } from "lucide-react";
 import { NoaWordmark } from "@/components/brand/NoaWordmark";
 import { CardRenderer } from "./CardRenderer";
+import { FileAttachments } from "./FileAttachments";
 import { LazyNoaMarkdown as NoaMarkdown } from "./LazyNoaMarkdown";
 import { ImageLightbox } from "@/components/shared/ImageLightbox";
 import { parseCards } from "@/lib/cards";
@@ -135,6 +136,10 @@ export const MessageBubble = memo(function MessageBubble({
             }
             className="block w-full max-w-[480px] h-auto rounded-xl border border-white/[0.06] object-cover cursor-zoom-in"
           />
+        )}
+        {/* S338 (ADR 0063): archivos que Noa entregó — PDFs, fotos de clientes. */}
+        {message.attachments && message.attachments.length > 0 && (
+          <FileAttachments files={message.attachments} />
         )}
         {/* S242: el turno escribió pero la conexión murió antes del `done`.
             La advertencia va AL PIE de su propia respuesta — el sondeo de

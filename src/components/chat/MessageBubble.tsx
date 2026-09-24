@@ -4,6 +4,7 @@ import { AlertTriangle } from "lucide-react";
 import { NoaWordmark } from "@/components/brand/NoaWordmark";
 import { CardRenderer } from "./CardRenderer";
 import { FileAttachments } from "./FileAttachments";
+import { SendCards } from "./SendCards";
 import { LazyNoaMarkdown as NoaMarkdown } from "./LazyNoaMarkdown";
 import { ImageLightbox } from "@/components/shared/ImageLightbox";
 import { parseCards } from "@/lib/cards";
@@ -140,6 +141,10 @@ export const MessageBubble = memo(function MessageBubble({
         {/* S338 (ADR 0063): archivos que Noa entregó — PDFs, fotos de clientes. */}
         {message.attachments && message.attachments.length > 0 && (
           <FileAttachments files={message.attachments} />
+        )}
+        {/* S347 (ADR 0077): envío en espera de confirmación — tarjeta del servidor, fuera del Markdown. */}
+        {message.send_cards && message.send_cards.length > 0 && (
+          <SendCards cards={message.send_cards} />
         )}
         {/* S242: el turno escribió pero la conexión murió antes del `done`.
             La advertencia va AL PIE de su propia respuesta — el sondeo de

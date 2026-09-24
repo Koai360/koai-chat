@@ -8,7 +8,7 @@ import {
   streamMessage,
   type StreamEvent,
 } from "@/lib/api";
-import type { ChatAttachment, ChatMessage, Conversation, SendMessagePayload, ThinkingLevel } from "@/types/api";
+import type { ChatAttachment, ChatMessage, Conversation, SendCard, SendMessagePayload, ThinkingLevel } from "@/types/api";
 import { resolveThinkingLevel, type ModelMode } from "@/lib/autoThinking";
 import {
   loadImageEngine,
@@ -442,7 +442,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
         turn_id: typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : undefined,
         // S338 — este cliente sabe mostrar archivos: el backend entrega PDFs y archivos de
         // clientes como adjuntos (evento `file`) en vez de un link en el texto.
-        client_capabilities: ["files"],
+        client_capabilities: ["files", "send_card"],
         ...opts,
       };
 
@@ -450,6 +450,8 @@ export function useChat(options: UseChatOptions): UseChatReturn {
       let imageUrl: string | null = null;
       // S338 — archivos del turno (evento `file`); ya descargables al llegar
       let files: ChatAttachment[] = [];
+      // S347 (ADR 0077): tarjetas del servidor (envío en espera / resultado), fuera del Markdown
+      let sendCards: SendCard[] = [];
       let sawDone = false;
       let sawError = false;
       let streamClosed = false;
@@ -551,6 +553,11 @@ export function useChat(options: UseChatOptions): UseChatReturn {
             onHint: (hint) => {
               if (isCurrent()) setLoadingHint(hint);
             },
+            onSendCard: (card) => {
+              sendCards = [...sendCards, card];
+              clearNotice(); // llegó una tarjeta → el turno está vivo
+              if (isCurrent()) setLoadingHint(null);
+            },
             onFile: (file) => {
               if (files.some((f) => f.file_id === file.file_id)) return;
               files = [...files, file];
@@ -580,7 +587,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
               // S242: el turno cerró bien — cualquier aviso previo era transitorio
               clearNotice();
               // Promovemos streamingText → message
-              if ((accumulated || imageUrl || files.length) && convId && isCurrent()) {
+              if ((accumulated || imageUrl || files.length || sendCards.length) && convId && isCurrent()) {
                 const assistantMsg: ChatMessage = {
                   id: `assistant-${Date.now()}`,
                   conversation_id: convId,
@@ -588,6 +595,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
                   content: accumulated,
                   image: imageUrl,
                   ...(files.length ? { attachments: files } : {}),
+                  ...(sendCards.length ? { send_cards: sendCards } : {}),
                   created_at: new Date().toISOString(),
                 };
                 setMessages((prev) => [...prev, assistantMsg]);
@@ -657,7 +665,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
       } finally {
         streamClosed = true; // S158-b: invalida flushes diferidos del throttle
         // Si el stream terminó sin enviar `done` (timeout, abort, error), flush manual
-        if ((accumulated || imageUrl || files.length) && !sawDone && isCurrent()) {
+        if ((accumulated || imageUrl || files.length || sendCards.length) && !sawDone && isCurrent()) {
           setMessages((prev) => {
             // Dedup: si onDone ya promovió, no agregar de nuevo
             if (prev.some((m) => m.role === "assistant" && m.content === accumulated && m.image === imageUrl
@@ -673,6 +681,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
                 content: accumulated,
                 image: imageUrl,
                 ...(files.length ? { attachments: files } : {}),
+                ...(sendCards.length ? { send_cards: sendCards } : {}),
                 // S242: la respuesta puede estar cortada — se avisa AL PIE del
                 // propio turno, no con una burbuja de error encima.
                 ...(streamInterrupted ? { notice: "interrupted" as const } : {}),
@@ -683,7 +692,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
         }
         // S158 — stream cerró sin texto, sin done y sin error renderizado →
         // antes quedaba la nada absoluta ("Pensando…" desaparecía y ya).
-        if (!accumulated && !imageUrl && !files.length && !sawDone && !sawError && isCurrent()) {
+        if (!accumulated && !imageUrl && !files.length && !sendCards.length && !sawDone && !sawError && isCurrent()) {
           const silent: ChatMessage = {
             id: `err-${Date.now()}`,
             conversation_id: convId,
@@ -783,6 +792,7 @@ function handleStreamEvent(
     onDone: () => void;
     onImage: (url: string) => void;
     onFile?: (file: ChatAttachment) => void;
+    onSendCard?: (card: SendCard) => void;
     onError?: (message: string) => void;
   },
 ) {
@@ -826,6 +836,15 @@ function handleStreamEvent(
           size: typeof f.size === "number" ? f.size : null,
           kind: f.kind === "image" ? "image" : "file",
         });
+      }
+      break;
+    }
+    case "send_card": {
+      // S347 (ADR 0077) — tarjeta del SERVIDOR: envío en espera de confirmación o su resultado.
+      // Se renderiza aparte del Markdown (SendCards.tsx); nunca se concatena al texto del modelo.
+      const c = data as Partial<SendCard> | null;
+      if (c && typeof c === "object" && (c.kind === "proposal" || c.kind === "result")) {
+        handlers.onSendCard?.(c as SendCard);
       }
       break;
     }

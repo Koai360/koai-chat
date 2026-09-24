@@ -46,6 +46,21 @@ export interface ChatMessage {
   /** S338 (ADR 0063) — archivos que Noa entregó en este mensaje. Sin URL: se pide con la
    *  sesión a POST /api/chat/files/{file_id}/url (firmada, 10 min) al verlos o bajarlos. */
   attachments?: ChatAttachment[];
+  /** S347 (ADR 0077) — tarjetas de "envío en espera"/resultado que mandó el SERVIDOR (evento
+   *  `send_card`). Se muestran en un componente aparte del Markdown: nunca dentro de `content`. */
+  send_cards?: SendCard[];
+}
+
+export interface SendCard {
+  kind: "proposal" | "result";
+  propuesta_id?: string;
+  contact?: { name: string; phone: string; contact_id: number | string; channel_label: string; channel_id: number | string };
+  text?: string;
+  code?: string;
+  confirm_phrase?: string;
+  ttl_s?: number;
+  estado?: string;
+  mensaje?: string;
 }
 
 export interface ChatAttachment {

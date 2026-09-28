@@ -2,8 +2,9 @@
  * API client — wrapper REST + SSE para koai-api en api.koai360.com.
  *
  * Auth: la sesión vive en localStorage como `noa.session` (JWT + user info).
- * Headers: `Authorization: Bearer <jwt>` + `X-API-Key` para endpoints internos
- * que necesiten ambas validaciones.
+ * Headers: SOLO `Authorization: Bearer <jwt>`. 🔴 Nunca la API key: todo lo que
+ * se importa acá termina en el JS público, y la llave da super_admin (S353).
+ * Sin sesión no se manda auth → 401 → login.
  *
  * Errores: throw `ApiError` con status + message normalizados.
  */
@@ -17,7 +18,6 @@ import type {
 } from "@/types/api";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "https://api.koai360.com";
-const API_KEY = import.meta.env.VITE_API_KEY || "koai-dev-2026";
 
 export class ApiError extends Error {
   status: number;
@@ -47,13 +47,9 @@ async function apiFetch(path: string, opts: FetchOpts = {}): Promise<Response> {
     ...(headers as Record<string, string>),
   };
 
-  // Backend prefiere JWT sobre API key — si hay JWT, mandar SOLO ese
-  // (sino el middleware setea user_id="api-key-user" e ignora el JWT)
   const token = skipAuth ? null : getAuthToken();
   if (token) {
     finalHeaders["Authorization"] = `Bearer ${token}`;
-  } else {
-    finalHeaders["X-API-Key"] = API_KEY;
   }
 
   if (json !== undefined) {
@@ -569,8 +565,6 @@ export async function* streamMessage(
   };
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
-  } else {
-    headers["X-API-Key"] = API_KEY;
   }
 
   const res = await fetch(`${API_BASE}/api/chat/stream`, {

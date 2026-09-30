@@ -65,3 +65,37 @@ export function formatMiamiTime(iso?: string | null): string {
     return iso;
   }
 }
+
+const DAY_ES: Record<string, string> = {
+  monday: "lunes", tuesday: "martes", wednesday: "miércoles", thursday: "jueves",
+  friday: "viernes", saturday: "sábado", sunday: "domingo",
+};
+
+/** Patrón de recurrencia del servidor (`daily_0800`, `weekly_monday_0900`, `every_2h`…) en español. */
+export function describePattern(pattern: string | undefined): string {
+  if (!pattern) return "";
+  if (pattern.startsWith("daily_")) {
+    const hhmm = pattern.slice(6);
+    const hh = hhmm.slice(0, 2);
+    const mm = hhmm.slice(2, 4);
+    return `Cada día a las ${hh}:${mm}`;
+  }
+  if (pattern.startsWith("weekly_")) {
+    const parts = pattern.split("_");
+    const day = DAY_ES[parts[1]?.toLowerCase() ?? ""] ?? parts[1];
+    return `Cada ${day} a las ${parts[2]?.slice(0, 2)}:${parts[2]?.slice(2, 4)}`;
+  }
+  if (pattern.startsWith("monthly_")) {
+    const parts = pattern.split("_");
+    return `Día ${parts[1]} de cada mes a las ${parts[2]?.slice(0, 2)}:${parts[2]?.slice(2, 4)}`;
+  }
+  if (pattern.startsWith("every_") && pattern.endsWith("h")) {
+    const n = pattern.slice(6, -1);
+    return `Cada ${n} hora${n !== "1" ? "s" : ""}`;
+  }
+  if (pattern.startsWith("every_") && pattern.endsWith("min")) {
+    const n = pattern.slice(6, -3);
+    return `Cada ${n} minuto${n !== "1" ? "s" : ""}`;
+  }
+  return pattern;
+}

@@ -846,3 +846,116 @@ export async function deletePushSubscription(sub: PushSubscriptionJSON): Promise
     json: { endpoint: sub.endpoint, keys: sub.keys ?? {} },
   });
 }
+
+// ============================================================
+// NOA · ACTIVIDAD (S356, ADR 0087 F4)
+// ============================================================
+
+export interface NoaResponsibility {
+  id: string;
+  title: string;
+  objective: string;
+  notify_criteria?: string | null;
+  sources?: string[];
+  triggers?: string[];
+  schedule_pattern?: string | null;
+  next_run_at?: string | null;
+  proactive?: boolean;
+  status: "active" | "paused" | "closed" | "expired";
+  paused_reason?: string | null;
+  expires_at?: string | null;
+  notes?: string | null;
+  last_run_at?: string | null;
+  last_notified_at?: string | null;
+  consecutive_failures?: number;
+  consecutive_rejections?: number;
+}
+
+export interface NoaRecurringTask {
+  id: string;
+  title: string;
+  pattern: string;
+  pattern_description?: string | null;
+  action_type: string;
+  status: "active" | "paused" | "cancelled";
+  next_run_at?: string | null;
+  last_run_at?: string | null;
+  last_run_status?: string | null;
+  run_count?: number;
+  fail_count?: number;
+}
+
+export interface NoaRun {
+  id: string;
+  responsibility_id: string;
+  responsibility_title?: string | null;
+  trigger: "schedule" | "event" | "proactive" | "manual";
+  status: string;
+  summary?: string | null;
+  error?: string | null;
+  started_at: string;
+  finished_at?: string | null;
+}
+
+export interface NoaQueuedWakeup {
+  id: string;
+  responsibility_id: string;
+  responsibility_title?: string | null;
+  kind: "event" | "schedule" | "proactive";
+  not_before: string;
+  events: number;
+}
+
+export interface NoaActivity {
+  responsibilities: NoaResponsibility[];
+  recurring: NoaRecurringTask[];
+  runs: NoaRun[];
+  queued: NoaQueuedWakeup[];
+  proposals: { pending: number; attention: number };
+  today: { runs: number; cap: number; proactive: number; proactive_cap: number };
+}
+
+export interface NoaStatusResult {
+  ok: boolean;
+  message: string;
+  /** La fila que el SERVIDOR tocó (título y estado reales, no los que escribió el modelo en la tarjeta). */
+  task?: { id?: string; title?: string; status?: string } | null;
+  responsibility?: { id?: string; title?: string; status?: string } | null;
+}
+
+/** Las acciones devuelven 409 con {ok:false, message} cuando no aplican: se tratan como resultado. */
+async function noaStatus(path: string, json: unknown = {}): Promise<NoaStatusResult> {
+  try {
+    const res = await apiFetch(path, { method: "POST", json });
+    return (await res.json()) as NoaStatusResult;
+  } catch (e) {
+    if (e instanceof ApiError && e.data && typeof e.data === "object" && "message" in e.data) {
+      // 409: no aplicó, pero trae la fila ACTUAL del servidor para reconciliar la pantalla.
+      return { ...(e.data as NoaStatusResult), ok: false, message: String((e.data as { message: unknown }).message) };
+    }
+    throw e;
+  }
+}
+
+export async function getNoaActivity(): Promise<NoaActivity> {
+  const res = await apiFetch("/api/noa/activity");
+  return (await res.json()) as NoaActivity;
+}
+
+export function setResponsibilityStatus(id: string, action: "pause" | "resume" | "close", reason = ""): Promise<NoaStatusResult> {
+  return noaStatus(`/api/noa/responsibilities/${id}/${action}`, { reason });
+}
+
+export function setRecurringStatus(id: string, action: "pause" | "resume" | "cancel", reason = ""): Promise<NoaStatusResult> {
+  return noaStatus(`/api/noa/recurring/${id}/${action}`, { reason });
+}
+
+/** La recurrente REAL (del dueño del JWT) antes de actuar desde una tarjeta escrita por el modelo. */
+export async function getRecurringTask(id: string): Promise<NoaRecurringTask> {
+  const res = await apiFetch(`/api/noa/recurring/${id}`);
+  return (await res.json()) as NoaRecurringTask;
+}
+
+export function cancelNoaWakeup(id: string): Promise<NoaStatusResult> {
+  return noaStatus(`/api/noa/wakeups/${id}/cancel`);
+}

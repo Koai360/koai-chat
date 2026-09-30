@@ -13,6 +13,7 @@ import {
   MoreHorizontal,
   Pencil,
   Trash2,
+  Activity,
 } from "lucide-react";
 import { toast } from "sonner";
 import { NoaWordmark } from "@/components/brand/NoaWordmark";
@@ -24,6 +25,7 @@ import type { AuthUser, Conversation } from "@/types/api";
 import { navigate, type Route } from "@/lib/routing";
 import { renameConversation as apiRenameConversation, deleteConversation as apiDeleteConversation, listInbox } from "@/lib/api";
 import { openPalette, MOD_LABEL } from "@/hooks/useHotkeys";
+import { useNoaFlags } from "@/hooks/useNoaFlags";
 import { Search } from "lucide-react";
 
 /** Cuenta de dudas pendientes en la Bandeja para el badge del nav (poll 60s +
@@ -136,6 +138,9 @@ export function Sidebar({
   const isXL = useIsXL();
   const [pinned, setPinned] = usePinned();
   const inboxCount = useInboxCount();
+  // S356 (ADR 0087 F4): la página de Actividad aparece solo con su flag (`noa_actividad`).
+  const { flags } = useNoaFlags();
+  const showActivity = flags.noa_actividad === true;
   const docked = isXL && pinned;
   const open = isMobile || docked || expanded;
 
@@ -260,6 +265,14 @@ export function Sidebar({
             badge={inboxCount}
             onClick={() => navigate({ kind: "bandeja" })}
           />
+          {showActivity && (
+            <RailLink
+              icon={<Activity className="size-[20px]" strokeWidth={2} />}
+              label="Actividad"
+              active={route.kind === "actividad"}
+              onClick={() => navigate({ kind: "actividad" })}
+            />
+          )}
           <RailLink
             icon={<ImageIcon className="size-[20px]" strokeWidth={2} />}
             label="Galería"
@@ -448,6 +461,8 @@ function SidebarContent({
   onCollapse,
 }: SidebarContentProps) {
   const recent = conversations.slice(0, recentLimit);
+  const { flags } = useNoaFlags();
+  const showActivity = flags.noa_actividad === true;
   // S332: renombrar/borrar EN LA FILA (antes window.prompt/confirm/alert).
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -650,6 +665,14 @@ function SidebarContent({
           badge={inboxCount}
           onClick={() => navigate({ kind: "bandeja" })}
         />
+        {showActivity && (
+          <FooterLink
+            icon={<Activity className="size-[18px]" />}
+            label="Actividad"
+            active={route.kind === "actividad"}
+            onClick={() => navigate({ kind: "actividad" })}
+          />
+        )}
         <FooterLink
           icon={<ImageIcon className="size-[18px]" />}
           label="Galería"

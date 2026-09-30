@@ -25,6 +25,9 @@ const HistoryPage = lazy(() =>
 const InboxPage = lazy(() =>
   import("@/components/pages/InboxPage").then((m) => ({ default: m.InboxPage })),
 );
+const ActivityPage = lazy(() =>
+  import("@/components/pages/ActivityPage").then((m) => ({ default: m.ActivityPage })),
+);
 const SettingsPage = lazy(() =>
   import("@/components/pages/SettingsPage").then((m) => ({ default: m.SettingsPage })),
 );
@@ -256,6 +259,11 @@ export function AppShell({ user, onLogout }: AppShellProps) {
             {route.kind === "bandeja" && (
               <Suspense fallback={<PageFallback />}>
                 <InboxPage />
+              </Suspense>
+            )}
+            {route.kind === "actividad" && (
+              <Suspense fallback={<PageFallback />}>
+                <ActivityPage />
               </Suspense>
             )}
             {route.kind === "config" && (

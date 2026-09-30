@@ -6,6 +6,7 @@
  *   #/c/{id}               → chat conversación
  *   #/galeria              → galería
  *   #/historial            → historial
+ *   #/actividad            → actividad de Noa (responsabilidades, recurrentes, corridas)
  *   #/config              → settings root
  *   #/config/{tab}        → settings tab específica (memoria/kb/voz/...)
  */
@@ -15,6 +16,7 @@ export type Route =
   | { kind: "galeria" }
   | { kind: "historial" }
   | { kind: "bandeja" }
+  | { kind: "actividad" }
   | { kind: "config"; tab?: string };
 
 export function parseHash(hash: string): Route {
@@ -30,6 +32,7 @@ export function parseHash(hash: string): Route {
   if (head === "galeria") return { kind: "galeria" };
   if (head === "historial") return { kind: "historial" };
   if (head === "bandeja") return { kind: "bandeja" };
+  if (head === "actividad") return { kind: "actividad" };
 
   if (head === "config") {
     return { kind: "config", tab: rest[0] };
@@ -48,6 +51,8 @@ export function routeToHash(route: Route): string {
       return "#/historial";
     case "bandeja":
       return "#/bandeja";
+    case "actividad":
+      return "#/actividad";
     case "config":
       return route.tab ? `#/config/${route.tab}` : "#/config";
   }

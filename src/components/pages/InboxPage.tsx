@@ -28,6 +28,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { KiraLearningsSection } from "@/components/inbox/KiraLearningsSection";
 import { SkillProposalsSection } from "@/components/inbox/SkillProposalsSection";
 import { AtlasProposalsSection } from "@/components/inbox/AtlasProposalsSection";
+import { NoaProposalsSection } from "@/components/inbox/NoaProposalsSection";
 import { useMediaQuery, XL_QUERY } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/cn";
 
@@ -355,6 +356,7 @@ export function InboxPage() {
                     Elegí una duda de la lista para hablar con Kira. Acá abajo, lo que espera tu OK.
                   </div>
                 )}
+                {!loading && <NoaProposalsSection />}
                 {!loading && <KiraLearningsSection />}
                 {!loading && <SkillProposalsSection />}
                 {!loading && <AtlasProposalsSection />}
@@ -397,6 +399,8 @@ export function InboxPage() {
               </section>
             ))
           )}
+          {/* S356: lo que Noa dejó listo trabajando sola y espera tu OK (ADR 0087 F3) */}
+          {!loading && <NoaProposalsSection />}
           {/* S288: lo que Kira aprendió y espera tu OK — misma bandeja, misma persona */}
           {!loading && <KiraLearningsSection />}
           {!loading && <SkillProposalsSection />}

@@ -543,6 +543,87 @@ export async function reconcileAtlasProposal(id: number): Promise<AtlasDecision>
 }
 
 // ============================================================
+// NOA · PROPUESTAS APROBABLES (S356, ADR 0087 F3)
+// ============================================================
+
+export interface NoaProposal {
+  id: string;
+  code: string;
+  kind: "whatsapp_reply" | "email_draft";
+  status: "pending" | "claimed" | "executed" | "failed" | "uncertain" | "rejected" | "expired";
+  status_reason?: string | null;
+  reason: string;
+  responsibility_id: string;
+  responsibility_title?: string | null;
+  created_at: string;
+  expires_at?: string | null;
+  claimed_at?: string | null;
+  finished_at?: string | null;
+  payload_hash: string;
+  detail: {
+    to_name?: string; to_phone?: string; channel_label?: string; channel_id?: number; text?: string;
+    from?: string; identity?: string; to?: string; subject?: string; body?: string; thread_id?: string;
+  };
+  evidence?: Record<string, unknown> | null;
+  reject_note?: string | null;
+  needs_reconcile: boolean;
+  can_mark_sent: boolean;
+  can_mark_not_sent: boolean;
+}
+
+export interface NoaProposalsResponse {
+  open: NoaProposal[];
+  recent: NoaProposal[];
+  pending_count: number;
+  attention_count: number;
+}
+
+/** Respuesta de una decisión: lo que vio ESTE request (`observed`) y el estado DURABLE de la fila. */
+export interface NoaProposalDecision {
+  outcome: string;
+  observed?: string;
+  durable_status?: string | null;
+  needs_reconcile?: boolean;
+  candidates?: { messageId: string; source: string; at: string }[];
+  error?: string | null;
+  proposal: NoaProposal | null;
+}
+
+/** Los 4xx de estas rutas traen el estado durable en el cuerpo: se devuelven como decisión. */
+async function noaDecision(path: string, json: unknown): Promise<NoaProposalDecision> {
+  try {
+    const res = await apiFetch(path, { method: "POST", json });
+    return (await res.json()) as NoaProposalDecision;
+  } catch (e) {
+    if (e instanceof ApiError && e.data && typeof e.data === "object" && "outcome" in e.data) {
+      return e.data as NoaProposalDecision;
+    }
+    throw e;
+  }
+}
+
+export async function listNoaProposals(): Promise<NoaProposalsResponse> {
+  const res = await apiFetch("/api/noa/proposals");
+  return (await res.json()) as NoaProposalsResponse;
+}
+
+export function approveNoaProposal(id: string, expectedHash: string): Promise<NoaProposalDecision> {
+  return noaDecision(`/api/noa/proposals/${id}/approve`, { expected_hash: expectedHash });
+}
+
+export function rejectNoaProposal(id: string, note: string): Promise<NoaProposalDecision> {
+  return noaDecision(`/api/noa/proposals/${id}/reject`, { note });
+}
+
+export function reconcileNoaProposal(id: string): Promise<NoaProposalDecision> {
+  return noaDecision(`/api/noa/proposals/${id}/reconcile`, {});
+}
+
+export function resolveNoaProposal(id: string, outcome: "sent" | "not_sent", note: string): Promise<NoaProposalDecision> {
+  return noaDecision(`/api/noa/proposals/${id}/resolve`, { outcome, note });
+}
+
+// ============================================================
 // CHAT STREAMING
 // ============================================================
 

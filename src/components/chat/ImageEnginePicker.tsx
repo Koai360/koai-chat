@@ -1,4 +1,4 @@
-import { Check, Sparkles, Banana, Asterisk, Palette } from "lucide-react";
+import { Check, Sparkles, Banana, Asterisk, Palette, Aperture } from "lucide-react";
 import { Dropdown, DropdownItem, DropdownSeparator } from "@/components/ui/Dropdown";
 import { cn } from "@/lib/cn";
 import type { ImageEngine } from "@/lib/imageEngine";
@@ -7,11 +7,11 @@ import type { ImageEngine } from "@/lib/imageEngine";
  * ImageEnginePicker — elige con qué motor genera Noa las imágenes (S228).
  *
  * Auto (default) mantiene la cadena del backend: GPT Image 2.5 → Nano Banana Pro
- * → NB2 Flash → Imagen 4. Los otros tres son motor ÚNICO: si fallan devuelven
- * error en vez de caer a otro, que es justamente el punto de elegirlo.
+ * → NB2 Flash. Los demás son motor ÚNICO: si fallan devuelven error en vez de
+ * caer a otro, que es justamente el punto de elegirlo.
  *
- * Solo afecta a la GENERACIÓN. La edición sigue siempre en Flux.2 pro, que es
- * el único que preserva el arte aprobado pixel-perfect.
+ * Solo afecta a la GENERACIÓN. La edición tiene su propia cadena en el backend
+ * (edit_image_smart: GPT Image 2.5 sunburst → FLUX 3 → FLUX.2 pro → Modal).
  *
  * 🔴 SOLO ICONO, 40x40 — igual que los IconButton size="md" vecinos.
  * La v1 era un pill con texto ("🖼 NBP ⌄") y 44px de alto: en 390px se comía
@@ -53,6 +53,12 @@ const OPTIONS: EngineOption[] = [
     description: "Tipografía fuerte · más lento",
     icon: <Asterisk className="size-4 text-[var(--color-noa)]" />,
   },
+  {
+    engine: "flux3",
+    label: "FLUX 3",
+    description: "2K, fotorrealismo · más lento",
+    icon: <Aperture className="size-4 text-[var(--color-noa)]" />,
+  },
 ];
 
 /** Icono del trigger: el del motor activo, al tamaño de los IconButton vecinos. */
@@ -61,6 +67,7 @@ const TRIGGER_ICON: Record<ImageEngine, React.ReactNode> = {
   gpt: <Palette className="size-[18px]" />,
   nbp: <Banana className="size-[18px]" />,
   grok: <Asterisk className="size-[18px]" strokeWidth={2.4} />,
+  flux3: <Aperture className="size-[18px]" />,
 };
 
 interface ImageEnginePickerProps {

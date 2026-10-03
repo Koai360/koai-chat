@@ -9,11 +9,11 @@
  * koai/tools/image_gen_tools.py — el backend ignora cualquier valor fuera de
  * esa whitelist y cae a Auto.
  */
-export type ImageEngine = "auto" | "gpt" | "nbp" | "grok";
+export type ImageEngine = "auto" | "gpt" | "nbp" | "grok" | "flux3";
 
 const STORAGE_KEY = "noa:imageEngine";
 
-const VALID: readonly ImageEngine[] = ["auto", "gpt", "nbp", "grok"];
+const VALID: readonly ImageEngine[] = ["auto", "gpt", "nbp", "grok", "flux3"];
 
 /** Valor para el payload: `undefined` cuando es Auto (el backend decide). */
 export function resolveImageEngine(engine: ImageEngine): string | undefined {

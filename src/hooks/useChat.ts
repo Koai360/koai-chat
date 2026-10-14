@@ -9,7 +9,7 @@ import {
   type StreamEvent,
 } from "@/lib/api";
 import type { ChatAttachment, ChatMessage, Conversation, SendCard, SendMessagePayload, ThinkingLevel } from "@/types/api";
-import { resolveThinkingLevel, type ModelMode } from "@/lib/autoThinking";
+import { MODEL_MODES, resolveNoaModel, resolveThinkingLevel, type ModelMode } from "@/lib/autoThinking";
 import {
   loadImageEngine,
   resolveImageEngine,
@@ -70,7 +70,7 @@ const MODEL_MODE_KEY = "noa.modelMode";
 function loadInitialMode(): ModelMode {
   try {
     const saved = localStorage.getItem(MODEL_MODE_KEY);
-    if (saved === "standard" || saved === "pro") return saved;
+    if (MODEL_MODES.includes(saved as ModelMode)) return saved as ModelMode;
     // Migración: usuarios viejos con "auto" guardado → standard
   } catch {
     /* noop */
@@ -437,6 +437,8 @@ export function useChat(options: UseChatOptions): UseChatReturn {
         conversation_id: convId,
         agent: "noa",
         thinking_level: resolvedLevel,
+        // S388: Argon sólo si el usuario lo eligió; Flash = default del backend.
+        model: resolveNoaModel(modelMode),
         image_engine: resolveImageEngine(imageEngine),
         // S322 — identidad del turno (el backend genera una si falta)
         turn_id: typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : undefined,

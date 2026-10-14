@@ -1,4 +1,4 @@
-import { Brain, ChevronDown, Check } from "lucide-react";
+import { Brain, ChevronDown, Check, Atom } from "lucide-react";
 import { Dropdown, DropdownItem, DropdownSeparator } from "@/components/ui/Dropdown";
 import { cn } from "@/lib/cn";
 import type { ModelMode } from "@/lib/autoThinking";
@@ -7,13 +7,15 @@ import noaIcon from "@/assets/noa-icon.png";
 /**
  * ModelPicker — selector visible arriba del chat.
  *
- * 2 modos explícitos (sin Auto):
- *   - Estándar (default) → Gemini 3.5 Pro thinking=medium, ~3-6s, balance
- *   - Pro                → Gemini 3.5 Pro thinking=high, análisis profundo
+ * 3 modos explícitos (sin Auto):
+ *   - Estándar (default) → Gemini Flash thinking=medium, ~3-6s, balance
+ *   - Pro                → Gemini Flash thinking=high, análisis profundo
+ *   - Argon (S388)       → Gemini 4 Argon thinking=medium, prueba con uso real
  *
  * Visual TopBar:
  *   - Estándar:       "Noa ⌄"                  (limpio, sin sufijo)
  *   - Pro:            "Noa · Pro ⌄"            ("Pro" en verde neon)
+ *   - Argon:          "Noa · Argon ⌄"
  */
 
 interface ModeOption {
@@ -38,6 +40,15 @@ const OPTIONS: ModeOption[] = [
     shortLabel: "Pro",
     description: "Análisis profundos",
     icon: <Brain className="size-4 text-[var(--color-noa)]" />,
+  },
+  {
+    // S388: Gemini 4 Argon en prueba con uso real (misma profundidad que Estándar).
+    // Cuesta 2.7x por token: elegirlo es una decisión, no el default.
+    mode: "argon",
+    label: "Argon",
+    shortLabel: "Argon",
+    description: "Gemini 4 · en prueba, más caro",
+    icon: <Atom className="size-4 text-[var(--color-noa)]" />,
   },
 ];
 

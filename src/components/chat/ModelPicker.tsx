@@ -1,4 +1,4 @@
-import { Brain, ChevronDown, Check, Atom } from "lucide-react";
+import { Brain, ChevronDown, Check, Atom, Gem } from "lucide-react";
 import { Dropdown, DropdownItem, DropdownSeparator } from "@/components/ui/Dropdown";
 import { cn } from "@/lib/cn";
 import type { ModelMode } from "@/lib/autoThinking";
@@ -7,15 +7,17 @@ import noaIcon from "@/assets/noa-icon.png";
 /**
  * ModelPicker — selector visible arriba del chat.
  *
- * 3 modos explícitos (sin Auto):
+ * 4 modos explícitos (sin Auto):
  *   - Estándar (default) → Gemini Flash thinking=medium, ~3-6s, balance
  *   - Pro                → Gemini Flash thinking=high, análisis profundo
  *   - Argon (S388)       → Gemini 4 Argon thinking=medium, prueba con uso real
+ *   - Carbon (S418)      → Gemini 4 Carbon thinking=medium, el tope de gama
  *
  * Visual TopBar:
  *   - Estándar:       "Noa ⌄"                  (limpio, sin sufijo)
  *   - Pro:            "Noa · Pro ⌄"            ("Pro" en verde neon)
  *   - Argon:          "Noa · Argon ⌄"
+ *   - Carbon:         "Noa · Carbon ⌄"
  */
 
 interface ModeOption {
@@ -49,6 +51,14 @@ const OPTIONS: ModeOption[] = [
     shortLabel: "Argon",
     description: "Gemini 4 · en prueba, más caro",
     icon: <Atom className="size-4 text-[var(--color-noa)]" />,
+  },
+  {
+    // S418: Gemini 4 Carbon, el modelo más capaz de Google. Mismo precio que Argon.
+    mode: "carbon",
+    label: "Carbon",
+    shortLabel: "Carbon",
+    description: "Gemini 4 · el más capaz, más caro",
+    icon: <Gem className="size-4 text-[var(--color-noa)]" />,
   },
 ];
 

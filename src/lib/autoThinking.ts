@@ -1,18 +1,19 @@
 import type { ThinkingLevel } from "@/types/api";
 
 /**
- * Modos del ModelPicker — solo dos opciones explícitas, sin auto.
+ * Modos del ModelPicker (sin auto).
  *
- *   standard → Gemini 3.5 Pro thinking=medium — balance ~3-6s, robusto
- *   pro      → Gemini 3.5 Pro thinking=high   — análisis profundo ~8-20s
+ *   standard → modelo por defecto del backend (hoy Gemini 4 Hydrogen), thinking=medium
+ *   pro      → el mismo modelo por defecto, thinking=high — análisis profundo
+ *   neon     → Gemini 4 Neon (19-nov-2026), thinking=medium
+ *   argon    → Gemini 4 Argon (S388), thinking=medium
+ *   carbon   → Gemini 4 Carbon (S418), thinking=medium
  *
- * Flash (thinking_level=low) se removió del UI: en mensajes largos/complejos
- * a veces emitía respuestas vacías. Pro medium es más confiable como default
- * aunque pierde el "instant" del chitchat.
+ * El modelo por defecto lo decide el backend (`KOAI_NOA_MODEL`): la app no lo nombra.
  */
-export type ModelMode = "standard" | "pro" | "argon" | "carbon";
+export type ModelMode = "standard" | "pro" | "neon" | "argon" | "carbon";
 
-export const MODEL_MODES: readonly ModelMode[] = ["standard", "pro", "argon", "carbon"];
+export const MODEL_MODES: readonly ModelMode[] = ["standard", "pro", "neon", "argon", "carbon"];
 
 export function resolveThinkingLevel(mode: ModelMode): ThinkingLevel {
   switch (mode) {
@@ -20,22 +21,23 @@ export function resolveThinkingLevel(mode: ModelMode): ThinkingLevel {
       return "medium";
     case "pro":
       return "high";
+    case "neon":
     case "argon":
-      // S388: Gemini 4 Argon, prueba con uso real. Mismo nivel que Estándar para
-      // comparar modelo contra modelo, no razonamiento contra razonamiento.
-      return "medium";
     case "carbon":
-      // S418: Gemini 4 Carbon (el tope de gama). Mismo nivel que Estándar y Argon,
-      // por la misma razón: se compara el modelo.
+      // Los Gemini 4 elegibles van al mismo nivel que Estándar: se compara el modelo,
+      // no el razonamiento (S388, S418; Neon desde el 19-nov-2026).
       return "medium";
   }
 }
 
+/** Modos que piden un Gemini 4 explícito en el payload. */
+type ExplicitNoaModel = "neon" | "argon" | "carbon";
+
 /**
- * Modelo de Noa para el payload (S388). Sólo los Gemini 4 ("argon", "carbon") viajan
- * explícitos; en los modos Flash se manda `undefined` y el backend aplica su default
- * (una sola fuente de verdad, igual que el motor de imagen "auto").
+ * Modelo de Noa para el payload (S388). Sólo los Gemini 4 elegibles viajan explícitos;
+ * en Estándar y Pro se manda `undefined` y el backend aplica su default (una sola fuente
+ * de verdad, igual que el motor de imagen "auto").
  */
-export function resolveNoaModel(mode: ModelMode): "argon" | "carbon" | undefined {
-  return mode === "argon" || mode === "carbon" ? mode : undefined;
+export function resolveNoaModel(mode: ModelMode): ExplicitNoaModel | undefined {
+  return mode === "neon" || mode === "argon" || mode === "carbon" ? mode : undefined;
 }

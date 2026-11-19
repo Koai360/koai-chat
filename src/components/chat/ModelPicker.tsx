@@ -1,4 +1,4 @@
-import { Brain, ChevronDown, Check, Atom, Gem } from "lucide-react";
+import { Brain, ChevronDown, Check, Atom, Gem, Zap } from "lucide-react";
 import { Dropdown, DropdownItem, DropdownSeparator } from "@/components/ui/Dropdown";
 import { cn } from "@/lib/cn";
 import type { ModelMode } from "@/lib/autoThinking";
@@ -7,15 +7,17 @@ import noaIcon from "@/assets/noa-icon.png";
 /**
  * ModelPicker — selector visible arriba del chat.
  *
- * 4 modos explícitos (sin Auto):
- *   - Estándar (default) → Gemini Flash thinking=medium, ~3-6s, balance
- *   - Pro                → Gemini Flash thinking=high, análisis profundo
+ * 5 modos explícitos (sin Auto):
+ *   - Estándar (default) → modelo por defecto del backend (hoy Gemini 4 Hydrogen) thinking=medium
+ *   - Pro                → el mismo modelo por defecto, thinking=high, análisis profundo
+ *   - Neon (19-nov-2026) → Gemini 4 Neon thinking=medium, razona a fondo y rápido
  *   - Argon (S388)       → Gemini 4 Argon thinking=medium, prueba con uso real
  *   - Carbon (S418)      → Gemini 4 Carbon thinking=medium, el tope de gama
  *
  * Visual TopBar:
  *   - Estándar:       "Noa ⌄"                  (limpio, sin sufijo)
  *   - Pro:            "Noa · Pro ⌄"            ("Pro" en verde neon)
+ *   - Neon:           "Noa · Neon ⌄"
  *   - Argon:          "Noa · Argon ⌄"
  *   - Carbon:         "Noa · Carbon ⌄"
  */
@@ -42,6 +44,15 @@ const OPTIONS: ModeOption[] = [
     shortLabel: "Pro",
     description: "Análisis profundos",
     icon: <Brain className="size-4 text-[var(--color-noa)]" />,
+  },
+  {
+    // 19-nov-2026: Gemini 4 Neon (GA 18-nov), entre Hydrogen y Carbon: calidad cercana a Carbon,
+    // más rápido. $3/$15 MTok: más caro que el default, más barato que Carbon/Argon desde el 1-dic.
+    mode: "neon",
+    label: "Neon",
+    shortLabel: "Neon",
+    description: "Gemini 4 · razona a fondo, más rápido que Carbon",
+    icon: <Zap className="size-4 text-[var(--color-noa)]" />,
   },
   {
     // S388: Gemini 4 Argon en prueba con uso real (misma profundidad que Estándar).

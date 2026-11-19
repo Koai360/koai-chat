@@ -18,8 +18,14 @@ export function Dropdown({ trigger, children, align = "end", side = "bottom" }: 
           align={align}
           side={side}
           sideOffset={8}
+          collisionPadding={8}
           className={cn(
             "z-50 min-w-[200px] p-1.5 rounded-xl",
+            // 19-nov-2026 (review Codex): en pantallas bajas (móvil apaisado) el menú más largo
+            // dejaba opciones fuera de vista sin forma de llegar → tope = alto disponible + scroll.
+            "max-h-[var(--radix-dropdown-menu-content-available-height)] overflow-y-auto overscroll-contain",
+            // y en pantallas angostas (320 px) el ancho tampoco pasa del disponible: el texto salta de línea.
+            "max-w-[var(--radix-dropdown-menu-content-available-width)]",
             "bg-[var(--color-bg-overlay)] border border-[var(--color-border-hi)]",
             "shadow-[0_20px_60px_rgba(0,0,0,0.55)]",
             "backdrop-blur-xl",

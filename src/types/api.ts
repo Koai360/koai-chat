@@ -102,8 +102,8 @@ export interface SendMessagePayload {
   workspace_id?: string;
   agent?: string;
   thinking_level?: ThinkingLevel;
-  /** S388: "argon" = Gemini 4 Argon para este turno (S418: "carbon" = Gemini 4 Carbon); ausente = default del backend (Flash). */
-  model?: "flash" | "argon" | "carbon";
+  /** Gemini 4 elegido para este turno: "neon" (19-nov-2026), "argon" (S388) o "carbon" (S418); ausente = default del backend (hoy Gemini 4 Hydrogen). */
+  model?: "flash" | "neon" | "argon" | "carbon";
   image_base64?: string;
   image_mode?: boolean;
   image_engine?: string;
